@@ -101,11 +101,11 @@ func (d *ModDeps) TypeDefs(ctx context.Context) ([]*TypeDef, error) {
 func schemaIntrospectionJSON(ctx context.Context, dag *dagql.Server) (json.RawMessage, error) {
 	data, err := dag.Query(ctx, introspection.Query, nil)
 	if err != nil {
-		return nil, fmt.Errorf("introspection query failed: %w", err)
+		return nil, fmt.Errorf("11112222 introspection query failed: %w", err)
 	}
 	jsonBytes, err := json.Marshal(data)
 	if err != nil {
-		return nil, fmt.Errorf("failed to marshal introspection result: %w", err)
+		return nil, fmt.Errorf("11113333 failed to marshal introspection result: %w", err)
 	}
 	return json.RawMessage(jsonBytes), nil
 }
@@ -150,6 +150,7 @@ func (d *ModDeps) lazilyLoadSchema(ctx context.Context) (
 
 	var objects []*ModuleObjectType
 	var ifaces []*InterfaceType
+
 	for _, mod := range d.Mods {
 		err := mod.Install(ctx, dag)
 		if err != nil {

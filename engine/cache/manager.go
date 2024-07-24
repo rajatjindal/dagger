@@ -443,6 +443,7 @@ func (m *manager) ID() string {
 }
 
 func (m *manager) Query(inp []solver.CacheKeyWithSelector, inputIndex solver.Index, dgst digest.Digest, outputIndex solver.Index) ([]*solver.CacheKey, error) {
+	return nil, fmt.Errorf("inside manager query")
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	return m.inner.Query(inp, inputIndex, dgst, outputIndex)

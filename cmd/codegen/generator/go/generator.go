@@ -74,6 +74,7 @@ func (g *GoGenerator) Generate(ctx context.Context, schema *introspection.Schema
 		PostCommands: []*exec.Cmd{
 			// run 'go mod tidy' after generating to fix and prune dependencies
 			exec.Command("go", "mod", "tidy"),
+			exec.Command("cat", "dagger.gen.go"),
 		},
 	}
 	if _, err := os.Stat(filepath.Join(g.Config.OutputDir, "go.work")); err == nil {

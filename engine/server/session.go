@@ -842,12 +842,18 @@ func (srv *Server) serveSessionAttachables(w http.ResponseWriter, r *http.Reques
 func (srv *Server) serveQuery(w http.ResponseWriter, r *http.Request, client *daggerClient) (rerr error) {
 	ctx := r.Context()
 
+	deps := []string{}
+	for _, d := range client.deps.Mods {
+		deps = append(deps, d.Name())
+	}
+
 	// get the schema we're gonna serve to this client based on which modules they have loaded, if any
 	schema, err := client.deps.Schema(ctx)
 	if err != nil {
-		return gqlErr(fmt.Errorf("failed to get schema: %w", err), http.StatusBadRequest)
+		return gqlErr(fmt.Errorf("failed to get MY BLOODY schema: %w. %#v", err, deps), http.StatusBadRequest)
 	}
 
+	// return gqlErr(fmt.Errorf("WHAT"), http.StatusBadRequest)
 	gqlSrv := handler.NewDefaultServer(schema)
 	// NB: break glass when needed:
 	// gqlSrv.AroundResponses(func(ctx context.Context, next graphql.ResponseHandler) *graphql.Response {

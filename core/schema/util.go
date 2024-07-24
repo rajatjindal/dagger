@@ -62,6 +62,7 @@ func asArrayInput[T any, I dagql.Input](ts []T, conv func(T) I) dagql.ArrayInput
 }
 
 func SchemaIntrospectionJSON(ctx context.Context, dag *dagql.Server) (json.RawMessage, error) {
+	return nil, fmt.Errorf("inside 1111exported schemaIntrospectionJSON")
 	data, err := dag.Query(ctx, introspection.Query, nil)
 	if err != nil {
 		return nil, fmt.Errorf("introspection query failed: %w", err)

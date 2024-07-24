@@ -1249,7 +1249,7 @@ func getDefaultValue[T any](r *modFunctionArg) (T, error) {
 
 // gqlObjectName converts casing to a GraphQL object  name
 func gqlObjectName(name string) string {
-	return strcase.ToCamel(name)
+	return name
 }
 
 // gqlFieldName converts casing to a GraphQL object field name

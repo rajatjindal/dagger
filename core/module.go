@@ -179,6 +179,7 @@ func (mod *Module) Initialize(ctx context.Context, oldID *call.ID, newID *call.I
 }
 
 func (mod *Module) Install(ctx context.Context, dag *dagql.Server) error {
+	// return fmt.Errorf("install module %s", mod.Name())
 	slog.ExtraDebug("installing module", "name", mod.Name())
 	start := time.Now()
 	defer func() { slog.ExtraDebug("done installing module", "name", mod.Name(), "took", time.Since(start)) }()

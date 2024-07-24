@@ -365,9 +365,10 @@ func (s *Server) ExecOp(ctx context.Context, gqlOp *graphql.OperationContext) (m
 		var err error
 		gqlOp.Doc, err = parser.ParseQuery(&ast.Source{Input: gqlOp.RawQuery})
 		if err != nil {
-			return nil, gqlErrs(err)
+			return nil, gqlErrs(fmt.Errorf("INSIDE PARSE QUERY %#v", err))
 		}
 	}
+
 	results := make(map[string]any)
 	for _, op := range gqlOp.Doc.Operations {
 		switch op.Operation {
@@ -375,6 +376,7 @@ func (s *Server) ExecOp(ctx context.Context, gqlOp *graphql.OperationContext) (m
 			if gqlOp.OperationName != "" && gqlOp.OperationName != op.Name {
 				continue
 			}
+
 			sels, err := s.parseASTSelections(ctx, gqlOp, s.root.Type(), op.SelectionSet)
 			if err != nil {
 				return nil, fmt.Errorf("query:\n%s\n\nerror: parse selections: %w", gqlOp.RawQuery, err)
@@ -726,7 +728,6 @@ func (s *Server) toSelectable(chainedID *call.ID, val Typed) (Object, error) {
 
 func (s *Server) parseASTSelections(ctx context.Context, gqlOp *graphql.OperationContext, self *ast.Type, astSels ast.SelectionSet) ([]Selection, error) {
 	vars := gqlOp.Variables
-
 	class := s.objects[self.Name()]
 	if class == nil {
 		return nil, fmt.Errorf("parseASTSelections: not an Object type: %q", self.Name())
@@ -738,7 +739,7 @@ func (s *Server) parseASTSelections(ctx context.Context, gqlOp *graphql.Operatio
 		case *ast.Field:
 			sel, resType, err := class.ParseField(ctx, s.View, x, vars)
 			if err != nil {
-				return nil, fmt.Errorf("parse field %q: %w", x.Name, err)
+				return nil, fmt.Errorf("parse field %#v: %w", x, err)
 			}
 			var subsels []Selection
 			if len(x.SelectionSet) > 0 {

@@ -94,6 +94,7 @@ func (funcs goTemplateFuncs) moduleMainSrc() (string, error) { //nolint: gocyclo
 	})
 
 	tps := []types.Type{}
+	names := []string{}
 	for _, obj := range ps.objs {
 		// ignore any private definitions, they may be part of the runtime itself
 		// e.g. marshalCtx
@@ -112,9 +113,14 @@ func (funcs goTemplateFuncs) moduleMainSrc() (string, error) { //nolint: gocyclo
 		}
 
 		if ps.checkMainModuleObject(obj) || ps.isDaggerGenerated(obj) {
+			names = append(names, obj.Name())
 			tps = append(tps, obj.Type())
 		}
 	}
+
+	// if true {
+	// 	return "", fmt.Errorf("names are %#v", names)
+	// }
 
 	if ps.daggerObjectIfaceType == nil {
 		return "", fmt.Errorf("cannot find default codegen %s interface", daggerObjectIfaceName)
@@ -743,7 +749,7 @@ type parseState struct {
 }
 
 func (ps *parseState) isMainModuleObject(name string) bool {
-	return strcase.ToCamel(ps.moduleName) == strcase.ToCamel(name)
+	return strcase.ToCamel(ps.moduleName) == name
 }
 
 // pkgDoc returns the package level documentation comment, if any,
