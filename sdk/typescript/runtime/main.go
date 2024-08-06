@@ -9,7 +9,7 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/iancoleman/strcase"
+	"github.com/ettle/strcase"
 	"github.com/tidwall/gjson"
 )
 

@@ -6,7 +6,7 @@ import (
 
 	"elixir-sdk/internal/dagger"
 
-	"github.com/iancoleman/strcase"
+	"github.com/ettle/strcase"
 )
 
 const (

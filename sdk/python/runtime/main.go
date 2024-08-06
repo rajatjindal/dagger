@@ -10,7 +10,7 @@ import (
 	"python-sdk/internal/dagger"
 	"strings"
 
-	"github.com/iancoleman/strcase"
+	"github.com/ettle/strcase"
 )
 
 const (
