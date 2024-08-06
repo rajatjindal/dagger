@@ -6,7 +6,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/iancoleman/strcase"
+	"github.com/dagger/dagger/dagql/strcase"
 
 	"github.com/dagger/dagger/cmd/codegen/generator"
 	"github.com/dagger/dagger/cmd/codegen/introspection"

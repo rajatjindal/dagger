@@ -11,7 +11,7 @@ import (
 	"sync"
 
 	"github.com/99designs/gqlgen/graphql"
-	"github.com/iancoleman/strcase"
+	"github.com/dagger/dagger/dagql/strcase"
 	"github.com/opencontainers/go-digest"
 	"github.com/sourcegraph/conc/pool"
 	"github.com/vektah/gqlparser/v2/ast"

@@ -16,8 +16,8 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/dagger/dagger/dagql/strcase"
 	"github.com/dschmidt/go-layerfs"
-	"github.com/iancoleman/strcase"
 	"github.com/psanford/memfs"
 	"golang.org/x/mod/modfile"
 	"golang.org/x/mod/semver"

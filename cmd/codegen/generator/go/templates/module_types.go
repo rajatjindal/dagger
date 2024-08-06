@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"go/types"
 
+	"github.com/dagger/dagger/dagql/strcase"
 	. "github.com/dave/jennifer/jen" //nolint:stylecheck
-	"github.com/iancoleman/strcase"
 )
 
 // A Go type that has been parsed and can be registered with the dagger API

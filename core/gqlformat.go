@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/iancoleman/strcase"
+	"github.com/dagger/dagger/dagql/strcase"
 )
 
 /*

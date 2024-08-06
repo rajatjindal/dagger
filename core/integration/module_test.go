@@ -16,7 +16,7 @@ import (
 	"time"
 
 	"github.com/MakeNowJust/heredoc/v2"
-	"github.com/iancoleman/strcase"
+	"github.com/dagger/dagger/dagql/strcase"
 	"github.com/moby/buildkit/identity"
 	"github.com/stretchr/testify/require"
 	"github.com/tidwall/gjson"

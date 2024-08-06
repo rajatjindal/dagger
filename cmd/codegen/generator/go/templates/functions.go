@@ -9,7 +9,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/iancoleman/strcase"
+	"github.com/dagger/dagger/dagql/strcase"
 	"golang.org/x/tools/go/packages"
 
 	"github.com/dagger/dagger/cmd/codegen/generator"

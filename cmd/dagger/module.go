@@ -14,8 +14,8 @@ import (
 	"slices"
 	"strings"
 
+	"github.com/dagger/dagger/dagql/strcase"
 	"github.com/go-git/go-git/v5"
-	"github.com/iancoleman/strcase"
 	"github.com/moby/buildkit/util/gitutil"
 	"github.com/spf13/cobra"
 	"github.com/spf13/pflag"

@@ -6,8 +6,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/dagger/dagger/dagql/strcase"
 	. "github.com/dave/jennifer/jen" //nolint:stylecheck
-	"github.com/iancoleman/strcase"
 )
 
 func (ps *parseState) parseGoIface(t *types.Interface, named *types.Named) (*parsedIfaceType, error) {

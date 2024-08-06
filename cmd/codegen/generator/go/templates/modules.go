@@ -13,8 +13,8 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/dagger/dagger/dagql/strcase"
 	. "github.com/dave/jennifer/jen" //nolint:stylecheck
-	"github.com/iancoleman/strcase"
 	"golang.org/x/tools/go/packages"
 )
 
