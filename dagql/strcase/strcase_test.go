@@ -55,8 +55,8 @@ func TestToCamel(t *testing.T) {
 		input    string
 		expected string
 	}{
-		{input: "introspectionJson", expected: "introspectionJson"},
-		{input: "introspectionJSON", expected: "introspectionJson"},
+		{input: "introspectionJson", expected: "introspectionJSON"},
+		{input: "introspectionJSON", expected: "introspectionJSON"},
 		{input: "a-string", expected: "aString"},
 		{input: "AString", expected: "aString"},
 		{input: "hello world", expected: "helloWorld"},
