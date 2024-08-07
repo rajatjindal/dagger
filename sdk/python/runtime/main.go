@@ -10,7 +10,6 @@ import (
 	"python-sdk/internal/dagger"
 	"strings"
 
-	"dagger.io/dagger/dag"
 	"github.com/ettle/strcase"
 )
 

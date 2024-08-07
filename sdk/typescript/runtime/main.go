@@ -9,7 +9,6 @@ import (
 	"slices"
 	"strings"
 
-	"dagger.io/dagger/dag"
 	"github.com/ettle/strcase"
 	"github.com/tidwall/gjson"
 )
