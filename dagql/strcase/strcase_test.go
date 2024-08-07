@@ -25,7 +25,7 @@ func TestToPascal(t *testing.T) {
 		{input: "hello_world", expected: "HelloWorld"},
 		{input: "hello.world", expected: "HelloWorld"},
 		{input: "hello&world", expected: "Hello&world"},
-		{input: "hello2world", expected: "Hello2world"},
+		{input: "hello2world", expected: "Hello2World"},
 		{input: "2024 year", expected: "2024Year"},
 		{input: "this is 4 you", expected: "ThisIs4You"},
 		{input: "héllo wörld", expected: "HélloWörld"},
@@ -55,11 +55,13 @@ func TestToCamel(t *testing.T) {
 		input    string
 		expected string
 	}{
+		{input: "introspectionJson", expected: "introspectionJson"},
+		{input: "introspectionJSON", expected: "introspectionJson"},
 		{input: "a-string", expected: "aString"},
 		{input: "AString", expected: "aString"},
 		{input: "hello world", expected: "helloWorld"},
 		{input: "this is a test", expected: "thisIsATest"},
-		{input: "ToPascalCase function", expected: "toCamelCaseFunction"},
+		{input: "ToCamelCase function", expected: "toCamelCaseFunction"},
 		{input: "word", expected: "word"},
 		{input: "Word", expected: "word"},
 		{input: "WORD", expected: "word"},
@@ -69,7 +71,7 @@ func TestToCamel(t *testing.T) {
 		{input: "hello_world", expected: "helloWorld"},
 		{input: "hello.world", expected: "helloWorld"},
 		{input: "hello&world", expected: "hello&world"},
-		{input: "hello2world", expected: "hello2world"},
+		{input: "hello2world", expected: "hello2World"},
 		{input: "2024 year", expected: "2024Year"},
 		{input: "this is 4 you", expected: "thisIs4You"},
 		{input: "héllo wörld", expected: "hélloWörld"},
@@ -89,6 +91,25 @@ func TestToCamel(t *testing.T) {
 	for _, tc := range testcases {
 		t.Run(tc.input, func(t *testing.T) {
 			output := ToCamel(tc.input)
+			require.Equal(t, tc.expected, output, "input: %q", tc.input)
+		})
+	}
+}
+
+func TestToKebab(t *testing.T) {
+	testcases := []struct {
+		input    string
+		expected string
+	}{
+		{
+			input:    "Potato20",
+			expected: "potato-20",
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.input, func(t *testing.T) {
+			output := ToKebab(tc.input)
 			require.Equal(t, tc.expected, output, "input: %q", tc.input)
 		})
 	}

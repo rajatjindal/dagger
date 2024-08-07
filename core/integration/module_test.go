@@ -2870,6 +2870,7 @@ class Foo {
 				With(sdkSource(tc.sdk, tc.source))
 
 			out, err := modGen.With(daggerQuery(`{foo{sayHello(name: "world"){id}}}`)).Stdout(ctx)
+			// fmt.Println("foo -> ", out)
 			require.NoError(t, err)
 			id := gjson.Get(out, "foo.sayHello.id").String()
 			var idp call.ID
@@ -4708,14 +4709,14 @@ func (ModuleSuite) TestLotsOfFunctions(ctx context.Context, t *testctx.T) {
 		c := connect(ctx, t)
 
 		mainSrc := `from dagger import function
-		`
+			`
 
 		for i := 0; i < funcCount; i++ {
 			mainSrc += fmt.Sprintf(`
-@function
-def potato_%d() -> str:
-    return "potato #%d"
-`, i, i)
+	@function
+	def potato_%d() -> str:
+	    return "potato #%d"
+	`, i, i)
 		}
 
 		modGen := pythonModInit(t, c, mainSrc)
@@ -4741,19 +4742,19 @@ def potato_%d() -> str:
 		c := connect(ctx, t)
 
 		mainSrc := `
-		import { object, func } from "@dagger.io/dagger"
+			import { object, func } from "@dagger.io/dagger"
 
-@object()
-class PotatoSack {
-		`
+	@object()
+	class PotatoSack {
+			`
 
 		for i := 0; i < funcCount; i++ {
 			mainSrc += fmt.Sprintf(`
-  @func()
-  potato_%d(): string {
-    return "potato #%d"
-  }
-			`, i, i)
+	  @func()
+	  potato_%d(): string {
+	    return "potato #%d"
+	  }
+				`, i, i)
 		}
 
 		mainSrc += "\n}"
