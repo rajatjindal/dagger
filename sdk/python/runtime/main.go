@@ -8,9 +8,8 @@ import (
 	"fmt"
 	"path"
 	"python-sdk/internal/dagger"
-	"strings"
-
 	"github.com/ettle/strcase"
+	"strings"
 )
 
 const (

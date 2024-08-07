@@ -171,6 +171,10 @@ func (sdk *moduleSDK) Codegen(ctx context.Context, deps *core.ModDeps, source da
 				Name:  "introspectionJson",
 				Value: dagql.NewID[*core.File](schemaJSONFile.ID()),
 			},
+			{
+				Name:  "introspectionJSON",
+				Value: dagql.NewID[*core.File](schemaJSONFile.ID()),
+			},
 		},
 	})
 	if err != nil {
@@ -197,6 +201,10 @@ func (sdk *moduleSDK) Runtime(ctx context.Context, deps *core.ModDeps, source da
 				},
 				{
 					Name:  "introspectionJson",
+					Value: dagql.NewID[*core.File](schemaJSONFile.ID()),
+				},
+				{
+					Name:  "introspectionJSON",
 					Value: dagql.NewID[*core.File](schemaJSONFile.ID()),
 				},
 			},
