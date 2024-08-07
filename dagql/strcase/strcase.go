@@ -4,25 +4,26 @@ import (
 	"github.com/ettle/strcase"
 )
 
-func ToCamel(inp string) string {
-	return strcase.ToCamel(inp)
-}
+var overrides = map[string]bool{}
+var caser = strcase.NewCaser(false, nil, nil)
 
 func ToPascal(inp string) string {
-	return strcase.ToPascal(inp)
+	return caser.ToPascal(inp)
+}
+
+func ToCamel(inp string) string {
+	return caser.ToCamel(inp)
 }
 
 func ToKebab(inp string) string {
-	return strcase.ToKebab(inp)
+	return caser.ToKebab(inp)
 }
 
 func ToScreamingSnake(inp string) string {
-	return strcase.ToSNAKE(inp)
+	return caser.ToSNAKE(inp)
 }
 
 func ConfigureAcronym(key, val string) {
-	// for github.com/ettle/strcase, it is a noop,
-	// however keeping it here to ensure this case
-	// is handled if we change the underlying lib
-	// in future.
+	overrides[val] = true
+	caser = strcase.NewCaser(false, overrides, nil)
 }

@@ -10,6 +10,7 @@ import (
 	"python-sdk/internal/dagger"
 	"strings"
 
+	"dagger.io/dagger/dag"
 	"github.com/ettle/strcase"
 )
 
@@ -268,7 +269,7 @@ func (m *PythonSdk) WithTemplate() *PythonSdk {
 		if !d.HasFile("*.py") {
 			d.AddNewFile(
 				MainFilePath,
-				strings.ReplaceAll(tplMain, MainObjectName, strcase.ToCamel(d.ModName)),
+				strings.ReplaceAll(tplMain, MainObjectName, strcase.ToPascal(d.ModName)),
 			)
 		}
 	}

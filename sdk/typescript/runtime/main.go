@@ -9,6 +9,7 @@ import (
 	"slices"
 	"strings"
 
+	"dagger.io/dagger/dag"
 	"github.com/ettle/strcase"
 	"github.com/tidwall/gjson"
 )
@@ -258,7 +259,7 @@ func (t *TypescriptSdk) setupModule(ctx context.Context, ctr *Container, runtime
 	}) {
 		return ctr.
 			WithDirectory("src", ctr.Directory("/opt/module/template/src"), ContainerWithDirectoryOpts{Include: []string{"*.ts"}}).
-			WithExec([]string{"sed", "-i", "-e", fmt.Sprintf("s/QuickStart/%s/g", strcase.ToCamel(name)), "src/index.ts"}), nil
+			WithExec([]string{"sed", "-i", "-e", fmt.Sprintf("s/QuickStart/%s/g", strcase.ToPascal(name)), "src/index.ts"}), nil
 	}
 
 	return ctr, nil

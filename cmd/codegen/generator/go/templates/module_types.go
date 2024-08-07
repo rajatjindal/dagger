@@ -28,7 +28,7 @@ type NamedParsedType interface {
 
 func loadFromIDGQLFieldName(spec NamedParsedType) string {
 	// NOTE: unfortunately we currently need to account for namespacing here
-	return fmt.Sprintf("load%s%sFromID", strcase.ToCamel(spec.ModuleName()), spec.Name())
+	return fmt.Sprintf("load%s%sFromID", strcase.ToPascal(spec.ModuleName()), spec.Name())
 }
 
 func typeName(spec NamedParsedType) string {

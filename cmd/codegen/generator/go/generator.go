@@ -369,7 +369,7 @@ func loadPackage(ctx context.Context, dir string) (*packages.Package, *token.Fil
 }
 
 func (g *GoGenerator) baseModuleSource(pkgInfo *PackageInfo) string {
-	moduleStructName := strcase.ToCamel(g.Config.ModuleName)
+	moduleStructName := strcase.ToPascal(g.Config.ModuleName)
 
 	return fmt.Sprintf(`// A generated module for %[1]s functions
 //

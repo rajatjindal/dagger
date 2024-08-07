@@ -75,7 +75,7 @@ func SchemaIntrospectionJSON(ctx context.Context, dag *dagql.Server) (json.RawMe
 
 func gqlFieldName(name string) string {
 	// gql field name is uncapitalized camel case
-	return strcase.ToLowerCamel(name)
+	return strcase.ToCamel(name)
 }
 
 // AllVersion is a view that contains all versions.

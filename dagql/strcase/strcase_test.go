@@ -59,7 +59,7 @@ func TestToCamel(t *testing.T) {
 		{input: "AString", expected: "aString"},
 		{input: "hello world", expected: "helloWorld"},
 		{input: "this is a test", expected: "thisIsATest"},
-		{input: "ToCamelCase function", expected: "toCamelCaseFunction"},
+		{input: "ToPascalCase function", expected: "toCamelCaseFunction"},
 		{input: "word", expected: "word"},
 		{input: "Word", expected: "word"},
 		{input: "WORD", expected: "word"},

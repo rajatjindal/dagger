@@ -146,7 +146,7 @@ func formatName(s string) string {
 // Example: `fooId` -> `FooID`
 func (funcs goTemplateFuncs) formatEnum(s string) string {
 	s = strings.ToLower(s)
-	return strcase.ToCamel(s)
+	return strcase.ToPascal(s)
 }
 
 func (funcs goTemplateFuncs) sortEnumFields(s []introspection.EnumValue) []introspection.EnumValue {

@@ -919,7 +919,7 @@ func setInputObjectFields(obj any, vals map[string]any) error {
 		fieldV := objV.Elem().Field(i)
 		name := fieldT.Tag.Get("name")
 		if name == "" {
-			name = strcase.ToLowerCamel(fieldT.Name)
+			name = strcase.ToCamel(fieldT.Name)
 		}
 		if name == "-" {
 			continue
@@ -984,7 +984,7 @@ func collectLiteralArgs(obj any) ([]*call.Argument, error) {
 		fieldT := objT.Field(i)
 		name := fieldT.Tag.Get("name")
 		if name == "" {
-			name = strcase.ToLowerCamel(fieldT.Name)
+			name = strcase.ToCamel(fieldT.Name)
 		}
 		if name == "-" {
 			continue
