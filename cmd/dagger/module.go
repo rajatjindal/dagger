@@ -57,6 +57,35 @@ const (
 	defaultModuleSourceDirName = "."
 )
 
+func validateSDKFlag(sdk string) error {
+	if sdk == "" {
+		return nil
+	}
+
+	if strings.HasPrefix(sdk, "https://") {
+		return nil
+	}
+
+	for _, s := range supportedSDK {
+		if s == sdk {
+			return nil
+		}
+	}
+
+	return fmt.Errorf(invalidSDKMsg, sdk)
+}
+
+var supportedSDK = []string{"go", "typescript", "python"}
+
+const invalidSDKMsg = `The %s SDK does not exist.
+
+Available SDKs:
+- go
+- typescript
+- python
+
+You can also use a non-bundled SDK from its github URL (e.g., https://github.com/dagger/dagger/sdk/rust@main)`
+
 func init() {
 	moduleFlags.StringVarP(&moduleURL, "mod", "m", "", "Path to the module directory. Either local path or a remote git repo")
 
@@ -98,6 +127,9 @@ If --sdk is specified, the given SDK is installed in the module. You can do this
 	Example: "dagger init --sdk=python",
 	GroupID: moduleGroup.ID,
 	Args:    cobra.MaximumNArgs(1),
+	PreRunE: func(cmd *cobra.Command, extraArgs []string) error {
+		return validateSDKFlag(sdk)
+	},
 	RunE: func(cmd *cobra.Command, extraArgs []string) (rerr error) {
 		ctx := cmd.Context()
 
@@ -316,6 +348,9 @@ This command is idempotent: you can run it at any time, any number of times. It 
 5. Generate the latest client bindings for the Dagger API and installed dependencies
 `,
 	GroupID: moduleGroup.ID,
+	PreRunE: func(cmd *cobra.Command, extraArgs []string) error {
+		return validateSDKFlag(sdk)
+	},
 	RunE: func(cmd *cobra.Command, extraArgs []string) (rerr error) {
 		ctx := cmd.Context()
 		return withEngine(ctx, client.Params{}, func(ctx context.Context, engineClient *client.Client) (err error) {
