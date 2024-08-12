@@ -3,7 +3,7 @@ module main
 go 1.22
 
 require (
-	github.com/ettle/strcase v0.2.0
+	github.com/ettle/strcase v0.2.1-0.20230114185658-e5db6a6becf3
 	github.com/tidwall/gjson v1.17.1
 )
 

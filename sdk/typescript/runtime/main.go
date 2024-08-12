@@ -28,6 +28,11 @@ func init() {
 	caser = strcase.NewCaser(false, nil, splitFn)
 }
 
+// ToPascal returns words in PascalCase (capitalized words concatenated together).
+func ToPascal(inp string) string {
+	return caser.ToCase(inp, strcase.TitleCase|strcase.PreserveInitialism, '\u0000')
+}
+
 const (
 	bunVersion  = "1.1.12"
 	nodeVersion = "20" // LTS version, IRON (https://nodejs.org/en/about/previous-releases)
@@ -273,7 +278,7 @@ func (t *TypescriptSdk) setupModule(ctx context.Context, ctr *Container, runtime
 	}) {
 		return ctr.
 			WithDirectory("src", ctr.Directory("/opt/module/template/src"), ContainerWithDirectoryOpts{Include: []string{"*.ts"}}).
-			WithExec([]string{"sed", "-i", "-e", fmt.Sprintf("s/QuickStart/%s/g", caser.ToPascal(name)), "src/index.ts"}), nil
+			WithExec([]string{"sed", "-i", "-e", fmt.Sprintf("s/QuickStart/%s/g", ToPascal(name)), "src/index.ts"}), nil
 	}
 
 	return ctr, nil

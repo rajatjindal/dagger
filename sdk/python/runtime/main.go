@@ -28,6 +28,11 @@ func init() {
 	caser = strcase.NewCaser(false, nil, splitFn)
 }
 
+// ToPascal returns words in PascalCase (capitalized words concatenated together).
+func ToPascal(inp string) string {
+	return caser.ToCase(inp, strcase.TitleCase|strcase.PreserveInitialism, '\u0000')
+}
+
 const (
 	ModSourceDirPath      = "/src"
 	RuntimeExecutablePath = "/runtime"
@@ -283,7 +288,7 @@ func (m *PythonSdk) WithTemplate() *PythonSdk {
 		if !d.HasFile("*.py") {
 			d.AddNewFile(
 				MainFilePath,
-				strings.ReplaceAll(tplMain, MainObjectName, caser.ToPascal(d.ModName)),
+				strings.ReplaceAll(tplMain, MainObjectName, ToPascal(d.ModName)),
 			)
 		}
 	}
