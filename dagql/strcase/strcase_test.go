@@ -126,3 +126,71 @@ func TestToKebab(t *testing.T) {
 		})
 	}
 }
+
+func TestPreserveInitialismsDisabled(t *testing.T) {
+	testcases := []struct {
+		input          string
+		expectedPascal string
+		expectedCamel  string
+	}{
+		{
+			input:          "json",
+			expectedPascal: "Json",
+			expectedCamel:  "json",
+		},
+		{
+			input:          "Json",
+			expectedPascal: "Json",
+			expectedCamel:  "json",
+		},
+		{
+			input:          "JSON",
+			expectedPascal: "JSON",
+			expectedCamel:  "json",
+		},
+	}
+
+	for _, tc := range testcases {
+		t.Run(tc.input, func(t *testing.T) {
+			actualPascal := ToPascal(tc.input)
+			require.Equal(t, tc.expectedPascal, actualPascal, "ToPascal(%s)", tc.input)
+
+			actualCamel := ToCamel(tc.input)
+			require.Equal(t, tc.expectedCamel, actualCamel, "ToCamel(%s)", tc.input)
+		})
+	}
+
+	// Test with PreserveInitialisms enabled
+	testcases = []struct {
+		input          string
+		expectedPascal string
+		expectedCamel  string
+	}{
+		{
+			input:          "json",
+			expectedPascal: "JSON",
+			expectedCamel:  "json",
+		},
+		{
+			input:          "Json",
+			expectedPascal: "JSON",
+			expectedCamel:  "json",
+		},
+		{
+			input:          "JSON",
+			expectedPascal: "JSON",
+			expectedCamel:  "json",
+		},
+	}
+
+	// ConfigureAcronyms("JSON")
+	for _, tc := range testcases {
+		t.Run(tc.input, func(t *testing.T) {
+			actualPascal := ToPascal(tc.input)
+			require.Equal(t, tc.expectedPascal, actualPascal, "ToPascal(%s)", tc.input)
+
+			actualCamel := ToCamel(tc.input)
+			require.Equal(t, tc.expectedCamel, actualCamel, "ToCamel(%s)", tc.input)
+		})
+	}
+}

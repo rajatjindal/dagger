@@ -4,10 +4,10 @@ import (
 	"github.com/ettle/strcase"
 )
 
-var caser *strcase.Caser
+var activeCaser *strcase.Caser
 
 func init() {
-	caser = newCaser()
+	activeCaser = newCaser()
 }
 
 func newCaser() *strcase.Caser {
@@ -25,20 +25,20 @@ func newCaser() *strcase.Caser {
 
 // ToPascal returns words in PascalCase (capitalized words concatenated together).
 func ToPascal(inp string) string {
-	return caser.ToCase(inp, strcase.TitleCase|strcase.PreserveInitialism, '\u0000')
+	return activeCaser.ToCase(inp, strcase.TitleCase|strcase.PreserveInitialism, '\u0000')
 }
 
 // ToCamel returns words in camelCase (capitalized words concatenated together, with first word lower case).
 func ToCamel(inp string) string {
-	return caser.ToCase(inp, strcase.CamelCase|strcase.PreserveInitialism, '\u0000')
+	return activeCaser.ToCamel(inp)
 }
 
 // ToKebab returns words in kebab-case (lower case words with dashes).
 func ToKebab(inp string) string {
-	return caser.ToKebab(inp)
+	return activeCaser.ToKebab(inp)
 }
 
 // ToScreamingSnake returns words in SNAKE_CASE (upper case words with underscores).
 func ToScreamingSnake(inp string) string {
-	return caser.ToSNAKE(inp)
+	return activeCaser.ToSNAKE(inp)
 }
