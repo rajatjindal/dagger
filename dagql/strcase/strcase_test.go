@@ -11,6 +11,8 @@ func TestToPascal(t *testing.T) {
 		input    string
 		expected string
 	}{
+		{input: "introspectionJson", expected: "IntrospectionJson"},
+		{input: "introspectionJSON", expected: "IntrospectionJSON"},
 		{input: "a-string", expected: "AString"},
 		{input: "AString", expected: "AString"},
 		{input: "hello world", expected: "HelloWorld"},
@@ -18,7 +20,7 @@ func TestToPascal(t *testing.T) {
 		{input: "ToPascal Function", expected: "ToPascalFunction"},
 		{input: "word", expected: "Word"},
 		{input: "Word", expected: "Word"},
-		{input: "WORD", expected: "Word"},
+		{input: "WORD", expected: "WORD"},
 		{input: " hello world ", expected: "HelloWorld"},
 		{input: "   multiple   spaces  ", expected: "MultipleSpaces"},
 		{input: "hello-world", expected: "HelloWorld"},
@@ -56,7 +58,7 @@ func TestToCamel(t *testing.T) {
 		expected string
 	}{
 		{input: "introspectionJson", expected: "introspectionJson"},
-		{input: "introspectionJSON", expected: "introspectionJson"},
+		{input: "introspectionJSON", expected: "introspectionJSON"},
 		{input: "a-string", expected: "aString"},
 		{input: "AString", expected: "aString"},
 		{input: "hello world", expected: "helloWorld"},
@@ -117,12 +119,4 @@ func TestToKebab(t *testing.T) {
 			require.Equal(t, tc.expected, output, "input: %q", tc.input)
 		})
 	}
-}
-
-func TestAcronymOverrides(t *testing.T) {
-	input := "json"
-	require.Equal(t, "json", ToKebab(input))
-
-	ConfigureAcronym("JSON")
-	require.Equal(t, "JSON", ToKebab(input))
 }

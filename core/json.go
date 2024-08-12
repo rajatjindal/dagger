@@ -8,14 +8,9 @@ import (
 
 	"github.com/dagger/dagger/dagql"
 	"github.com/dagger/dagger/dagql/call"
-	"github.com/dagger/dagger/dagql/strcase"
 )
 
 type JSON json.RawMessage
-
-func init() {
-	strcase.ConfigureAcronym("JSON")
-}
 
 func (p JSON) Bytes() []byte {
 	return p
