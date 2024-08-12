@@ -12,6 +12,9 @@ func TestToPascal(t *testing.T) {
 		expected string
 	}{
 		{input: "introspectionJson", expected: "IntrospectionJson"},
+		{input: "introspection-json", expected: "IntrospectionJson"},
+		{input: "introspection-Json", expected: "IntrospectionJson"},
+		{input: "introspection-JSON", expected: "IntrospectionJSON"},
 		{input: "introspectionJSON", expected: "IntrospectionJSON"},
 		{input: "a-string", expected: "AString"},
 		{input: "AString", expected: "AString"},
@@ -58,6 +61,9 @@ func TestToCamel(t *testing.T) {
 		expected string
 	}{
 		{input: "introspectionJson", expected: "introspectionJson"},
+		{input: "introspection-json", expected: "introspectionJson"},
+		{input: "introspection-Json", expected: "introspectionJson"},
+		{input: "introspection-JSON", expected: "introspectionJSON"},
 		{input: "introspectionJSON", expected: "introspectionJSON"},
 		{input: "a-string", expected: "aString"},
 		{input: "AString", expected: "aString"},
