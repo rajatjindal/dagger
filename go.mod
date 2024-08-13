@@ -262,6 +262,7 @@ require (
 require (
 	dagger.io/dagger v0.12.4
 	github.com/dagger/dagger/engine/distconsts v0.12.4
+	github.com/ettle/strcase v0.2.1-0.20230114185658-e5db6a6becf3
 )
 
 replace (
