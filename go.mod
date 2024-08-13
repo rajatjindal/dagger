@@ -37,7 +37,6 @@ require (
 	github.com/google/go-github/v59 v59.0.0
 	github.com/google/uuid v1.6.0
 	github.com/goproxy/goproxy v0.17.0
-	github.com/iancoleman/strcase v0.3.0
 	github.com/jackpal/gateway v1.0.15
 	github.com/juju/ansiterm v1.0.0
 	github.com/klauspost/compress v1.17.9
@@ -168,6 +167,7 @@ require (
 	github.com/dustin/go-humanize v1.0.1 // indirect
 	github.com/emirpasic/gods v1.18.1 // indirect
 	github.com/erikgeiser/coninput v0.0.0-20211004153227-1c3628e74d0f // indirect
+	github.com/ettle/strcase v0.2.1-0.20230114185658-e5db6a6becf3 // indirect
 	github.com/felixge/fgprof v0.9.3 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/go-git/gcfg v1.5.1-0.20230307220236-3a3c6141e376 // indirect
@@ -274,9 +274,15 @@ require (
 require (
 	dagger.io/dagger v0.12.7
 	github.com/dagger/dagger/engine/distconsts v0.12.7
+	github.com/dagger/dagger/core/compat v0.0.0-00010101000000-000000000000
+	github.com/dagger/dagger/engine/strcase v0.0.0-00010101000000-000000000000
 )
+
+require github.com/iancoleman/strcase v0.3.0 // indirect
 
 replace (
 	dagger.io/dagger => ./sdk/go
+	github.com/dagger/dagger/core/compat => ./core/compat
 	github.com/dagger/dagger/engine/distconsts => ./engine/distconsts
+	github.com/dagger/dagger/engine/strcase => ./engine/strcase
 )
