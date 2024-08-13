@@ -16,6 +16,7 @@ import (
 	"go.opentelemetry.io/otel/propagation"
 
 	"github.com/dagger/dagger/analytics"
+	"github.com/dagger/dagger/core/compat"
 	"github.com/dagger/dagger/dagql"
 	"github.com/dagger/dagger/dagql/call"
 	"github.com/dagger/dagger/engine/buildkit"
@@ -63,7 +64,7 @@ func newModFunction(
 		if !ok {
 			return nil, fmt.Errorf("failed to find mod type for function %q arg %q type", metadata.Name, argMetadata.Name)
 		}
-		argTypes[argMetadata.Name] = &UserModFunctionArg{
+		argTypes[gqlArgName(ctx, argMetadata.Name)] = &UserModFunctionArg{
 			metadata: argMetadata,
 			modType:  argModType,
 		}
@@ -124,10 +125,10 @@ func (fn *ModuleFunction) setCallInputs(ctx context.Context, opts *CallOpts) ([]
 	hasArg := map[string]bool{}
 
 	for i, input := range opts.Inputs {
-		normalizedName := gqlArgName(input.Name)
+		normalizedName := input.Name
 		arg, ok := fn.args[normalizedName]
 		if !ok {
-			return nil, fmt.Errorf("failed to find arg %q", input.Name)
+			return nil, fmt.Errorf("failed to find arg %q\n, normalized %q\n, . all %#v\n. strcase -> %T\nmod: %#v", input.Name, normalizedName, fn.args, compat.Strcase(ctx), fn.mod.Source.Self.ModuleEngineVersion)
 		}
 
 		name := arg.metadata.OriginalName
@@ -355,8 +356,8 @@ func (fn *ModuleFunction) ReturnType() (ModType, error) {
 	return fn.returnType, nil
 }
 
-func (fn *ModuleFunction) ArgType(argName string) (ModType, error) {
-	arg, ok := fn.args[gqlArgName(argName)]
+func (fn *ModuleFunction) ArgType(ctx context.Context, argName string) (ModType, error) {
+	arg, ok := fn.args[argName]
 	if !ok {
 		return nil, fmt.Errorf("failed to find arg %q", argName)
 	}
