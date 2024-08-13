@@ -10,6 +10,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/dagger/dagger/core"
+	"github.com/dagger/dagger/core/compat"
 	"github.com/dagger/dagger/core/modules"
 	"github.com/dagger/dagger/dagql"
 	"github.com/dagger/dagger/engine"
@@ -344,7 +345,7 @@ func (s *moduleSchema) typeDefWithScalar(ctx context.Context, def *core.TypeDef,
 	if args.Name == "" {
 		return nil, fmt.Errorf("scalar type def must have a name")
 	}
-	return def.WithScalar(args.Name, args.Description), nil
+	return def.WithScalar(ctx, args.Name, args.Description), nil
 }
 
 func (s *moduleSchema) typeDefWithListOf(ctx context.Context, def *core.TypeDef, args struct {
@@ -364,14 +365,14 @@ func (s *moduleSchema) typeDefWithObject(ctx context.Context, def *core.TypeDef,
 	if args.Name == "" {
 		return nil, fmt.Errorf("object type def must have a name")
 	}
-	return def.WithObject(args.Name, args.Description), nil
+	return def.WithObject(ctx, args.Name, args.Description), nil
 }
 
 func (s *moduleSchema) typeDefWithInterface(ctx context.Context, def *core.TypeDef, args struct {
 	Name        string
 	Description string `default:""`
 }) (*core.TypeDef, error) {
-	return def.WithInterface(args.Name, args.Description), nil
+	return def.WithInterface(ctx, args.Name, args.Description), nil
 }
 
 func (s *moduleSchema) typeDefWithObjectField(ctx context.Context, def *core.TypeDef, args struct {
@@ -383,7 +384,7 @@ func (s *moduleSchema) typeDefWithObjectField(ctx context.Context, def *core.Typ
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode element type: %w", err)
 	}
-	return def.WithObjectField(args.Name, fieldType.Self, args.Description)
+	return def.WithObjectField(ctx, args.Name, fieldType.Self, args.Description)
 }
 
 func (s *moduleSchema) typeDefWithFunction(ctx context.Context, def *core.TypeDef, args struct {
@@ -419,7 +420,7 @@ func (s *moduleSchema) typeDefWithEnum(ctx context.Context, def *core.TypeDef, a
 		return nil, fmt.Errorf("enum type def must have a name")
 	}
 
-	return def.WithEnum(args.Name, args.Description), nil
+	return def.WithEnum(ctx, args.Name, args.Description), nil
 }
 
 func (s *moduleSchema) typeDefWithEnumValue(ctx context.Context, def *core.TypeDef, args struct {
@@ -459,7 +460,7 @@ func (s *moduleSchema) module(ctx context.Context, query *core.Query, _ struct{}
 	return query.NewModule(), nil
 }
 
-func (s *moduleSchema) function(ctx context.Context, _ *core.Query, args struct {
+func (s *moduleSchema) function(ctx context.Context, q *core.Query, args struct {
 	Name       string
 	ReturnType core.TypeDefID
 }) (*core.Function, error) {
@@ -467,7 +468,8 @@ func (s *moduleSchema) function(ctx context.Context, _ *core.Query, args struct 
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode return type: %w", err)
 	}
-	return core.NewFunction(args.Name, returnType.Self), nil
+
+	return core.NewFunction(ctx, args.Name, returnType.Self), nil
 }
 
 func (s *moduleSchema) functionWithDescription(ctx context.Context, fn *core.Function, args struct {
@@ -1196,4 +1198,8 @@ func (s *moduleSchema) writeDaggerConfig(
 	}
 
 	return nil
+}
+
+func (s *moduleSchema) addCompatToCtx(ctx context.Context) context.Context {
+	return compat.AddCompatToContext(ctx, s.dag.View)
 }
