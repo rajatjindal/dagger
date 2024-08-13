@@ -9,10 +9,29 @@ import (
 	"slices"
 	"strings"
 
-	"github.com/iancoleman/strcase"
+	"github.com/ettle/strcase"
 	"github.com/tidwall/gjson"
 	"golang.org/x/mod/semver"
 )
+
+var caser *strcase.Caser
+
+func init() {
+	caser = newCaser()
+}
+
+func newCaser() *strcase.Caser {
+	var splitFn = strcase.NewSplitFn(
+		[]rune{'*', '.', ',', '-', '_'},
+		strcase.SplitCase,
+		strcase.SplitAcronym,
+		strcase.PreserveNumberFormatting,
+		strcase.SplitBeforeNumber,
+		strcase.SplitAfterNumber,
+	)
+
+	return strcase.NewCaser(false, nil, splitFn)
+}
 
 const (
 	bunVersion  = "1.1.12"
@@ -295,7 +314,7 @@ func (t *TypescriptSdk) setupModule(ctx context.Context, ctr *dagger.Container) 
 	}) {
 		return ctr.
 			WithDirectory("src", ctr.Directory("/opt/module/template/src"), dagger.ContainerWithDirectoryOpts{Include: []string{"*.ts"}}).
-			WithExec([]string{"sed", "-i", "-e", fmt.Sprintf("s/QuickStart/%s/g", strcase.ToCamel(name)), "src/index.ts"}), nil
+			WithExec([]string{"sed", "-i", "-e", fmt.Sprintf("s/QuickStart/%s/g", caser.ToPascal(name)), "src/index.ts"}), nil
 	}
 
 	return ctr, nil

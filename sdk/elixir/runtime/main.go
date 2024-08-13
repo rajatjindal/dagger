@@ -6,8 +6,27 @@ import (
 
 	"elixir-sdk/internal/dagger"
 
-	"github.com/iancoleman/strcase"
+	"github.com/ettle/strcase"
 )
+
+var caser *strcase.Caser
+
+func init() {
+	caser = newCaser()
+}
+
+func newCaser() *strcase.Caser {
+	var splitFn = strcase.NewSplitFn(
+		[]rune{'*', '.', ',', '-', '_'},
+		strcase.SplitCase,
+		strcase.SplitAcronym,
+		strcase.PreserveNumberFormatting,
+		strcase.SplitBeforeNumber,
+		strcase.SplitAfterNumber,
+	)
+
+	return strcase.NewCaser(false, nil, splitFn)
+}
 
 const (
 	ModSourceDirPath = "/src"
@@ -220,5 +239,5 @@ func mixProjectCaches(prefix string) (depsCache *dagger.CacheVolume, buildCache 
 }
 
 func normalizeModName(name string) string {
-	return strcase.ToSnake(name)
+	return caser.ToSnake(name)
 }

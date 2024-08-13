@@ -10,8 +10,27 @@ import (
 	"python-sdk/internal/dagger"
 	"strings"
 
-	"github.com/iancoleman/strcase"
+	"github.com/ettle/strcase"
 )
+
+var caser *strcase.Caser
+
+func init() {
+	caser = newCaser()
+}
+
+func newCaser() *strcase.Caser {
+	var splitFn = strcase.NewSplitFn(
+		[]rune{'*', '.', ',', '-', '_'},
+		strcase.SplitCase,
+		strcase.SplitAcronym,
+		strcase.PreserveNumberFormatting,
+		strcase.SplitBeforeNumber,
+		strcase.SplitAfterNumber,
+	)
+
+	return strcase.NewCaser(false, nil, splitFn)
+}
 
 const (
 	ModSourceDirPath      = "/src"
@@ -268,7 +287,7 @@ func (m *PythonSdk) WithTemplate() *PythonSdk {
 		if !d.HasFile("*.py") {
 			d.AddNewFile(
 				MainFilePath,
-				strings.ReplaceAll(tplMain, MainObjectName, strcase.ToCamel(d.ModName)),
+				strings.ReplaceAll(tplMain, MainObjectName, caser.ToPascal(d.ModName)),
 			)
 		}
 	}
