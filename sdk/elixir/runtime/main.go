@@ -5,8 +5,6 @@ import (
 	"path"
 
 	"elixir-sdk/internal/dagger"
-
-	"github.com/iancoleman/strcase"
 )
 
 const (
@@ -209,5 +207,5 @@ func mixProjectCaches(prefix string) (depsCache *dagger.CacheVolume, buildCache 
 }
 
 func normalizeModName(name string) string {
-	return strcase.ToSnake(name)
+	return ToSnake(name)
 }
