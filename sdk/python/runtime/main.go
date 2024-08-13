@@ -11,8 +11,6 @@ import (
 	"path"
 	"python-sdk/internal/dagger"
 	"strings"
-
-	"github.com/iancoleman/strcase"
 )
 
 const (
@@ -289,7 +287,7 @@ func (m *PythonSdk) WithTemplate() *PythonSdk {
 		if !d.HasFile("*.py") {
 			d.AddNewFile(
 				MainFilePath,
-				strings.ReplaceAll(tplMain, MainObjectName, strcase.ToCamel(d.ModName)),
+				strings.ReplaceAll(tplMain, MainObjectName, ToPascal(d.ModName)),
 			)
 		}
 	}
