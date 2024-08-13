@@ -2,11 +2,10 @@ package main
 
 import (
 	"context"
+	"elixir-sdk/strcase"
 	"path"
 
 	"elixir-sdk/internal/dagger"
-
-	"github.com/iancoleman/strcase"
 )
 
 const (
