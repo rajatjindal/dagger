@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/iancoleman/strcase"
+	"github.com/dagger/dagger/core/compat"
 	"github.com/vektah/gqlparser/v2/ast"
 
 	"github.com/dagger/dagger/dagql"
@@ -23,6 +23,7 @@ type Function struct {
 	Args        []*FunctionArg `field:"true" doc:"Arguments accepted by the function, if any."`
 	ReturnType  *TypeDef       `field:"true" doc:"The type returned by the function."`
 
+	ctx context.Context //RAJAT
 	// Below are not in public API
 
 	// OriginalName of the parent object
@@ -33,11 +34,12 @@ type Function struct {
 	OriginalName string
 }
 
-func NewFunction(name string, returnType *TypeDef) *Function {
+func NewFunction(ctx context.Context, name string, returnType *TypeDef) *Function {
 	return &Function{
-		Name:         strcase.ToLowerCamel(name),
+		Name:         compat.Strcase(ctx).ToCamel(name),
 		ReturnType:   returnType,
 		OriginalName: name,
+		ctx:          ctx,
 	}
 }
 
@@ -112,10 +114,10 @@ func (fn *Function) WithDescription(desc string) *Function {
 	return fn
 }
 
-func (fn *Function) WithArg(name string, typeDef *TypeDef, desc string, defaultValue JSON, defaultPath string, ignore []string) *Function {
+func (fn *Function) WithArg(ctx context.Context, name string, typeDef *TypeDef, desc string, defaultValue JSON, defaultPath string, ignore []string) *Function {
 	fn = fn.Clone()
 	fn.Args = append(fn.Args, &FunctionArg{
-		Name:         strcase.ToLowerCamel(name),
+		Name:         compat.Strcase(ctx).ToCamel(name),
 		Description:  desc,
 		TypeDef:      typeDef,
 		DefaultValue: defaultValue,
@@ -410,9 +412,9 @@ func (typeDef *TypeDef) WithKind(kind TypeDefKind) *TypeDef {
 	return typeDef
 }
 
-func (typeDef *TypeDef) WithScalar(name string, desc string) *TypeDef {
+func (typeDef *TypeDef) WithScalar(ctx context.Context, name string, desc string) *TypeDef {
 	typeDef = typeDef.WithKind(TypeDefKindScalar)
-	typeDef.AsScalar = dagql.NonNull(NewScalarTypeDef(name, desc))
+	typeDef.AsScalar = dagql.NonNull(NewScalarTypeDef(ctx, name, desc))
 	return typeDef
 }
 
@@ -424,15 +426,15 @@ func (typeDef *TypeDef) WithListOf(elem *TypeDef) *TypeDef {
 	return typeDef
 }
 
-func (typeDef *TypeDef) WithObject(name, desc string) *TypeDef {
+func (typeDef *TypeDef) WithObject(ctx context.Context, name, desc string) *TypeDef {
 	typeDef = typeDef.WithKind(TypeDefKindObject)
-	typeDef.AsObject = dagql.NonNull(NewObjectTypeDef(name, desc))
+	typeDef.AsObject = dagql.NonNull(NewObjectTypeDef(ctx, name, desc))
 	return typeDef
 }
 
-func (typeDef *TypeDef) WithInterface(name, desc string) *TypeDef {
+func (typeDef *TypeDef) WithInterface(ctx context.Context, name, desc string) *TypeDef {
 	typeDef = typeDef.WithKind(TypeDefKindInterface)
-	typeDef.AsInterface = dagql.NonNull(NewInterfaceTypeDef(name, desc))
+	typeDef.AsInterface = dagql.NonNull(NewInterfaceTypeDef(ctx, name, desc))
 	return typeDef
 }
 
@@ -442,13 +444,13 @@ func (typeDef *TypeDef) WithOptional(optional bool) *TypeDef {
 	return typeDef
 }
 
-func (typeDef *TypeDef) WithObjectField(name string, fieldType *TypeDef, desc string) (*TypeDef, error) {
+func (typeDef *TypeDef) WithObjectField(ctx context.Context, name string, fieldType *TypeDef, desc string) (*TypeDef, error) {
 	if !typeDef.AsObject.Valid {
 		return nil, fmt.Errorf("cannot add function to non-object type: %s", typeDef.Kind)
 	}
 	typeDef = typeDef.Clone()
 	typeDef.AsObject.Value.Fields = append(typeDef.AsObject.Value.Fields, &FieldTypeDef{
-		Name:         strcase.ToLowerCamel(name),
+		Name:         compat.Strcase(ctx).ToCamel(name),
 		OriginalName: name,
 		Description:  desc,
 		TypeDef:      fieldType,
@@ -485,9 +487,9 @@ func (typeDef *TypeDef) WithObjectConstructor(fn *Function) (*TypeDef, error) {
 	return typeDef, nil
 }
 
-func (typeDef *TypeDef) WithEnum(name, desc string) *TypeDef {
+func (typeDef *TypeDef) WithEnum(ctx context.Context, name, desc string) *TypeDef {
 	typeDef = typeDef.WithKind(TypeDefKindEnum)
-	typeDef.AsEnum = dagql.NonNull(NewEnumTypeDef(name, desc))
+	typeDef.AsEnum = dagql.NonNull(NewEnumTypeDef(ctx, name, desc))
 	return typeDef
 }
 
@@ -593,9 +595,9 @@ func (*ObjectTypeDef) TypeDescription() string {
 	return "A definition of a custom object defined in a Module."
 }
 
-func NewObjectTypeDef(name, description string) *ObjectTypeDef {
+func NewObjectTypeDef(ctx context.Context, name, description string) *ObjectTypeDef {
 	return &ObjectTypeDef{
-		Name:         strcase.ToCamel(name),
+		Name:         compat.Strcase(ctx).ToPascal(name),
 		OriginalName: name,
 		Description:  description,
 	}
@@ -734,9 +736,9 @@ type InterfaceTypeDef struct {
 	OriginalName string
 }
 
-func NewInterfaceTypeDef(name, description string) *InterfaceTypeDef {
+func NewInterfaceTypeDef(ctx context.Context, name, description string) *InterfaceTypeDef {
 	return &InterfaceTypeDef{
-		Name:         strcase.ToCamel(name),
+		Name:         compat.Strcase(ctx).ToPascal(name),
 		OriginalName: name,
 		Description:  description,
 	}
@@ -798,9 +800,9 @@ type ScalarTypeDef struct {
 	SourceModuleName string `field:"true" doc:"If this ScalarTypeDef is associated with a Module, the name of the module. Unset otherwise."`
 }
 
-func NewScalarTypeDef(name, description string) *ScalarTypeDef {
+func NewScalarTypeDef(ctx context.Context, name, description string) *ScalarTypeDef {
 	return &ScalarTypeDef{
-		Name:         strcase.ToCamel(name),
+		Name:         compat.Strcase(ctx).ToPascal(name),
 		OriginalName: name,
 		Description:  description,
 	}
@@ -929,9 +931,9 @@ func (enum *EnumTypeDef) ListValues() ast.EnumValueList {
 	return values
 }
 
-func NewEnumTypeDef(name, description string) *EnumTypeDef {
+func NewEnumTypeDef(ctx context.Context, name, description string) *EnumTypeDef {
 	return &EnumTypeDef{
-		Name:         strcase.ToCamel(name),
+		Name:         compat.Strcase(ctx).ToPascal(name),
 		OriginalName: name,
 		Description:  description,
 	}

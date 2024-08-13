@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/iancoleman/strcase"
 	"golang.org/x/mod/semver"
 
+	"github.com/dagger/dagger/core/compat"
 	"github.com/dagger/dagger/dagql"
 	"github.com/dagger/dagger/dagql/introspection"
 	"github.com/dagger/dagger/engine/buildkit"
@@ -73,13 +73,13 @@ func SchemaIntrospectionJSON(ctx context.Context, dag *dagql.Server) (json.RawMe
 	return json.RawMessage(jsonBytes), nil
 }
 
-func gqlFieldName(name string) string {
+func gqlFieldName(ctx context.Context, name string) string {
 	// gql field name is uncapitalized camel case
-	return strcase.ToLowerCamel(name)
+	return compat.Strcase(ctx).ToCamel(name)
 }
 
 // AllVersion is a view that contains all versions.
-var AllVersion = dagql.AllView{}
+var AllVersion = dagql.AllView
 
 // AfterVersion is a view that checks if a target version is greater than *or*
 // equal to the filtered version.

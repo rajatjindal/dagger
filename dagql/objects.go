@@ -8,7 +8,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/iancoleman/strcase"
+	"github.com/dagger/dagger/engine/strcase"
 	"github.com/vektah/gqlparser/v2/ast"
 
 	"github.com/dagger/dagger/dagql/call"
@@ -354,9 +354,11 @@ var GlobalView View = nil
 // This means that each call for a field is associated with the server view,
 // which results in slightly different caching behavior. Additionally, it can
 // be overridden in different views.
-type AllView struct{}
+var AllView View = allView{}
 
-func (v AllView) Contains(s string) bool {
+type allView struct{}
+
+func (v allView) Contains(s string) bool {
 	return true
 }
 
@@ -835,7 +837,7 @@ func reflectFieldsForType[T any](obj any, optIn bool, init func(any) (T, error))
 		}
 		name := fieldT.Tag.Get("name")
 		if name == "" && isField {
-			name = strcase.ToLowerCamel(fieldT.Name)
+			name = strcase.ToCamel(fieldT.Name)
 		}
 		if name == "" || name == "-" {
 			continue
@@ -894,7 +896,7 @@ func getField(obj any, optIn bool, fieldName string) (res Typed, found bool, rer
 		}
 		name := fieldT.Tag.Get("name")
 		if name == "" && isField {
-			name = strcase.ToLowerCamel(fieldT.Name)
+			name = strcase.ToCamel(fieldT.Name)
 		}
 		if name == "" || name == "-" {
 			continue
@@ -937,7 +939,7 @@ func setInputFields(specs InputSpecs, inputs map[string]Input, dest any) error {
 		}
 		name := fieldT.Tag.Get("name")
 		if name == "" {
-			name = strcase.ToLowerCamel(fieldT.Name)
+			name = strcase.ToCamel(fieldT.Name)
 		}
 		if name == "-" {
 			continue

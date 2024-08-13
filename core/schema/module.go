@@ -244,6 +244,7 @@ func (s *moduleSchema) Install() {
 			ArgDoc("description", `The doc string to set.`),
 
 		dagql.Func("withArg", s.functionWithArg).
+			View(dagql.AllView).
 			Doc(`Returns the function with the provided argument`).
 			ArgDoc("name", `The name of the argument`).
 			ArgDoc("typeDef", `The type of the argument`).
@@ -265,21 +266,25 @@ func (s *moduleSchema) Install() {
 			Doc(`Sets the kind of the type.`),
 
 		dagql.Func("withScalar", s.typeDefWithScalar).
+			View(dagql.AllView).
 			Doc(`Returns a TypeDef of kind Scalar with the provided name.`),
 
 		dagql.Func("withListOf", s.typeDefWithListOf).
 			Doc(`Returns a TypeDef of kind List with the provided type for its elements.`),
 
 		dagql.Func("withObject", s.typeDefWithObject).
+			View(dagql.AllView).
 			Doc(`Returns a TypeDef of kind Object with the provided name.`,
 				`Note that an object's fields and functions may be omitted if the
 				intent is only to refer to an object. This is how functions are able to
 				return their own object, or any other circular reference.`),
 
 		dagql.Func("withInterface", s.typeDefWithInterface).
+			View(dagql.AllView).
 			Doc(`Returns a TypeDef of kind Interface with the provided name.`),
 
 		dagql.Func("withField", s.typeDefWithObjectField).
+			View(dagql.AllView).
 			Doc(`Adds a static field for an Object TypeDef, failing if the type is not an object.`).
 			ArgDoc("name", `The name of the field in the object`).
 			ArgDoc("typeDef", `The type of the field`).
@@ -292,6 +297,7 @@ func (s *moduleSchema) Install() {
 			Doc(`Adds a function for constructing a new instance of an Object TypeDef, failing if the type is not an object.`),
 
 		dagql.Func("withEnum", s.typeDefWithEnum).
+			View(dagql.AllView).
 			Doc(`Returns a TypeDef of kind Enum with the provided name.`,
 				`Note that an enum's values may be omitted if the intent is only to refer to an enum.
 				This is how functions are able to return their own, or any other circular reference.`).
@@ -344,7 +350,7 @@ func (s *moduleSchema) typeDefWithScalar(ctx context.Context, def *core.TypeDef,
 	if args.Name == "" {
 		return nil, fmt.Errorf("scalar type def must have a name")
 	}
-	return def.WithScalar(args.Name, args.Description), nil
+	return def.WithScalar(ctx, args.Name, args.Description), nil
 }
 
 func (s *moduleSchema) typeDefWithListOf(ctx context.Context, def *core.TypeDef, args struct {
@@ -364,14 +370,14 @@ func (s *moduleSchema) typeDefWithObject(ctx context.Context, def *core.TypeDef,
 	if args.Name == "" {
 		return nil, fmt.Errorf("object type def must have a name")
 	}
-	return def.WithObject(args.Name, args.Description), nil
+	return def.WithObject(ctx, args.Name, args.Description), nil
 }
 
 func (s *moduleSchema) typeDefWithInterface(ctx context.Context, def *core.TypeDef, args struct {
 	Name        string
 	Description string `default:""`
 }) (*core.TypeDef, error) {
-	return def.WithInterface(args.Name, args.Description), nil
+	return def.WithInterface(ctx, args.Name, args.Description), nil
 }
 
 func (s *moduleSchema) typeDefWithObjectField(ctx context.Context, def *core.TypeDef, args struct {
@@ -383,7 +389,7 @@ func (s *moduleSchema) typeDefWithObjectField(ctx context.Context, def *core.Typ
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode element type: %w", err)
 	}
-	return def.WithObjectField(args.Name, fieldType.Self, args.Description)
+	return def.WithObjectField(ctx, args.Name, fieldType.Self, args.Description)
 }
 
 func (s *moduleSchema) typeDefWithFunction(ctx context.Context, def *core.TypeDef, args struct {
@@ -419,7 +425,7 @@ func (s *moduleSchema) typeDefWithEnum(ctx context.Context, def *core.TypeDef, a
 		return nil, fmt.Errorf("enum type def must have a name")
 	}
 
-	return def.WithEnum(args.Name, args.Description), nil
+	return def.WithEnum(ctx, args.Name, args.Description), nil
 }
 
 func (s *moduleSchema) typeDefWithEnumValue(ctx context.Context, def *core.TypeDef, args struct {
@@ -459,7 +465,7 @@ func (s *moduleSchema) module(ctx context.Context, query *core.Query, _ struct{}
 	return query.NewModule(), nil
 }
 
-func (s *moduleSchema) function(ctx context.Context, _ *core.Query, args struct {
+func (s *moduleSchema) function(ctx context.Context, q *core.Query, args struct {
 	Name       string
 	ReturnType core.TypeDefID
 }) (*core.Function, error) {
@@ -467,7 +473,8 @@ func (s *moduleSchema) function(ctx context.Context, _ *core.Query, args struct 
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode return type: %w", err)
 	}
-	return core.NewFunction(args.Name, returnType.Self), nil
+
+	return core.NewFunction(ctx, args.Name, returnType.Self), nil
 }
 
 func (s *moduleSchema) functionWithDescription(ctx context.Context, fn *core.Function, args struct {
@@ -506,7 +513,7 @@ func (s *moduleSchema) functionWithArg(ctx context.Context, fn *core.Function, a
 		return nil, fmt.Errorf("can only set ignore for Directory type, not %s", argType.Self.AsObject.Value.Name)
 	}
 
-	return fn.WithArg(args.Name, argType.Self, args.Description, args.DefaultValue, args.DefaultPath, args.Ignore), nil
+	return fn.WithArg(ctx, args.Name, argType.Self, args.Description, args.DefaultValue, args.DefaultPath, args.Ignore), nil
 }
 
 func (s *moduleSchema) moduleDependency(
