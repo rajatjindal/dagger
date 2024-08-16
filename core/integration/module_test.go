@@ -41,6 +41,157 @@ func TestModule(t *testing.T) {
 	testctx.Run(testCtx, t, ModuleSuite{}, Middleware()...)
 }
 
+//go:embed testdata/compatibility_test_module_list.json
+var compatibilityTestModuleListRaw []byte
+
+// getSchemaForModuleForEngineVersion for given module using specified engine version
+// if engineVersion == "dev", use the engine built during the integration tests
+func getSchemaForModuleForEngineVersion(ctx context.Context, t *testctx.T, c *dagger.Client, module, engineVersion string) (string, error) {
+	var engineSvc *dagger.Service
+	var client *dagger.Container
+	var err error
+
+	if engineVersion == "dev" {
+		engineSvc = devEngineContainer(c).AsService()
+		client, err = engineClientContainer(ctx, t, c, engineSvc)
+		require.NoError(t, err)
+	} else {
+		engineSvc = devEngineContainerWithVersion(c, engineVersion).AsService()
+		client, err = engineClientContainerWithVersion(ctx, c, engineSvc, engineVersion)
+		require.NoError(t, err)
+	}
+
+	return client.WithNewFile("/schema-query.graphql", introspection.Query).
+		WithExec([]string{"dagger", "query", "-m", module, "--doc", "/schema-query.graphql"}).
+		Stdout(ctx)
+}
+
+func (ModuleSuite) TestEngineVersionCompatibilityForModule(ctx context.Context, t *testctx.T) {
+	aEngineVersion := "v0.12.5"
+	bEngineVersion := "dev" // dev for devEngine
+
+	testcases := []string{}
+	err := json.Unmarshal(compatibilityTestModuleListRaw, &testcases)
+	require.NoError(t, err, "reading the module list to do compatibility check")
+
+	for _, module := range testcases {
+		c := connect(ctx, t)
+		aIntrospection, err := getSchemaForModuleForEngineVersion(ctx, t, c, module, aEngineVersion)
+		require.NoError(t, err)
+
+		bIntrospection, err := getSchemaForModuleForEngineVersion(ctx, t, c, module, bEngineVersion)
+		require.NoError(t, err)
+
+		aSchema := gjson.Get(aIntrospection, "__schema").String()
+		bSchema := gjson.Get(bIntrospection, "__schema").String()
+		require.JSONEq(t, aSchema, bSchema)
+	}
+}
+
+func (ModuleSuite) TestModuleNamingCompatArgName(ctx context.Context, t *testctx.T) {
+	for _, tc := range []string{"new", "old"} {
+		c := connect(ctx, t)
+
+		devModGen := c.Container().From(golangImage).
+			WithMountedFile(testCLIBinPath, daggerCliFile(t, c)).
+			WithWorkdir("/work").
+			With(daggerExec("init", "--source=.", "--name=minimal", "--sdk=go")).
+			WithNewFile("main.go", `package main
+	
+	import (
+		"dagger/minimal/internal/dagger"
+	)
+	
+	type Minimal struct {
+		Config dagger.JSON
+	}
+	
+	func New() *Minimal {
+		return &Minimal{
+			Config: "{\"a\":1}",
+		}
+	}
+
+	func (m *Minimal) WithSecondFunction(skipTParse string) *dagger.Container {
+		return dag.Container().From("alpine:latest").WithExec([]string{"echo", skipTParse})
+	}
+	`,
+			)
+
+		if tc == "new" {
+			out, err := devModGen.
+				With(daggerQuery(`{minimal{withSecondFunction(skipTParse:"hello"){stdout}}}`)).
+				Stdout(ctx)
+			require.NoError(t, err)
+			require.JSONEq(t, `{"minimal":{"withSecondFunction":{"stdout":"hello\n"}}}`, out)
+		} else {
+			// now simulate old version
+			versionAModGen := devModGen.WithNewFile("dagger.json", `{
+			  "name": "minimal",
+			  "sdk": "go",
+			  "engineVersion": "v0.12.5"
+			}`)
+			out, err := versionAModGen.
+				With(daggerQuery(`{minimal{withSecondFunction(skipTparse:"hello"){stdout}}}`)).
+				Stdout(ctx)
+			require.NoError(t, err)
+			require.JSONEq(t, `{"minimal":{"withSecondFunction":{"stdout":"hello\n"}}}`, out)
+		}
+	}
+}
+
+func (ModuleSuite) TestModuleNamingCompatFuncName(ctx context.Context, t *testctx.T) {
+	for _, tc := range []string{"new", "old"} {
+		c := connect(ctx, t)
+
+		devModGen := c.Container().From(golangImage).
+			WithMountedFile(testCLIBinPath, daggerCliFile(t, c)).
+			WithWorkdir("/work").
+			With(daggerExec("init", "--source=.", "--name=minimal", "--sdk=go")).
+			WithNewFile("main.go", `package main
+	
+	import (
+		"dagger/minimal/internal/dagger"
+	)
+	
+	type Minimal struct {
+		Config dagger.JSON
+	}
+
+	func New() *Minimal {
+		return &Minimal{
+			Config: "{\"a\":1}",
+		}
+	}
+
+	func (m *Minimal) WithDaggerCLIAlpine(stringArg string) *dagger.Container {
+		return dag.Container().From("alpine:latest").WithExec([]string{"echo", stringArg})
+	}
+	`,
+			)
+
+		if tc == "new" {
+			out, err := devModGen.
+				With(daggerQuery(`{minimal{withDaggerCliAlpine(stringArg:"hello"){stdout}}}`)).
+				Stdout(ctx)
+			require.NoError(t, err)
+			require.JSONEq(t, `{"minimal":{"withDaggerCliAlpine":{"stdout":"hello\n"}}}`, out)
+		} else {
+			// now simulate old version
+			versionAModGen := devModGen.WithNewFile("dagger.json", `{
+			  "name": "minimal",
+			  "sdk": "go",
+			  "engineVersion": "v0.12.5"
+			}`)
+			out, err := versionAModGen.
+				With(daggerQuery(`{minimal{withDaggerClialpine(stringArg:"hello"){stdout}}}`)).
+				Stdout(ctx)
+			require.NoError(t, err)
+			require.JSONEq(t, `{"minimal":{"withDaggerClialpine":{"stdout":"hello\n"}}}`, out)
+		}
+	}
+}
+
 func (ModuleSuite) TestGoInit(ctx context.Context, t *testctx.T) {
 	t.Run("from scratch", func(ctx context.Context, t *testctx.T) {
 		c := connect(ctx, t)

@@ -29,6 +29,30 @@ func TestEngine(t *testing.T) {
 }
 
 // devEngineContainer returns a nested dev engine.
+func devEngineContainerWithVersion(c *dagger.Client, version string, withs ...func(*dagger.Container) *dagger.Container) *dagger.Container {
+	// This builds up engine with a specific released version
+	ctr := c.Container().From(fmt.Sprintf("ghcr.io/dagger/engine:%s", version))
+	for _, with := range withs {
+		ctr = with(ctr)
+	}
+
+	deviceName, cidr := testutil.GetUniqueNestedEngineNetwork()
+	return ctr.
+		WithMountedCache("/var/lib/dagger", c.CacheVolume("dagger-dev-engine-state-"+identity.NewID())).
+		WithExposedPort(1234, dagger.ContainerWithExposedPortOpts{Protocol: dagger.Tcp}).
+		WithExec([]string{
+			"--addr", "tcp://0.0.0.0:1234",
+			"--addr", "unix:///var/run/buildkit/buildkitd.sock",
+			// avoid network conflicts with other tests
+			"--network-name", deviceName,
+			"--network-cidr", cidr,
+		}, dagger.ContainerWithExecOpts{
+			UseEntrypoint:            true,
+			InsecureRootCapabilities: true,
+		})
+}
+
+// devEngineContainer returns a nested dev engine.
 func devEngineContainer(c *dagger.Client, withs ...func(*dagger.Container) *dagger.Container) *dagger.Container {
 	// This loads the engine.tar file from the host into the container, that
 	// was set up by the test caller. This is used to spin up additional dev
@@ -79,6 +103,18 @@ func engineWithConfig(ctx context.Context, t *testctx.T, cfgFns ...func(context.
 
 		return ctr.WithNewFile("/etc/dagger/engine.toml", string(newCfgBytes))
 	}
+}
+
+// engineClientContainerWithVersion returns a container with specific version of dagger cli
+// and connected to the given devEngine service
+func engineClientContainerWithVersion(ctx context.Context, c *dagger.Client, devEngine *dagger.Service, version string) (*dagger.Container, error) {
+	endpoint, err := devEngine.Endpoint(ctx, dagger.ServiceEndpointOpts{Port: 1234, Scheme: "tcp"})
+	if err != nil {
+		return nil, err
+	}
+	return c.Container().From(fmt.Sprintf("ghcr.io/dagger/engine:%s", version)).
+		WithServiceBinding("dev-engine", devEngine).
+		WithEnvVariable("_EXPERIMENTAL_DAGGER_RUNNER_HOST", endpoint), nil
 }
 
 func engineClientContainer(ctx context.Context, t *testctx.T, c *dagger.Client, devEngine *dagger.Service) (*dagger.Container, error) {
