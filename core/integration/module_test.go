@@ -41,6 +41,53 @@ func TestModule(t *testing.T) {
 	testctx.Run(testCtx, t, ModuleSuite{}, Middleware()...)
 }
 
+//go:embed testdata/compatibility_test_module_list.json
+var compatibilityTestModuleListRaw []byte
+
+// getSchemaForModuleForEngineVersion for given module using specified engine version
+// if engineVersion == "dev", use the engine built during the integration tests
+func getSchemaForModuleForEngineVersion(ctx context.Context, t *testctx.T, c *dagger.Client, module, engineVersion string) (string, error) {
+	var engineSvc *dagger.Service
+	var client *dagger.Container
+	var err error
+
+	if engineVersion == "dev" {
+		engineSvc = devEngineContainer(c).AsService()
+		client, err = engineClientContainer(ctx, t, c, engineSvc)
+		require.NoError(t, err)
+	} else {
+		engineSvc = devEngineContainerWithVersion(c, engineVersion).AsService()
+		client, err = engineClientContainerWithVersion(ctx, c, engineSvc, engineVersion)
+		require.NoError(t, err)
+	}
+
+	return client.WithNewFile("/schema-query.graphql", introspection.Query).
+		WithExec([]string{"dagger", "query", "-m", module, "--doc", "/schema-query.graphql"}).
+		Stdout(ctx)
+}
+
+func (ModuleSuite) TestEngineVersionCompatibilityForModule(ctx context.Context, t *testctx.T) {
+	aEngineVersion := "v0.12.5"
+	bEngineVersion := "dev" // dev for devEngine
+
+	testcases := []string{}
+	err := json.Unmarshal(compatibilityTestModuleListRaw, &testcases)
+	require.NoError(t, err, "reading the module list to do compatibility check")
+
+	for _, module := range testcases {
+		c := connect(ctx, t)
+		aIntrospection, err := getSchemaForModuleForEngineVersion(ctx, t, c, module, aEngineVersion)
+		require.NoError(t, err)
+
+		bIntrospection, err := getSchemaForModuleForEngineVersion(ctx, t, c, module, bEngineVersion)
+		require.NoError(t, err)
+
+		aSchema := gjson.Get(aIntrospection, "__schema").String()
+		bSchema := gjson.Get(bIntrospection, "__schema").String()
+		require.JSONEq(t, aSchema, bSchema)
+	}
+}
+
 func (ModuleSuite) TestGoInit(ctx context.Context, t *testctx.T) {
 	t.Run("from scratch", func(ctx context.Context, t *testctx.T) {
 		c := connect(ctx, t)
