@@ -1,0 +1,20 @@
+[
+	"github.com/sagikazarmark/daggerverse/go@5b826062b6bc1bfbd619aa5d0fba117190c85aba",
+	"github.com/kpenfound/dagger-modules/proxy@beaf4600637b3f492cd3e1e1598ef799d8cd3164",
+	"github.com/aweris/daggerverse/kind@2e89d21b03b7a4d59d17b99db4232f935e89f005",
+	"github.com/Excoriate/daggerverse/module-template@7cbec9fbfc9c62f2e41ee0471b97861984c090f1", 
+	"github.com/levlaz/daggerverse/plausible@04376aba3bbdf5c3614f1b04b9e6ae1888b5c80f", 
+	"github.com/levlaz/daggerverse/docusaurus@6c7c28cd95a9636a04768c8de8b658d724cdecb3", 
+	"github.com/camptocamp/daggerverse/github@7e39d856e1626d94a012f2f1b05e238beeba1004", 
+	"github.com/camptocamp/daggerverse/argocd@8da126ed29f091a1e27cf4e62ba23b91c1f5c89c", 
+	"github.com/camptocamp/daggerverse/presentation@1ff79e03416b9f383e1f6603fb6458551338f5ff", 
+	"github.com/camptocamp/daggerverse/documentation@d9c466ce52785a1348df4227a7cbc7c396811e59", 
+	"github.com/shykes/daggerverse/wolfi@75bd0a3e02edb6507b1a20ec4674459c0a8485e0",
+	"github.com/sipsma/daggerverse/example@9239c6bfe5e039552107535d3fea1b647f956167", 
+	"github.com/shykes/daggerverse/tmate@28497a39f1ac358b496d43334c305b074a51b5d2", 
+	"github.com/sipsma/daggerverse/testpublish@df1250a4665a4b2e49ed13951a8ba5a01f119734", 
+	"github.com/sipsma/quartz-technology-daggerverse/node@96cf1889f1a57058a00ab7d3b0fe3e6bfa3c16cb", 
+	"github.com/helderco/daggerverse/python@ba7984f47857794ff5aace82947aaf6b433595be", 
+	"github.com/TomChv/daggerverse/node@4f06ebb5f74d9325b8be683fd1e0e6ba7f496cbb", 
+	"github.com/shykes/dagger/zenith/vito-mod@41c8793faca956f2465ab58a547e7617be97331f"
+]
