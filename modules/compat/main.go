@@ -7,57 +7,53 @@ import (
 	"fmt"
 
 	"github.com/dagger/dagger/dagql/introspection"
+	"github.com/josephburnett/jd/v2"
 	"github.com/moby/buildkit/identity"
 	"github.com/tidwall/gjson"
-	"github.com/wI2L/jsondiff"
 )
 
-type Compat struct{}
-
-// Returns a container that echoes whatever string argument is provided
-func (m *Compat) ContainerEcho(stringArg string) *dagger.Container {
-	return dag.Container().From("alpine:latest").WithExec([]string{"echo", stringArg})
+type Compat struct {
+	source *dagger.Directory
 }
 
-// Returns lines that match a pattern in the files of the provided Directory
-func (m *Compat) GrepDir(ctx context.Context, directoryArg *dagger.Directory, pattern string) (string, error) {
-	return dag.Container().
-		From("alpine:latest").
-		WithMountedDirectory("/mnt", directoryArg).
-		WithWorkdir("/mnt").
-		WithExec([]string{"grep", "-R", pattern, "."}).
-		Stdout(ctx)
-}
-
-func (m *Compat) Check(ctx context.Context, module, versionA, versionB string) error {
-	schemaA, err := getSchemaForModuleForEngineVersion(ctx, module, versionA)
+func (m *Compat) Check(ctx context.Context,
+	module, versionA, versionB string,
+	//+optional
+	source *dagger.Directory) error {
+	schemaA, err := m.getSchemaForModuleForEngineVersion(ctx, module, versionA, source)
 	if err != nil {
 		return err
 	}
 
-	schemaB, err := getSchemaForModuleForEngineVersion(ctx, module, versionB)
+	schemaB, err := m.getSchemaForModuleForEngineVersion(ctx, module, versionB, source)
 	if err != nil {
 		return err
 	}
 
-	patch, err := jsondiff.CompareJSON([]byte(schemaA), []byte(schemaB))
-	if err != nil {
-		return err
+	a, _ := jd.ReadJsonString(schemaA)
+	b, _ := jd.ReadJsonString(schemaB)
+
+	diff := a.Diff(b).Render()
+	if diff != "" {
+		return fmt.Errorf("%s", diff)
 	}
 
-	fmt.Println(patch.String())
 	return nil
 }
 
-func getSchemaForModuleForEngineVersion(ctx context.Context, module, engineVersion string) (string, error) {
+func (m *Compat) getSchemaForModuleForEngineVersion(ctx context.Context, module, engineVersion string, source *dagger.Directory) (string, error) {
 	var engineSvc *dagger.Service
 	var client *dagger.Container
 	var err error
 
-	engineSvc = engineServiceWithVersion(engineVersion)
-	client, err = engineClientContainerWithVersion(ctx, engineSvc, engineVersion)
-	if err != nil {
-		return "", err
+	if engineVersion == "dev" {
+		client = devEngineAndClient(ctx, source)
+	} else {
+		engineSvc = engineServiceWithVersion(engineVersion)
+		client, err = engineClientContainerWithVersion(ctx, engineSvc, engineVersion)
+		if err != nil {
+			return "", err
+		}
 	}
 
 	rawIntrospection, err := client.WithNewFile("/schema-query.graphql", introspection.Query).
@@ -102,4 +98,8 @@ func engineServiceWithVersion(version string, withs ...func(*dagger.Container) *
 			UseEntrypoint:            true,
 			InsecureRootCapabilities: true,
 		}).AsService()
+}
+
+func devEngineAndClient(ctx context.Context, source *dagger.Directory) *dagger.Container {
+	return dag.DaggerDev(source).Dev()
 }
