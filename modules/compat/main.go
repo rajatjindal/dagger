@@ -18,14 +18,16 @@ type Compat struct {
 
 func (m *Compat) Check(ctx context.Context,
 	module, versionA, versionB string,
+	// for unique n/w
+	index int,
 	//+optional
 	source *dagger.Directory) error {
-	schemaA, err := m.getSchemaForModuleForEngineVersion(ctx, module, versionA, source)
+	schemaA, err := m.getSchemaForModuleForEngineVersion(ctx, index, module, versionA, source)
 	if err != nil {
 		return err
 	}
 
-	schemaB, err := m.getSchemaForModuleForEngineVersion(ctx, module, versionB, source)
+	schemaB, err := m.getSchemaForModuleForEngineVersion(ctx, index, module, versionB, source)
 	if err != nil {
 		return err
 	}
@@ -41,7 +43,7 @@ func (m *Compat) Check(ctx context.Context,
 	return nil
 }
 
-func (m *Compat) getSchemaForModuleForEngineVersion(ctx context.Context, module, engineVersion string, source *dagger.Directory) (string, error) {
+func (m *Compat) getSchemaForModuleForEngineVersion(ctx context.Context, index int, module, engineVersion string, source *dagger.Directory) (string, error) {
 	var engineSvc *dagger.Service
 	var client *dagger.Container
 	var err error
@@ -49,7 +51,7 @@ func (m *Compat) getSchemaForModuleForEngineVersion(ctx context.Context, module,
 	if engineVersion == "dev" {
 		client = devEngineAndClient(ctx, source)
 	} else {
-		engineSvc = engineServiceWithVersion(engineVersion)
+		engineSvc = engineServiceWithVersion(engineVersion, index)
 		client, err = engineClientContainerWithVersion(ctx, engineSvc, engineVersion)
 		if err != nil {
 			return "", err
@@ -78,13 +80,13 @@ func engineClientContainerWithVersion(ctx context.Context, devEngine *dagger.Ser
 		WithEnvVariable("_EXPERIMENTAL_DAGGER_RUNNER_HOST", endpoint), nil
 }
 
-func engineServiceWithVersion(version string, withs ...func(*dagger.Container) *dagger.Container) *dagger.Service {
+func engineServiceWithVersion(version string, index int, withs ...func(*dagger.Container) *dagger.Container) *dagger.Service {
 	ctr := dag.Container().From(fmt.Sprintf("ghcr.io/dagger/engine:%s", version))
 	for _, with := range withs {
 		ctr = with(ctr)
 	}
 
-	deviceName, cidr := impl.GetUniqueNestedEngineNetwork()
+	deviceName, cidr := impl.GetUniqueNestedEngineNetwork(index % 240)
 	return ctr.
 		WithMountedCache("/var/lib/dagger", dag.CacheVolume("dagger-dev-engine-state-"+identity.NewID())).
 		WithExposedPort(1234, dagger.ContainerWithExposedPortOpts{Protocol: dagger.Tcp}).
