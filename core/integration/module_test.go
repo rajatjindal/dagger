@@ -132,7 +132,7 @@ func (ModuleSuite) TestModuleNamingCompat(ctx context.Context, t *testctx.T) {
 		With(daggerQuery(`{minimal{withDaggerCliAlpine(stringArg:"hello"){stdout}}}`)).
 		Stdout(ctx)
 	require.NoError(t, err)
-	require.Equal(t, `{"minimal":{"withDaggerCliAlpine":{"stdout":"hello\n"}}}`, out)
+	require.Equal(t, `{"minimal":{"withDaggerClialpine":{"stdout":"hello\n"}}}`, out)
 }
 
 func (ModuleSuite) TestGoInit(ctx context.Context, t *testctx.T) {
