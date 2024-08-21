@@ -5,12 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/dagger/dagger/engine/strcase"
 	"golang.org/x/mod/semver"
 
 	"github.com/dagger/dagger/dagql"
 	"github.com/dagger/dagger/dagql/introspection"
 	"github.com/dagger/dagger/engine/buildkit"
+	"github.com/dagger/dagger/engine/strcaselegacy"
 )
 
 type SchemaResolvers interface {
@@ -75,7 +75,7 @@ func SchemaIntrospectionJSON(ctx context.Context, dag *dagql.Server) (json.RawMe
 
 func gqlFieldName(name string) string {
 	// gql field name is uncapitalized camel case
-	return strcase.ToCamel(name)
+	return strcaselegacy.ToCamel(name)
 }
 
 // AllVersion is a view that contains all versions.

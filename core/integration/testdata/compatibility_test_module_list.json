@@ -17,6 +17,5 @@
 	"github.com/sipsma/quartz-technology-daggerverse/node@96cf1889f1a57058a00ab7d3b0fe3e6bfa3c16cb", 
 	"github.com/helderco/daggerverse/python@ba7984f47857794ff5aace82947aaf6b433595be", 
 	"github.com/TomChv/daggerverse/node@4f06ebb5f74d9325b8be683fd1e0e6ba7f496cbb", 
-	"github.com/shykes/dagger/zenith/vito-mod@41c8793faca956f2465ab58a547e7617be97331f",
-	""
+	"github.com/shykes/dagger/zenith/vito-mod@41c8793faca956f2465ab58a547e7617be97331f"
 ]

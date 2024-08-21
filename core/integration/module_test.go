@@ -128,11 +128,18 @@ func (ModuleSuite) TestModuleNamingCompat(ctx context.Context, t *testctx.T) {
   "engineVersion": "v0.12.5"
 }`)
 
+	/*
+		testcases:
+
+		1. query using withDaggerClialpine instead of withDaggerCliAlpine should work.
+		2. should return withDaggerClialpine
+
+	*/
 	out, err := versionAModGen.
-		With(daggerQuery(`{minimal{withDaggerCliAlpine(stringArg:"hello"){stdout}}}`)).
+		With(daggerQuery(`{minimal{withDaggerClialpine(stringArg:"hello"){stdout}}}`)).
 		Stdout(ctx)
 	require.NoError(t, err)
-	require.Equal(t, `{"minimal":{"withDaggerClialpine":{"stdout":"hello\n"}}}`, out)
+	require.JSONEq(t, `{"minimal":{"withDaggerClialpine":{"stdout":"hello\n"}}}`, out)
 }
 
 func (ModuleSuite) TestGoInit(ctx context.Context, t *testctx.T) {
