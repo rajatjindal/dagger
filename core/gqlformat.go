@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/dagger/dagger/engine/strcase"
+	"github.com/dagger/dagger/engine/strcaselegacy"
 )
 
 /*
@@ -24,7 +24,7 @@ func formatGqlDescription(desc string, args ...any) string {
 
 func gqlObjectName(name string) string {
 	// gql object name is capitalized camel case
-	return strcase.ToPascal(name)
+	return strcaselegacy.ToPascal(name)
 }
 
 func namespaceObject(
@@ -56,10 +56,10 @@ func namespaceObject(
 
 func gqlFieldName(name string) string {
 	// gql field name is uncapitalized camel case
-	return strcase.ToCamel(name)
+	return strcaselegacy.ToCamel(name)
 }
 
 func gqlArgName(name string) string {
 	// gql arg name is uncapitalized camel case
-	return strcase.ToCamel(name)
+	return strcaselegacy.ToCamel(name)
 }
