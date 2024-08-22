@@ -19,7 +19,7 @@ func GetCompatFromContext(ctx context.Context) *Compat {
 	okval, ok := ctx.Value(CompatCtxKey{}).(*Compat)
 	if !ok {
 		return &Compat{
-			Strcase: strcase.NewLegacyCaser(),
+			Strcase: strcase.NewCaser(),
 		}
 	}
 
