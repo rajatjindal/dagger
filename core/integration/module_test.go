@@ -157,7 +157,7 @@ func (ModuleSuite) TestModuleNamingCompatFuncName(ctx context.Context, t *testct
 	type Minimal struct {
 		Config dagger.JSON
 	}
-	
+
 	func New() *Minimal {
 		return &Minimal{
 			Config: "{\"a\":1}",
