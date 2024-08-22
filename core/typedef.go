@@ -23,6 +23,7 @@ type Function struct {
 	Args        []*FunctionArg `field:"true" doc:"Arguments accepted by the function, if any."`
 	ReturnType  *TypeDef       `field:"true" doc:"The type returned by the function."`
 
+	ctx context.Context //RAJAT
 	// Below are not in public API
 
 	// OriginalName of the parent object
@@ -38,6 +39,7 @@ func NewFunction(ctx context.Context, name string, returnType *TypeDef) *Functio
 		Name:         compat.GetCompatFromContext(ctx).Strcase.ToCamel(name),
 		ReturnType:   returnType,
 		OriginalName: name,
+		ctx:          ctx,
 	}
 }
 
@@ -63,6 +65,10 @@ func (fn Function) Clone() *Function {
 	}
 	if fn.ReturnType != nil {
 		cp.ReturnType = fn.ReturnType.Clone()
+	}
+	//this is ugly, but lets try it
+	if fn.ctx != nil {
+		cp.ctx = fn.ctx
 	}
 	return &cp
 }
@@ -115,7 +121,7 @@ func (fn *Function) WithDescription(desc string) *Function {
 func (fn *Function) WithArg(name string, typeDef *TypeDef, desc string, defaultValue JSON) *Function {
 	fn = fn.Clone()
 	fn.Args = append(fn.Args, &FunctionArg{
-		Name:         compat.GetCompatFromContext(context.TODO()).Strcase.ToCamel(name),
+		Name:         compat.GetCompatFromContext(fn.ctx).Strcase.ToCamel(name),
 		Description:  desc,
 		TypeDef:      typeDef,
 		DefaultValue: defaultValue,

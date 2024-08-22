@@ -88,7 +88,59 @@ func (ModuleSuite) TestEngineVersionCompatibilityForModule(ctx context.Context, 
 	}
 }
 
-func (ModuleSuite) TestModuleNamingCompat(ctx context.Context, t *testctx.T) {
+func (ModuleSuite) TestModuleNamingCompatArgName(ctx context.Context, t *testctx.T) {
+	for _, tc := range []string{"new", "old"} {
+		c := connect(ctx, t)
+
+		devModGen := c.Container().From(golangImage).
+			WithMountedFile(testCLIBinPath, daggerCliFile(t, c)).
+			WithWorkdir("/work").
+			With(daggerExec("init", "--source=.", "--name=minimal", "--sdk=go")).
+			WithNewFile("main.go", `package main
+	
+	import (
+		"dagger/minimal/internal/dagger"
+	)
+	
+	type Minimal struct {
+		Config dagger.JSON
+	}
+	
+	func New() *Minimal {
+		return &Minimal{
+			Config: "{\"a\":1}",
+		}
+	}
+
+	func (m *Minimal) WithSecondFunction(skipTParse string) *dagger.Container {
+		return dag.Container().From("alpine:latest").WithExec([]string{"echo", skipTParse})
+	}
+	`,
+			)
+
+		if tc == "new" {
+			out, err := devModGen.
+				With(daggerQuery(`{minimal{withSecondFunction(skipTParse:"hello"){stdout}}}`)).
+				Stdout(ctx)
+			require.NoError(t, err)
+			require.JSONEq(t, `{"minimal":{"withSecondFunction":{"stdout":"hello\n"}}}`, out)
+		} else {
+			// now simulate old version
+			versionAModGen := devModGen.WithNewFile("dagger.json", `{
+			  "name": "minimal",
+			  "sdk": "go",
+			  "engineVersion": "v0.12.5"
+			}`)
+			out, err := versionAModGen.
+				With(daggerQuery(`{minimal{withSecondFunction(skipTparse:"hello"){stdout}}}`)).
+				Stdout(ctx)
+			require.NoError(t, err)
+			require.JSONEq(t, `{"minimal":{"withSecondFunction":{"stdout":"hello\n"}}}`, out)
+		}
+	}
+}
+
+func (ModuleSuite) TestModuleNamingCompatFuncName(ctx context.Context, t *testctx.T) {
 	for _, tc := range []string{"new", "old"} {
 		c := connect(ctx, t)
 
