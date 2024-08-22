@@ -1,8 +1,8 @@
 module github.com/dagger/dagger/core/compat
 
-go 1.23.0
+go 1.22.6
 
-replace github.com/dagger/dagger => ../../
+replace github.com/dagger/dagger => ../..
 
 require (
 	github.com/dagger/dagger v0.0.0-00010101000000-000000000000

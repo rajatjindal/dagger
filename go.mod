@@ -1,6 +1,6 @@
 module github.com/dagger/dagger
 
-go 1.22
+go 1.22.6
 
 require (
 	github.com/99designs/gqlgen v0.17.49
@@ -90,7 +90,7 @@ require (
 	go.opentelemetry.io/proto/otlp v1.3.1
 	golang.org/x/crypto v0.24.0
 	golang.org/x/exp v0.0.0-20231110203233-9a3e6036ecaa
-	golang.org/x/mod v0.18.0
+	golang.org/x/mod v0.20.0
 	golang.org/x/net v0.26.0
 	golang.org/x/oauth2 v0.21.0
 	golang.org/x/sync v0.7.0
@@ -272,11 +272,13 @@ require (
 
 require (
 	dagger.io/dagger v0.12.5
+	github.com/dagger/dagger/core/compat v0.0.0-00010101000000-000000000000
 	github.com/dagger/dagger/engine/distconsts v0.12.5
 	github.com/iancoleman/strcase v0.3.0
 )
 
 replace (
 	dagger.io/dagger => ./sdk/go
+	github.com/dagger/dagger/core/compat => ./core/compat
 	github.com/dagger/dagger/engine/distconsts => ./engine/distconsts
 )
