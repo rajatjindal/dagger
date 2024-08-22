@@ -27,7 +27,7 @@ type containerSchema struct {
 
 var _ SchemaResolvers = &containerSchema{}
 
-func (s *containerSchema) Install() {
+func (s *containerSchema) Install(ctx context.Context) {
 	dagql.Fields[*core.Query]{
 		dagql.Func("container", s.container).
 			Doc(`Creates a scratch container.`,
@@ -35,7 +35,7 @@ func (s *containerSchema) Install() {
 				publish as that platform. Platform defaults to that of the builder's
 				host.`).
 			ArgDoc("platform", `Platform to initialize the container with.`),
-	}.Install(s.srv)
+	}.Install(ctx, s.srv)
 
 	dagql.Fields[*core.Container]{
 		Syncer[*core.Container]().
@@ -574,7 +574,7 @@ func (s *containerSchema) Install() {
 			Doc(`EXPERIMENTAL API! Subject to change/removal at any time.`,
 				`Configures all available GPUs on the host to be accessible to this container.`,
 				`This currently works for Nvidia devices only.`),
-	}.Install(s.srv)
+	}.Install(ctx, s.srv)
 
 	dagql.Fields[*coreTerminalLegacy]{
 		Syncer[*coreTerminalLegacy]().
@@ -585,7 +585,7 @@ func (s *containerSchema) Install() {
 			View(BeforeVersion("v0.12.0")).
 			Deprecated("Use newer dagger to access the terminal").
 			Doc(`An http endpoint at which this terminal can be connected to over a websocket.`),
-	}.Install(s.srv)
+	}.Install(ctx, s.srv)
 }
 
 type containerArgs struct {

@@ -8,6 +8,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/dagger/dagger/core/compat"
 	"github.com/dagger/dagger/engine/strcase"
 	"github.com/vektah/gqlparser/v2/ast"
 
@@ -560,15 +561,23 @@ type Fields[T Typed] []Field[T]
 
 // Install installs the field's Object type if needed, and installs all fields
 // into the type.
-func (fields Fields[T]) Install(server *Server) {
+func (fields Fields[T]) Install(ctx context.Context, server *Server) {
 	server.installLock.Lock()
 	defer server.installLock.Unlock()
 	var t T
 	typeName := t.Type().Name()
+
+	if strings.ToLower(typeName) == "minimal" {
+		panic(fmt.Sprintf("TYPE OF STRCASE INSIDE INSTALL ------>>>>>> %T", compat.GetCompatFromContext(ctx).Strcase))
+	}
+
 	class := fields.findOrInitializeType(server, typeName)
 	objectFields, err := reflectFieldsForType(t, false, builtinOrTyped)
 	if err != nil {
 		panic(fmt.Errorf("fields for %T: %w", t, err))
+	}
+	if strings.ToLower(typeName) == "minimal" {
+		panic(fmt.Sprintf("OBJECT FIELDS ARE -> %#v", objectFields))
 	}
 	for _, field := range objectFields {
 		name := field.Name

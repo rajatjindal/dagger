@@ -16,12 +16,12 @@ type serviceSchema struct {
 
 var _ SchemaResolvers = &serviceSchema{}
 
-func (s *serviceSchema) Install() {
+func (s *serviceSchema) Install(ctx context.Context) {
 	dagql.Fields[*core.Container]{
 		dagql.Func("asService", s.containerAsService).
 			Doc(`Turn the container into a Service.`,
 				`Be sure to set any exposed ports before this conversion.`),
-	}.Install(s.srv)
+	}.Install(ctx, s.srv)
 
 	dagql.Fields[*core.Service]{
 		dagql.NodeFunc("hostname", s.hostname).
@@ -55,7 +55,7 @@ func (s *serviceSchema) Install() {
 			Impure("Imperatively mutates runtime state.").
 			Doc(`Stop the service.`).
 			ArgDoc("kill", `Immediately kill the service without waiting for a graceful exit`),
-	}.Install(s.srv)
+	}.Install(ctx, s.srv)
 }
 
 func (s *serviceSchema) containerAsService(ctx context.Context, parent *core.Container, args struct{}) (*core.Service, error) {

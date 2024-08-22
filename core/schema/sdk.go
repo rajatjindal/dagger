@@ -12,6 +12,7 @@ import (
 	"github.com/opencontainers/go-digest"
 
 	"github.com/dagger/dagger/core"
+	"github.com/dagger/dagger/core/compat"
 	"github.com/dagger/dagger/dagql"
 	"github.com/dagger/dagger/engine"
 	"github.com/dagger/dagger/engine/distconsts"
@@ -142,6 +143,12 @@ func (s *moduleSchema) newModuleSDK(
 		return nil, fmt.Errorf("failed to get cache for sdk module %s: %w", sdkModMeta.Self.Name(), err)
 	}
 
+	engineVersion, err := sdkModMeta.Self.Source.Self.ModuleEngineVersion(ctx)
+	if err != nil {
+		return nil, err
+	}
+	ctx = compat.AddStrcaseImplToContext(ctx, engineVersion)
+
 	if err := sdkModMeta.Self.Install(ctx, dag); err != nil {
 		return nil, fmt.Errorf("failed to install sdk module %s: %w", sdkModMeta.Self.Name(), err)
 	}
@@ -164,7 +171,7 @@ func (s *moduleSchema) newModuleSDK(
 	}
 	if err := dag.Select(ctx, dag.Root(), &sdk,
 		dagql.Selector{
-			Field: gqlFieldName(sdkModMeta.Self.Name()),
+			Field: gqlFieldName(ctx, sdkModMeta.Self.Name()),
 			Args:  constructorArgs,
 		},
 	); err != nil {

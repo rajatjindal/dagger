@@ -12,7 +12,7 @@ import (
 	"github.com/dagger/dagger/dagql/call"
 )
 
-func Install[T dagql.Typed](srv *dagql.Server) {
+func Install[T dagql.Typed](ctx context.Context, srv *dagql.Server) {
 	dagql.Fields[T]{
 		dagql.Func("__schema", func(ctx context.Context, self T, args struct{}) (*Schema, error) {
 			return WrapSchema(srv.Schema()), nil
@@ -29,7 +29,7 @@ func Install[T dagql.Typed](srv *dagql.Server) {
 			}
 			return WrapTypeFromDef(srv.Schema(), def), nil
 		}).Impure("A type can be modified at runtime."),
-	}.Install(srv)
+	}.Install(ctx, srv)
 
 	TypeKinds.Install(srv)
 
@@ -83,7 +83,7 @@ func Install[T dagql.Typed](srv *dagql.Server) {
 		dagql.Func("directives", func(ctx context.Context, self *Schema, args struct{}) (dagql.Array[*Directive], error) {
 			return self.Directives(), nil
 		}),
-	}.Install(srv)
+	}.Install(ctx, srv)
 
 	dagql.Fields[*Type]{
 		dagql.Func("name", func(ctx context.Context, self *Type, args struct{}) (dagql.Nullable[dagql.String], error) {
@@ -129,7 +129,7 @@ func Install[T dagql.Typed](srv *dagql.Server) {
 		dagql.Func("specifiedByURL", func(ctx context.Context, self *Type, args struct{}) (*string, error) {
 			return self.SpecifiedByURL(), nil
 		}),
-	}.Install(srv)
+	}.Install(ctx, srv)
 
 	dagql.Fields[*Directive]{
 		dagql.Func("name", func(ctx context.Context, self *Directive, args struct{}) (dagql.String, error) {
@@ -152,7 +152,7 @@ func Install[T dagql.Typed](srv *dagql.Server) {
 		dagql.Func("args", func(ctx context.Context, self *Directive, _ struct{}) (dagql.Array[*InputValue], error) {
 			return self.Args, nil
 		}),
-	}.Install(srv)
+	}.Install(ctx, srv)
 
 	dagql.Fields[*Field]{
 		dagql.Func("name", func(ctx context.Context, self *Field, args struct{}) (dagql.String, error) {
@@ -173,7 +173,7 @@ func Install[T dagql.Typed](srv *dagql.Server) {
 		dagql.Func("deprecationReason", func(ctx context.Context, self *Field, args struct{}) (*string, error) {
 			return self.DeprecationReason(), nil
 		}),
-	}.Install(srv)
+	}.Install(ctx, srv)
 
 	dagql.Fields[*InputValue]{
 		dagql.Func("name", func(ctx context.Context, self *InputValue, args struct{}) (dagql.String, error) {
@@ -198,7 +198,7 @@ func Install[T dagql.Typed](srv *dagql.Server) {
 		dagql.Func("deprecationReason", func(ctx context.Context, self *InputValue, args struct{}) (*string, error) {
 			return self.DeprecationReason(), nil
 		}),
-	}.Install(srv)
+	}.Install(ctx, srv)
 
 	dagql.Fields[*EnumValue]{
 		dagql.Func("name", func(ctx context.Context, self *EnumValue, args struct{}) (dagql.String, error) {
@@ -213,7 +213,7 @@ func Install[T dagql.Typed](srv *dagql.Server) {
 		dagql.Func("deprecationReason", func(ctx context.Context, self *EnumValue, args struct{}) (*string, error) {
 			return self.DeprecationReason(), nil
 		}),
-	}.Install(srv)
+	}.Install(ctx, srv)
 }
 
 type Schema struct {

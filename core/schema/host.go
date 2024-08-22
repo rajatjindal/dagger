@@ -27,7 +27,7 @@ type hostSchema struct {
 
 var _ SchemaResolvers = &hostSchema{}
 
-func (s *hostSchema) Install() {
+func (s *hostSchema) Install(ctx context.Context) {
 	dagql.Fields[*core.Query]{
 		dagql.Func("host", func(ctx context.Context, parent *core.Query, args struct{}) (*core.Host, error) {
 			return parent.NewHost(), nil
@@ -117,7 +117,7 @@ func (s *hostSchema) Install() {
 
 			return container, nil
 		}).Doc("Retrieves a container builtin to the engine."),
-	}.Install(s.srv)
+	}.Install(ctx, s.srv)
 
 	dagql.Fields[*core.Host]{
 		dagql.Func("directory", s.directory).
@@ -185,7 +185,7 @@ func (s *hostSchema) Install() {
 				`The file is limited to a size of 512000 bytes.`).
 			ArgDoc("name", `The user defined name for this secret.`).
 			ArgDoc("path", `Location of the file to set as a secret.`),
-	}.Install(s.srv)
+	}.Install(ctx, s.srv)
 }
 
 type setSecretFileArgs struct {

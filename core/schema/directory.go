@@ -15,11 +15,11 @@ type directorySchema struct {
 
 var _ SchemaResolvers = &directorySchema{}
 
-func (s *directorySchema) Install() {
+func (s *directorySchema) Install(ctx context.Context) {
 	dagql.Fields[*core.Query]{
 		dagql.Func("directory", s.directory).
 			Doc(`Creates an empty directory.`),
-	}.Install(s.srv)
+	}.Install(ctx, s.srv)
 
 	dagql.Fields[*core.Directory]{
 		Syncer[*core.Directory]().
@@ -114,7 +114,7 @@ func (s *directorySchema) Install() {
 			"--privileged" flag. Containerization does not provide any security
 			guarantees when using this option. It should only be used when
 			absolutely necessary and only with trusted commands.`),
-	}.Install(s.srv)
+	}.Install(ctx, s.srv)
 }
 
 type directoryPipelineArgs struct {

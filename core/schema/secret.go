@@ -14,7 +14,7 @@ type secretSchema struct {
 
 var _ SchemaResolvers = &secretSchema{}
 
-func (s *secretSchema) Install() {
+func (s *secretSchema) Install(ctx context.Context) {
 	dagql.Fields[*core.Query]{
 		dagql.Func("setSecret", s.setSecret).
 			Impure("`setSecret` mutates state in the internal secret store.").
@@ -26,7 +26,7 @@ func (s *secretSchema) Install() {
 
 		dagql.Func("secret", s.secret).
 			Doc(`Reference a secret by name.`),
-	}.Install(s.srv)
+	}.Install(ctx, s.srv)
 
 	dagql.Fields[*core.Secret]{
 		dagql.Func("name", s.name).
@@ -34,7 +34,7 @@ func (s *secretSchema) Install() {
 		dagql.Func("plaintext", s.plaintext).
 			Impure("A secret's `plaintext` value in the internal secret store state can change.").
 			Doc(`The value of this secret.`),
-	}.Install(s.srv)
+	}.Install(ctx, s.srv)
 }
 
 type secretArgs struct {

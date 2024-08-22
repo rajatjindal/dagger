@@ -52,7 +52,7 @@ func (m *CoreMod) Install(ctx context.Context, dag *dagql.Server) error {
 		&moduleSchema{dag},
 		&engineSchema{dag},
 	} {
-		schema.Install()
+		schema.Install(ctx)
 	}
 	return nil
 }
@@ -148,7 +148,7 @@ func (m *CoreMod) TypeDefs(ctx context.Context) ([]*core.TypeDef, error) {
 					Description: introspectionField.Description,
 				}
 
-				rtType, ok, err := introspectionRefToTypeDef(introspectionField.TypeRef, false, false)
+				rtType, ok, err := introspectionRefToTypeDef(ctx, introspectionField.TypeRef, false, false)
 				if err != nil {
 					return nil, fmt.Errorf("failed to convert return type: %w", err)
 				}
@@ -167,7 +167,7 @@ func (m *CoreMod) TypeDefs(ctx context.Context) ([]*core.TypeDef, error) {
 						fnArg.DefaultValue = core.JSON(*introspectionArg.DefaultValue)
 					}
 
-					argType, ok, err := introspectionRefToTypeDef(introspectionArg.TypeRef, false, true)
+					argType, ok, err := introspectionRefToTypeDef(ctx, introspectionArg.TypeRef, false, true)
 					if err != nil {
 						return nil, fmt.Errorf("failed to convert argument type: %w", err)
 					}
@@ -201,7 +201,7 @@ func (m *CoreMod) TypeDefs(ctx context.Context) ([]*core.TypeDef, error) {
 					Name:        introspectionField.Name,
 					Description: introspectionField.Description,
 				}
-				fieldType, ok, err := introspectionRefToTypeDef(introspectionField.TypeRef, false, false)
+				fieldType, ok, err := introspectionRefToTypeDef(ctx, introspectionField.TypeRef, false, false)
 				if err != nil {
 					return nil, fmt.Errorf("failed to convert return type: %w", err)
 				}
@@ -398,10 +398,10 @@ func (enum *CoreModEnum) TypeDef() *core.TypeDef {
 	}
 }
 
-func introspectionRefToTypeDef(introspectionType *introspection.TypeRef, nonNull, isInput bool) (*core.TypeDef, bool, error) {
+func introspectionRefToTypeDef(ctx context.Context, introspectionType *introspection.TypeRef, nonNull, isInput bool) (*core.TypeDef, bool, error) {
 	switch introspectionType.Kind {
 	case introspection.TypeKindNonNull:
-		return introspectionRefToTypeDef(introspectionType.OfType, true, isInput)
+		return introspectionRefToTypeDef(ctx, introspectionType.OfType, true, isInput)
 
 	case introspection.TypeKindScalar:
 		if isInput && strings.HasSuffix(introspectionType.Name, "ID") {
@@ -429,7 +429,7 @@ func introspectionRefToTypeDef(introspectionType *introspection.TypeRef, nonNull
 		default:
 			// assume that all core scalars are strings
 			typeDef.Kind = core.TypeDefKindScalar
-			typeDef.AsScalar = dagql.NonNull(core.NewScalarTypeDef(introspectionType.Name, ""))
+			typeDef.AsScalar = dagql.NonNull(core.NewScalarTypeDef(ctx, introspectionType.Name, ""))
 		}
 
 		return typeDef, true, nil
@@ -444,7 +444,7 @@ func introspectionRefToTypeDef(introspectionType *introspection.TypeRef, nonNull
 		}, true, nil
 
 	case introspection.TypeKindList:
-		elementTypeDef, ok, err := introspectionRefToTypeDef(introspectionType.OfType, false, isInput)
+		elementTypeDef, ok, err := introspectionRefToTypeDef(ctx, introspectionType.OfType, false, isInput)
 		if err != nil {
 			return nil, false, fmt.Errorf("failed to convert list element type: %w", err)
 		}

@@ -1,6 +1,8 @@
 package schema
 
 import (
+	"context"
+
 	"github.com/dagger/dagger/core"
 	"github.com/dagger/dagger/dagql"
 )
@@ -11,6 +13,6 @@ type socketSchema struct {
 
 var _ SchemaResolvers = &socketSchema{}
 
-func (s *socketSchema) Install() {
-	dagql.Fields[*core.Socket]{}.Install(s.srv)
+func (s *socketSchema) Install(ctx context.Context) {
+	dagql.Fields[*core.Socket]{}.Install(ctx, s.srv)
 }

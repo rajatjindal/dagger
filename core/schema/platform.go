@@ -13,11 +13,11 @@ type platformSchema struct {
 
 var _ SchemaResolvers = &platformSchema{}
 
-func (s *platformSchema) Install() {
+func (s *platformSchema) Install(ctx context.Context) {
 	dagql.Fields[*core.Query]{
 		dagql.Func("defaultPlatform", s.defaultPlatform).
 			Doc(`The default platform of the engine.`),
-	}.Install(s.srv)
+	}.Install(ctx, s.srv)
 
 	s.srv.InstallScalar(core.Platform{})
 }

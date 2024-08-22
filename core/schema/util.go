@@ -7,14 +7,14 @@ import (
 
 	"golang.org/x/mod/semver"
 
+	"github.com/dagger/dagger/core/compat"
 	"github.com/dagger/dagger/dagql"
 	"github.com/dagger/dagger/dagql/introspection"
 	"github.com/dagger/dagger/engine/buildkit"
-	"github.com/dagger/dagger/engine/strcaselegacy"
 )
 
 type SchemaResolvers interface {
-	Install()
+	Install(ctx context.Context)
 }
 
 type Evaluatable interface {
@@ -73,9 +73,9 @@ func SchemaIntrospectionJSON(ctx context.Context, dag *dagql.Server) (json.RawMe
 	return json.RawMessage(jsonBytes), nil
 }
 
-func gqlFieldName(name string) string {
+func gqlFieldName(ctx context.Context, name string) string {
 	// gql field name is uncapitalized camel case
-	return strcaselegacy.ToCamel(name)
+	return compat.GetCompatFromContext(ctx).Strcase.ToCamel(name)
 }
 
 // AllVersion is a view that contains all versions.

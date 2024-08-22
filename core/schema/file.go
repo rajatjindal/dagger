@@ -15,7 +15,7 @@ type fileSchema struct {
 
 var _ SchemaResolvers = &fileSchema{}
 
-func (s *fileSchema) Install() {
+func (s *fileSchema) Install(ctx context.Context) {
 	dagql.Fields[*core.File]{
 		Syncer[*core.File]().
 			Doc(`Force evaluation in the engine.`),
@@ -50,7 +50,7 @@ func (s *fileSchema) Install() {
 			Doc(`Retrieves this file with its created/modified timestamps set to the given time.`).
 			ArgDoc("timestamp", `Timestamp to set dir/files in.`,
 				`Formatted in seconds following Unix epoch (e.g., 1672531199).`),
-	}.Install(s.srv)
+	}.Install(ctx, s.srv)
 }
 
 func (s *fileSchema) contents(ctx context.Context, file *core.File, args struct{}) (dagql.String, error) {

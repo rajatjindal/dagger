@@ -15,8 +15,8 @@ type querySchema struct {
 
 var _ SchemaResolvers = &querySchema{}
 
-func (s *querySchema) Install() {
-	introspection.Install[*core.Query](s.srv)
+func (s *querySchema) Install(ctx context.Context) {
+	introspection.Install[*core.Query](ctx, s.srv)
 
 	s.srv.InstallScalar(core.JSON{})
 	s.srv.InstallScalar(core.Void{})
@@ -32,11 +32,11 @@ func (s *querySchema) Install() {
 	dagql.MustInputSpec(core.PortForward{}).Install(s.srv)
 	dagql.MustInputSpec(core.BuildArg{}).Install(s.srv)
 
-	dagql.Fields[EnvVariable]{}.Install(s.srv)
+	dagql.Fields[EnvVariable]{}.Install(ctx, s.srv)
 
-	dagql.Fields[core.Port]{}.Install(s.srv)
+	dagql.Fields[core.Port]{}.Install(ctx, s.srv)
 
-	dagql.Fields[Label]{}.Install(s.srv)
+	dagql.Fields[Label]{}.Install(ctx, s.srv)
 
 	dagql.Fields[*core.Query]{
 		dagql.Func("pipeline", s.pipeline).
@@ -48,7 +48,7 @@ func (s *querySchema) Install() {
 
 		dagql.Func("version", s.version).
 			Doc(`Get the current Dagger Engine version.`),
-	}.Install(s.srv)
+	}.Install(ctx, s.srv)
 }
 
 type pipelineArgs struct {

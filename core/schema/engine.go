@@ -15,7 +15,7 @@ type engineSchema struct {
 
 var _ SchemaResolvers = &engineSchema{}
 
-func (s *engineSchema) Install() {
+func (s *engineSchema) Install(ctx context.Context) {
 	dagql.Fields[*core.Query]{
 		dagql.Func("daggerEngine", s.engine).
 			Doc("The Dagger engine container configuration and state"),
@@ -28,12 +28,12 @@ func (s *engineSchema) Install() {
 		// in-memory sync map to attached to the session state to hold the cache entry set.
 		dagql.Func("__internalCacheEntrySet", s.internalCacheEntrySet).
 			Doc("(Internal-only) retrieve a cache entry set by it's unique ID"),
-	}.Install(s.srv)
+	}.Install(ctx, s.srv)
 
 	dagql.Fields[*core.Engine]{
 		dagql.Func("localCache", s.localCache).
 			Doc("The local (on-disk) cache for the Dagger engine"),
-	}.Install(s.srv)
+	}.Install(ctx, s.srv)
 
 	dagql.Fields[*core.EngineCache]{
 		dagql.Func("entrySet", s.cacheEntrySet).
@@ -42,14 +42,14 @@ func (s *engineSchema) Install() {
 		dagql.Func("prune", s.cachePrune).
 			Impure("Mutates mutable state").
 			Doc("Prune the cache of releaseable entries"),
-	}.Install(s.srv)
+	}.Install(ctx, s.srv)
 
 	dagql.Fields[*core.EngineCacheEntrySet]{
 		dagql.Func("entries", s.cacheEntrySetEntries).
 			Doc("The list of individual cache entries in the set"),
-	}.Install(s.srv)
+	}.Install(ctx, s.srv)
 
-	dagql.Fields[*core.EngineCacheEntry]{}.Install(s.srv)
+	dagql.Fields[*core.EngineCacheEntry]{}.Install(ctx, s.srv)
 }
 
 func (s *engineSchema) engine(ctx context.Context, parent *core.Query, args struct{}) (*core.Engine, error) {

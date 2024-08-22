@@ -6,10 +6,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"golang.org/x/sync/errgroup"
 
 	"github.com/dagger/dagger/core"
+	"github.com/dagger/dagger/core/compat"
 	"github.com/dagger/dagger/core/modules"
 	"github.com/dagger/dagger/dagql"
 	"github.com/dagger/dagger/engine"
@@ -21,7 +23,7 @@ type moduleSchema struct {
 
 var _ SchemaResolvers = &moduleSchema{}
 
-func (s *moduleSchema) Install() {
+func (s *moduleSchema) Install(ctx context.Context) {
 	dagql.Fields[*core.Query]{
 		dagql.Func("module", s.module).
 			Doc(`Create a new module.`),
@@ -43,6 +45,7 @@ func (s *moduleSchema) Install() {
 			ArgDoc("name", `If set, the name to use for the dependency. Otherwise, once installed to a parent module, the name of the dependency module will be used by default.`),
 
 		dagql.Func("function", s.function).
+			View(AfterVersion("")).
 			Doc(`Creates a function.`).
 			ArgDoc("name", `Name of the function, in its original format from the implementation language.`).
 			ArgDoc("returnType", `Return type of the function.`),
@@ -60,7 +63,7 @@ func (s *moduleSchema) Install() {
 			Doc(`The FunctionCall context that the SDK caller is currently executing in.`,
 				`If the caller is not currently executing in a function, this will
 				return an error.`),
-	}.Install(s.dag)
+	}.Install(ctx, s.dag)
 
 	dagql.Fields[*core.Directory]{
 		dagql.NodeFunc("asModule", s.directoryAsModule).
@@ -73,14 +76,14 @@ func (s *moduleSchema) Install() {
 				file from a parent directory.`,
 				`If not set, the module source code is loaded from the root of the directory.`).
 			ArgDoc("engineVersion", `The engine version to upgrade to.`),
-	}.Install(s.dag)
+	}.Install(ctx, s.dag)
 
 	dagql.Fields[*core.FunctionCall]{
 		dagql.Func("returnValue", s.functionCallReturnValue).
 			Impure(`Updates internal engine state with the given value.`).
 			Doc(`Set the return value of the function call to the provided value.`).
 			ArgDoc("value", `JSON serialization of the return value.`),
-	}.Install(s.dag)
+	}.Install(ctx, s.dag)
 
 	dagql.Fields[*core.ModuleSource]{
 		dagql.Func("contextDirectory", s.moduleSourceContextDirectory).
@@ -168,23 +171,23 @@ func (s *moduleSchema) Install() {
 			ArgDoc("name", `The name of the view to set.`).
 			ArgDoc("patterns", `The patterns to set as the view filters.`).
 			Doc(`Update the module source with a new named view.`),
-	}.Install(s.dag)
+	}.Install(ctx, s.dag)
 
 	dagql.Fields[*core.ModuleSourceView]{
 		dagql.Func("name", s.moduleSourceViewName).
 			Doc(`The name of the view`),
 		dagql.Func("patterns", s.moduleSourceViewPatterns).
 			Doc(`The patterns of the view used to filter paths`),
-	}.Install(s.dag)
+	}.Install(ctx, s.dag)
 
-	dagql.Fields[*core.LocalModuleSource]{}.Install(s.dag)
+	dagql.Fields[*core.LocalModuleSource]{}.Install(ctx, s.dag)
 
 	dagql.Fields[*core.GitModuleSource]{
 		dagql.Func("htmlURL", s.gitModuleSourceHTMLURL).
 			Doc(`The URL to the source's git repo in a web browser`),
-	}.Install(s.dag)
+	}.Install(ctx, s.dag)
 
-	dagql.Fields[*core.ModuleDependency]{}.Install(s.dag)
+	dagql.Fields[*core.ModuleDependency]{}.Install(ctx, s.dag)
 
 	dagql.Fields[*core.Module]{
 		dagql.Func("withSource", s.moduleWithSource).
@@ -215,7 +218,7 @@ func (s *moduleSchema) Install() {
 			Impure(`Mutates the calling session's global schema.`).
 			Doc(`Serve a module's API in the current session.`,
 				`Note: this can only be called once per session. In the future, it could return a stream or service to remove the side effect.`),
-	}.Install(s.dag)
+	}.Install(ctx, s.dag)
 
 	dagql.Fields[*core.CurrentModule]{
 		dagql.Func("name", s.currentModuleName).
@@ -235,7 +238,7 @@ func (s *moduleSchema) Install() {
 			Impure(`Loads live caller-specific data from their filesystem.`).
 			Doc(`Load a file from the module's scratch working directory, including any changes that may have been made to it during module function execution.Load a file from the module's scratch working directory, including any changes that may have been made to it during module function execution.`).
 			ArgDoc("path", `Location of the file to retrieve (e.g., "README.md").`),
-	}.Install(s.dag)
+	}.Install(ctx, s.dag)
 
 	dagql.Fields[*core.Function]{
 		dagql.Func("withDescription", s.functionWithDescription).
@@ -248,11 +251,11 @@ func (s *moduleSchema) Install() {
 			ArgDoc("typeDef", `The type of the argument`).
 			ArgDoc("description", `A doc string for the argument, if any`).
 			ArgDoc("defaultValue", `A default value to use for this argument if not explicitly set by the caller, if any`),
-	}.Install(s.dag)
+	}.Install(ctx, s.dag)
 
-	dagql.Fields[*core.FunctionArg]{}.Install(s.dag)
+	dagql.Fields[*core.FunctionArg]{}.Install(ctx, s.dag)
 
-	dagql.Fields[*core.FunctionCallArgValue]{}.Install(s.dag)
+	dagql.Fields[*core.FunctionCallArgValue]{}.Install(ctx, s.dag)
 
 	dagql.Fields[*core.TypeDef]{
 		dagql.Func("withOptional", s.typeDefWithOptional).
@@ -299,23 +302,23 @@ func (s *moduleSchema) Install() {
 			Doc(`Adds a static value for an Enum TypeDef, failing if the type is not an enum.`).
 			ArgDoc("value", `The name of the value in the enum`).
 			ArgDoc("description", `A doc string for the value, if any`),
-	}.Install(s.dag)
+	}.Install(ctx, s.dag)
 
-	dagql.Fields[*core.ObjectTypeDef]{}.Install(s.dag)
-	dagql.Fields[*core.InterfaceTypeDef]{}.Install(s.dag)
-	dagql.Fields[*core.InputTypeDef]{}.Install(s.dag)
-	dagql.Fields[*core.FieldTypeDef]{}.Install(s.dag)
-	dagql.Fields[*core.ListTypeDef]{}.Install(s.dag)
-	dagql.Fields[*core.ScalarTypeDef]{}.Install(s.dag)
-	dagql.Fields[*core.EnumTypeDef]{}.Install(s.dag)
-	dagql.Fields[*core.EnumValueTypeDef]{}.Install(s.dag)
+	dagql.Fields[*core.ObjectTypeDef]{}.Install(ctx, s.dag)
+	dagql.Fields[*core.InterfaceTypeDef]{}.Install(ctx, s.dag)
+	dagql.Fields[*core.InputTypeDef]{}.Install(ctx, s.dag)
+	dagql.Fields[*core.FieldTypeDef]{}.Install(ctx, s.dag)
+	dagql.Fields[*core.ListTypeDef]{}.Install(ctx, s.dag)
+	dagql.Fields[*core.ScalarTypeDef]{}.Install(ctx, s.dag)
+	dagql.Fields[*core.EnumTypeDef]{}.Install(ctx, s.dag)
+	dagql.Fields[*core.EnumValueTypeDef]{}.Install(ctx, s.dag)
 
 	dagql.Fields[*core.GeneratedCode]{
 		dagql.Func("withVCSGeneratedPaths", s.generatedCodeWithVCSGeneratedPaths).
 			Doc(`Set the list of paths to mark generated in version control.`),
 		dagql.Func("withVCSIgnoredPaths", s.generatedCodeWithVCSIgnoredPaths).
 			Doc(`Set the list of paths to ignore in version control.`),
-	}.Install(s.dag)
+	}.Install(ctx, s.dag)
 }
 
 func (s *moduleSchema) typeDef(ctx context.Context, _ *core.Query, args struct{}) (*core.TypeDef, error) {
@@ -341,7 +344,7 @@ func (s *moduleSchema) typeDefWithScalar(ctx context.Context, def *core.TypeDef,
 	if args.Name == "" {
 		return nil, fmt.Errorf("scalar type def must have a name")
 	}
-	return def.WithScalar(args.Name, args.Description), nil
+	return def.WithScalar(ctx, args.Name, args.Description), nil
 }
 
 func (s *moduleSchema) typeDefWithListOf(ctx context.Context, def *core.TypeDef, args struct {
@@ -361,14 +364,14 @@ func (s *moduleSchema) typeDefWithObject(ctx context.Context, def *core.TypeDef,
 	if args.Name == "" {
 		return nil, fmt.Errorf("object type def must have a name")
 	}
-	return def.WithObject(args.Name, args.Description), nil
+	return def.WithObject(ctx, args.Name, args.Description), nil
 }
 
 func (s *moduleSchema) typeDefWithInterface(ctx context.Context, def *core.TypeDef, args struct {
 	Name        string
 	Description string `default:""`
 }) (*core.TypeDef, error) {
-	return def.WithInterface(args.Name, args.Description), nil
+	return def.WithInterface(ctx, args.Name, args.Description), nil
 }
 
 func (s *moduleSchema) typeDefWithObjectField(ctx context.Context, def *core.TypeDef, args struct {
@@ -380,7 +383,7 @@ func (s *moduleSchema) typeDefWithObjectField(ctx context.Context, def *core.Typ
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode element type: %w", err)
 	}
-	return def.WithObjectField(args.Name, fieldType.Self, args.Description)
+	return def.WithObjectField(ctx, args.Name, fieldType.Self, args.Description)
 }
 
 func (s *moduleSchema) typeDefWithFunction(ctx context.Context, def *core.TypeDef, args struct {
@@ -416,7 +419,7 @@ func (s *moduleSchema) typeDefWithEnum(ctx context.Context, def *core.TypeDef, a
 		return nil, fmt.Errorf("enum type def must have a name")
 	}
 
-	return def.WithEnum(args.Name, args.Description), nil
+	return def.WithEnum(ctx, args.Name, args.Description), nil
 }
 
 func (s *moduleSchema) typeDefWithEnumValue(ctx context.Context, def *core.TypeDef, args struct {
@@ -460,11 +463,14 @@ func (s *moduleSchema) function(ctx context.Context, _ *core.Query, args struct 
 	Name       string
 	ReturnType core.TypeDefID
 }) (*core.Function, error) {
+	if strings.ToLower(args.Name) == "withdaggerclialpine" {
+		panic(fmt.Sprintf("TYPE OF STRCASE inside function ------>>>>>> %T", compat.GetCompatFromContext(ctx).Strcase))
+	}
 	returnType, err := args.ReturnType.Load(ctx, s.dag)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode return type: %w", err)
 	}
-	return core.NewFunction(args.Name, returnType.Self), nil
+	return core.NewFunction(ctx, args.Name, returnType.Self), nil
 }
 
 func (s *moduleSchema) functionWithDescription(ctx context.Context, fn *core.Function, args struct {
@@ -483,7 +489,7 @@ func (s *moduleSchema) functionWithArg(ctx context.Context, fn *core.Function, a
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode arg type: %w", err)
 	}
-	return fn.WithArg(args.Name, argType.Self, args.Description, args.DefaultValue), nil
+	return fn.WithArg(ctx, args.Name, argType.Self, args.Description, args.DefaultValue), nil
 }
 
 func (s *moduleSchema) moduleDependency(

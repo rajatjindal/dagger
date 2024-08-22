@@ -23,7 +23,7 @@ type gitSchema struct {
 	srv *dagql.Server
 }
 
-func (s *gitSchema) Install() {
+func (s *gitSchema) Install(ctx context.Context) {
 	dagql.Fields[*core.Query]{
 		dagql.Func("git", s.git).
 			Doc(`Queries a Git repository.`).
@@ -35,7 +35,7 @@ func (s *gitSchema) Install() {
 			ArgDoc("sshKnownHosts", `Set SSH known hosts`).
 			ArgDoc("sshAuthSocket", `Set SSH auth socket`).
 			ArgDoc("experimentalServiceHost", `A service which must be started before the repo is fetched.`),
-	}.Install(s.srv)
+	}.Install(ctx, s.srv)
 
 	dagql.Fields[*core.GitRepository]{
 		dagql.Func("head", s.head).
@@ -62,7 +62,7 @@ func (s *gitSchema) Install() {
 		dagql.Func("withAuthHeader", s.withAuthHeader).
 			Doc(`Header to authenticate the remote with.`).
 			ArgDoc("header", `Secret used to populate the Authorization HTTP header`),
-	}.Install(s.srv)
+	}.Install(ctx, s.srv)
 
 	dagql.Fields[*core.GitRef]{
 		dagql.Func("tree", s.tree).
@@ -75,7 +75,7 @@ func (s *gitSchema) Install() {
 			ArgDeprecated("sshAuthSocket", "This option should be passed to `git` instead."),
 		dagql.Func("commit", s.fetchCommit).
 			Doc(`The resolved commit id at this ref.`),
-	}.Install(s.srv)
+	}.Install(ctx, s.srv)
 }
 
 type gitArgs struct {

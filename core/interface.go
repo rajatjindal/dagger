@@ -184,11 +184,11 @@ func (iface *InterfaceType) Install(ctx context.Context, dag *dagql.Server) erro
 	dag.InstallObject(class)
 
 	ifaceTypeDef := iface.typeDef
-	ifaceName := gqlObjectName(ifaceTypeDef.Name)
+	ifaceName := gqlObjectName(ctx, ifaceTypeDef.Name)
 
 	fields := make([]dagql.Field[*InterfaceAnnotatedValue], 0, len(iface.typeDef.Functions))
 	for _, fnTypeDef := range iface.typeDef.Functions {
-		fnName := gqlFieldName(fnTypeDef.Name)
+		fnName := gqlFieldName(ctx, fnTypeDef.Name)
 
 		// check whether this is a pre-existing object from a dependency module
 		returnModType, ok, err := iface.mod.Deps.ModTypeFor(ctx, fnTypeDef.ReturnType)
@@ -243,7 +243,7 @@ func (iface *InterfaceType) Install(ctx context.Context, dag *dagql.Server) erro
 			}
 
 			inputSpec := dagql.InputSpec{
-				Name:        gqlArgName(argMetadata.Name),
+				Name:        gqlArgName(ctx, argMetadata.Name),
 				Description: formatGqlDescription(argMetadata.Description),
 				Type:        argMetadata.TypeDef.ToInput(),
 			}

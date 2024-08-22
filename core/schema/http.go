@@ -18,13 +18,13 @@ type httpSchema struct {
 	srv *dagql.Server
 }
 
-func (s *httpSchema) Install() {
+func (s *httpSchema) Install(ctx context.Context) {
 	dagql.Fields[*core.Query]{
 		dagql.Func("http", s.http).
 			Doc(`Returns a file containing an http remote url content.`).
 			ArgDoc("url", `HTTP url to get the content from (e.g., "https://docs.dagger.io").`).
 			ArgDoc("experimentalServiceHost", `A service which must be started before the URL is fetched.`),
-	}.Install(s.srv)
+	}.Install(ctx, s.srv)
 }
 
 type httpArgs struct {

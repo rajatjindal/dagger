@@ -95,7 +95,7 @@ func (ModuleSuite) TestModuleNamingCompat(ctx context.Context, t *testctx.T) {
 	devModGen := c.Container().From(golangImage).
 		WithMountedFile(testCLIBinPath, daggerCliFile(t, c)).
 		WithWorkdir("/work").
-		With(daggerExec("init", "--source=.", "--name=minimal", "--sdk=go")).
+		With(daggerExec("init", "--source=.", "--name=minimal", "--sdk=go", "-vvv")).
 		WithNewFile("main.go", `package main
 	
 	import (
@@ -117,16 +117,16 @@ func (ModuleSuite) TestModuleNamingCompat(ctx context.Context, t *testctx.T) {
 	}
 	`,
 		)
-	// // get latest schema
-	// devIntrospection, err := devModGen.With(daggerQuery(introspection.Query)).Stdout(ctx)
-	// require.NoError(t, err)
+		// // get latest schema
+		// devIntrospection, err := devModGen.With(daggerQuery(introspection.Query)).Stdout(ctx)
+		// require.NoError(t, err)
 
-	// now simulate old version
-	versionAModGen := devModGen.WithNewFile("dagger.json", `{                                                                                                                                                    
-  "name": "minimal",
-  "sdk": "go",
-  "engineVersion": "v0.12.5"
-}`)
+		//now simulate old version
+	versionAModGen := devModGen.WithNewFile("dagger.json", `{
+	  "name": "minimal",
+	  "sdk": "go",
+	  "engineVersion": "v0.11.8"
+	}`)
 
 	/*
 		testcases:
@@ -140,6 +140,17 @@ func (ModuleSuite) TestModuleNamingCompat(ctx context.Context, t *testctx.T) {
 		Stdout(ctx)
 	require.NoError(t, err)
 	require.JSONEq(t, `{"minimal":{"withDaggerClialpine":{"stdout":"hello\n"}}}`, out)
+
+	// versionBModGen := devModGen.WithNewFile("dagger.json", `{
+	// 	"name": "minimal",
+	// 	"sdk": "go",
+	// 	"engineVersion": "v0.12.6"
+	// }`)
+	// out, err := devModGen.
+	// 	With(daggerQuery(`{minimal{withDaggerCliAlpine(stringArg:"hello"){stdout}}}`)).
+	// 	Stdout(ctx)
+	// require.NoError(t, err)
+	// require.JSONEq(t, `{"minimal":{"withDaggerCliAlpine":{"stdout":"hello\n"}}}`, out)
 }
 
 func (ModuleSuite) TestGoInit(ctx context.Context, t *testctx.T) {
@@ -7015,7 +7026,7 @@ func daggerQuery(query string, args ...any) dagger.WithContainerFunc {
 func daggerQueryAt(modPath string, query string, args ...any) dagger.WithContainerFunc {
 	query = fmt.Sprintf(query, args...)
 	return func(c *dagger.Container) *dagger.Container {
-		execArgs := []string{"dagger", "--debug", "query"}
+		execArgs := []string{"dagger", "--debug", "-vvv", "query"}
 		if modPath != "" {
 			execArgs = append(execArgs, "-m", modPath)
 		}
