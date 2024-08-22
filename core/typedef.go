@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/dagger/dagger/engine/strcaselegacy"
+	"github.com/dagger/dagger/core/compat"
 	"github.com/vektah/gqlparser/v2/ast"
 
 	"github.com/dagger/dagger/dagql"
@@ -35,7 +35,7 @@ type Function struct {
 
 func NewFunction(name string, returnType *TypeDef) *Function {
 	return &Function{
-		Name:         strcaselegacy.ToCamel(name),
+		Name:         compat.GetCompatFromContext(context.TODO()).Strcase.ToCamel(name),
 		ReturnType:   returnType,
 		OriginalName: name,
 	}
@@ -115,7 +115,7 @@ func (fn *Function) WithDescription(desc string) *Function {
 func (fn *Function) WithArg(name string, typeDef *TypeDef, desc string, defaultValue JSON) *Function {
 	fn = fn.Clone()
 	fn.Args = append(fn.Args, &FunctionArg{
-		Name:         strcaselegacy.ToCamel(name),
+		Name:         compat.GetCompatFromContext(context.TODO()).Strcase.ToCamel(name),
 		Description:  desc,
 		TypeDef:      typeDef,
 		DefaultValue: defaultValue,
@@ -444,7 +444,7 @@ func (typeDef *TypeDef) WithObjectField(name string, fieldType *TypeDef, desc st
 	}
 	typeDef = typeDef.Clone()
 	typeDef.AsObject.Value.Fields = append(typeDef.AsObject.Value.Fields, &FieldTypeDef{
-		Name:         strcaselegacy.ToCamel(name),
+		Name:         compat.GetCompatFromContext(context.TODO()).Strcase.ToCamel(name),
 		OriginalName: name,
 		Description:  desc,
 		TypeDef:      fieldType,
@@ -591,7 +591,7 @@ func (*ObjectTypeDef) TypeDescription() string {
 
 func NewObjectTypeDef(name, description string) *ObjectTypeDef {
 	return &ObjectTypeDef{
-		Name:         strcaselegacy.ToPascal(name),
+		Name:         compat.GetCompatFromContext(context.TODO()).Strcase.ToPascal(name),
 		OriginalName: name,
 		Description:  description,
 	}
@@ -732,7 +732,7 @@ type InterfaceTypeDef struct {
 
 func NewInterfaceTypeDef(name, description string) *InterfaceTypeDef {
 	return &InterfaceTypeDef{
-		Name:         strcaselegacy.ToPascal(name),
+		Name:         compat.GetCompatFromContext(context.TODO()).Strcase.ToPascal(name),
 		OriginalName: name,
 		Description:  description,
 	}
@@ -796,7 +796,7 @@ type ScalarTypeDef struct {
 
 func NewScalarTypeDef(name, description string) *ScalarTypeDef {
 	return &ScalarTypeDef{
-		Name:         strcaselegacy.ToPascal(name),
+		Name:         compat.GetCompatFromContext(context.TODO()).Strcase.ToPascal(name),
 		OriginalName: name,
 		Description:  description,
 	}
@@ -927,7 +927,7 @@ func (enum *EnumTypeDef) ListValues() ast.EnumValueList {
 
 func NewEnumTypeDef(name, description string) *EnumTypeDef {
 	return &EnumTypeDef{
-		Name:         strcaselegacy.ToPascal(name),
+		Name:         compat.GetCompatFromContext(context.TODO()).Strcase.ToPascal(name),
 		OriginalName: name,
 		Description:  description,
 	}

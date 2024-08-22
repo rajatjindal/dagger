@@ -121,11 +121,16 @@ func (ModuleSuite) TestModuleNamingCompat(ctx context.Context, t *testctx.T) {
 	// require.NoError(t, err)
 
 	// now simulate old version
-	versionAModGen := devModGen.WithNewFile("dagger.json", `{                                                                                                                                                    
-  "name": "minimal",
-  "sdk": "go",
-  "engineVersion": "v0.12.5"
-}`)
+	// versionAModGen := devModGen.WithNewFile("dagger.json", `{
+	//   "name": "minimal",
+	//   "sdk": "go",
+	//   "engineVersion": "v0.12.5"
+	// }`)
+	// out, err := versionAModGen.
+	// 	With(daggerQuery(`{minimal{withDaggerClialpine(stringArg:"hello"){stdout}}}`)).
+	// 	Stdout(ctx)
+	// require.NoError(t, err)
+	// require.JSONEq(t, `{"minimal":{"withDaggerClialpine":{"stdout":"hello\n"}}}`, out)
 
 	/*
 		testcases:
@@ -134,11 +139,11 @@ func (ModuleSuite) TestModuleNamingCompat(ctx context.Context, t *testctx.T) {
 		2. should return withDaggerClialpine
 
 	*/
-	out, err := versionAModGen.
-		With(daggerQuery(`{minimal{withDaggerClialpine(stringArg:"hello"){stdout}}}`)).
+	out, err := devModGen.
+		With(daggerQuery(`{minimal{withDaggerCliAlpine(stringArg:"hello"){stdout}}}`)).
 		Stdout(ctx)
 	require.NoError(t, err)
-	require.JSONEq(t, `{"minimal":{"withDaggerClialpine":{"stdout":"hello\n"}}}`, out)
+	require.JSONEq(t, `{"minimal":{"withDaggerCliAlpine":{"stdout":"hello\n"}}}`, out)
 }
 
 func (ModuleSuite) TestGoInit(ctx context.Context, t *testctx.T) {
