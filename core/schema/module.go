@@ -10,6 +10,7 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/dagger/dagger/core"
+	"github.com/dagger/dagger/core/compat"
 	"github.com/dagger/dagger/core/modules"
 	"github.com/dagger/dagger/dagql"
 	"github.com/dagger/dagger/engine"
@@ -456,7 +457,7 @@ func (s *moduleSchema) module(ctx context.Context, query *core.Query, _ struct{}
 	return query.NewModule(), nil
 }
 
-func (s *moduleSchema) function(ctx context.Context, _ *core.Query, args struct {
+func (s *moduleSchema) function(ctx context.Context, q *core.Query, args struct {
 	Name       string
 	ReturnType core.TypeDefID
 }) (*core.Function, error) {
@@ -464,7 +465,20 @@ func (s *moduleSchema) function(ctx context.Context, _ *core.Query, args struct 
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode return type: %w", err)
 	}
-	return core.NewFunction(args.Name, returnType.Self), nil
+
+	m, err := s.currentModule(ctx, q, struct{}{})
+	if err != nil {
+		return nil, err
+	}
+
+	engineVersion, err := m.Module.Source.Self.ModuleEngineVersion(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx = compat.AddStrcaseImplToContext(ctx, engineVersion)
+
+	return core.NewFunction(ctx, args.Name, returnType.Self), nil
 }
 
 func (s *moduleSchema) functionWithDescription(ctx context.Context, fn *core.Function, args struct {

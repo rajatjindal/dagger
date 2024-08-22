@@ -33,9 +33,9 @@ type Function struct {
 	OriginalName string
 }
 
-func NewFunction(name string, returnType *TypeDef) *Function {
+func NewFunction(ctx context.Context, name string, returnType *TypeDef) *Function {
 	return &Function{
-		Name:         compat.GetCompatFromContext(context.TODO()).Strcase.ToCamel(name),
+		Name:         compat.GetCompatFromContext(ctx).Strcase.ToCamel(name),
 		ReturnType:   returnType,
 		OriginalName: name,
 	}

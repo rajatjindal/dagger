@@ -9,6 +9,7 @@ import (
 	"github.com/moby/buildkit/solver/pb"
 	"github.com/vektah/gqlparser/v2/ast"
 
+	"github.com/dagger/dagger/core/compat"
 	"github.com/dagger/dagger/dagql"
 	"github.com/dagger/dagger/dagql/call"
 	"github.com/dagger/dagger/engine/slog"
@@ -127,6 +128,11 @@ func (mod *Module) Initialize(ctx context.Context, oldID *call.ID, newID *call.I
 	newMod := mod.Clone()
 	newMod.InstanceID = oldID // updated to newID once the call to initialize is done
 
+	engineVersion, err := mod.Source.Self.ModuleEngineVersion(ctx)
+	if err != nil {
+		return nil, err
+	}
+	ctx = compat.AddStrcaseImplToContext(ctx, engineVersion)
 	// construct a special function with no object or function name, which tells
 	// the SDK to return the module's definition (in terms of objects, fields and
 	// functions)
@@ -136,7 +142,7 @@ func (mod *Module) Initialize(ctx context.Context, oldID *call.ID, newID *call.I
 		newMod,
 		nil,
 		newMod.Runtime,
-		NewFunction("", &TypeDef{
+		NewFunction(ctx, "", &TypeDef{
 			Kind:     TypeDefKindObject,
 			AsObject: dagql.NonNull(NewObjectTypeDef("Module", "")),
 		}))
