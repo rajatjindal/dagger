@@ -9,7 +9,6 @@ import (
 	"github.com/opencontainers/go-digest"
 	"github.com/vektah/gqlparser/v2/ast"
 
-	"github.com/dagger/dagger/core/compat"
 	"github.com/dagger/dagger/dagql"
 	"github.com/dagger/dagger/dagql/call"
 	"github.com/dagger/dagger/engine/slog"
@@ -172,12 +171,11 @@ func (iface *InterfaceType) Install(ctx context.Context, dag *dagql.Server) erro
 	ctx = bklog.WithLogger(ctx, bklog.G(ctx).WithField("interface", iface.typeDef.Name))
 	slog.ExtraDebug("installing interface")
 
-	engineVersion, err := iface.mod.Source.Self.ModuleEngineVersion(ctx)
+	ctx, err := iface.mod.addCompatToCtx(ctx)
 	if err != nil {
 		return err
 	}
 
-	ctx = compat.AddStrcaseImplToContext(ctx, engineVersion)
 	if iface.mod.InstanceID == nil {
 		return fmt.Errorf("installing interface %q too early", iface.typeDef.Name)
 	}

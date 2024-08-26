@@ -17,6 +17,7 @@ import (
 )
 
 type moduleSchema struct {
+	ctx context.Context
 	dag *dagql.Server
 }
 
@@ -465,22 +466,12 @@ func (s *moduleSchema) function(ctx context.Context, q *core.Query, args struct 
 	Name       string
 	ReturnType core.TypeDefID
 }) (*core.Function, error) {
+	ctx = compat.AddStrcaseImplToContext(ctx, s.dag.View)
+
 	returnType, err := args.ReturnType.Load(ctx, s.dag)
 	if err != nil {
 		return nil, fmt.Errorf("failed to decode return type: %w", err)
 	}
-
-	m, err := s.currentModule(ctx, q, struct{}{})
-	if err != nil {
-		return nil, err
-	}
-
-	engineVersion, err := m.Module.Source.Self.ModuleEngineVersion(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	ctx = compat.AddStrcaseImplToContext(ctx, engineVersion)
 
 	return core.NewFunction(ctx, args.Name, returnType.Self), nil
 }
@@ -1191,4 +1182,8 @@ func (s *moduleSchema) writeDaggerConfig(
 	}
 
 	return nil
+}
+
+func (s *moduleSchema) addCompatToCtx(ctx context.Context) context.Context {
+	return compat.AddStrcaseImplToContext(ctx, s.dag.View)
 }
