@@ -1,6 +1,6 @@
 module github.com/dagger/dagger/core/compat
 
-go 1.22.6
+go 1.22
 
 replace github.com/dagger/dagger => ../..
 
