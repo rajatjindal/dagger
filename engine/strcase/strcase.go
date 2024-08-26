@@ -74,6 +74,8 @@ func (c *CaserImpl) ConfigureAcronyms(key, value string) {
 type LegacyCaser struct{}
 
 func NewLegacyCaser() *LegacyCaser {
+	legacy.ConfigureAcronym("JSON", "JSON")
+
 	return &LegacyCaser{}
 }
 

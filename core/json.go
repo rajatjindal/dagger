@@ -8,12 +8,7 @@ import (
 
 	"github.com/dagger/dagger/dagql"
 	"github.com/dagger/dagger/dagql/call"
-	"github.com/dagger/dagger/engine/strcaselegacy"
 )
-
-func init() {
-	strcaselegacy.ConfigureAcronyms("JSON", "JSON")
-}
 
 type JSON json.RawMessage
 
