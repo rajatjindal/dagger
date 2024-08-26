@@ -49,7 +49,7 @@ func (m *CoreMod) Install(ctx context.Context, dag *dagql.Server) error {
 		&httpSchema{dag},
 		&platformSchema{dag},
 		&socketSchema{dag},
-		&moduleSchema{dag},
+		&moduleSchema{dag: dag},
 		&engineSchema{dag},
 	} {
 		schema.Install()
