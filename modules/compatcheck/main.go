@@ -129,7 +129,7 @@ func (m *Oldversion) InsideOldVersion(skipTParse string) *dagger.Container {
 			  "engineVersion": "v0.12.5"
 			}`).
 		WithExec([]string{"dagger", "install", "minimal", "-m=.", "-n=minimal"}).
-		WithNewFile("query.graphql", `{oldversion{insideOldVersion(skipTParse:"hello"){stdout}}}`).
+		WithNewFile("query.graphql", `{oldversion{insideOldVersion(skipTparse:"hello"){stdout}}}`).
 		WithExec([]string{"dagger", "query", "--doc", "query.graphql"}).
 
 		// WithNewFile("/base-schema-query.graphql", introspectionQuery).
