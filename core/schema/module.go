@@ -507,7 +507,7 @@ func (s *moduleSchema) functionWithArg(ctx context.Context, fn *core.Function, a
 		return nil, fmt.Errorf("can only set ignore for Directory type, not %s", argType.Self.AsObject.Value.Name)
 	}
 
-	return fn.WithArg(args.Name, argType.Self, args.Description, args.DefaultValue, args.DefaultPath, args.Ignore), nil
+	return fn.WithArg(ctx, args.Name, argType.Self, args.Description, args.DefaultValue, args.DefaultPath, args.Ignore), nil
 }
 
 func (s *moduleSchema) moduleDependency(
