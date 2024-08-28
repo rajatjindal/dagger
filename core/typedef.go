@@ -66,10 +66,6 @@ func (fn Function) Clone() *Function {
 	if fn.ReturnType != nil {
 		cp.ReturnType = fn.ReturnType.Clone()
 	}
-	//this is ugly, but lets try it
-	if fn.ctx != nil {
-		cp.ctx = fn.ctx
-	}
 	return &cp
 }
 
@@ -118,10 +114,10 @@ func (fn *Function) WithDescription(desc string) *Function {
 	return fn
 }
 
-func (fn *Function) WithArg(name string, typeDef *TypeDef, desc string, defaultValue JSON, defaultPath string, ignore []string) *Function {
+func (fn *Function) WithArg(ctx context.Context, name string, typeDef *TypeDef, desc string, defaultValue JSON, defaultPath string, ignore []string) *Function {
 	fn = fn.Clone()
 	fn.Args = append(fn.Args, &FunctionArg{
-		Name:         compat.GetCompatFromContext(fn.ctx).Strcase.ToCamel(name),
+		Name:         compat.Strcase(ctx).ToCamel(name),
 		Description:  desc,
 		TypeDef:      typeDef,
 		DefaultValue: defaultValue,
