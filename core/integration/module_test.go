@@ -43,6 +43,71 @@ func TestModule(t *testing.T) {
 	testctx.Run(testCtx, t, ModuleSuite{}, Middleware()...)
 }
 
+func (ModuleSuite) TestModuleNamingCompatDependency(ctx context.Context, t *testctx.T) {
+	c := connect(ctx, t)
+
+	devModGen := c.Container().From(golangImage).
+		WithMountedFile(testCLIBinPath, daggerCliFile(t, c)).
+		WithWorkdir("/work/minimal").
+		With(daggerExec("init", "--name=minimal", "--sdk=go", "--source=.")).
+		WithNewFile("main.go", `package main
+	
+	import (
+		"dagger/minimal/internal/dagger"
+	)
+	
+	type Minimal struct {
+		Config dagger.JSON
+	}
+	
+	func New() *Minimal {
+		return &Minimal{
+			Config: "{\"a\":1}",
+		}
+	}
+
+	func (m *Minimal) WithSecondFunction(skipTParse string) *dagger.Container {
+		return dag.Container().From("alpine:latest").WithExec([]string{"echo", skipTParse})
+	}
+	`,
+		).
+		WithWorkdir("/work").
+		With(daggerExec("init", "--name=oldversion", "--sdk=go", "--source=.")).
+		WithNewFile("main.go", `package main
+
+import (
+	"dagger/oldversion/internal/dagger"
+)
+
+type Oldversion struct {
+	Config dagger.JSON
+}
+
+func New() *Oldversion {
+	return &Oldversion{
+		Config: "{\"a\":1}",
+	}
+}
+
+func (m *Oldversion) InsideOldVersion(skipTParse string) *dagger.Container {
+	return dag.Minimal().WithSecondFunction(skipTParse)
+}
+`,
+		).
+		WithNewFile("dagger.json", `{
+			  "name": "oldversion",
+			  "sdk": "go",
+			  "engineVersion": "v0.12.5"
+			}`).
+		With(daggerExec("install", "minimal", "-m=.", "-n=minimal"))
+
+	out, err := devModGen.
+		With(daggerQuery(`{oldversion{insideOldVersion(skipTParse:"hello"){stdout}}}`)).
+		Stdout(ctx)
+	require.NoError(t, err)
+	require.JSONEq(t, `{"oldversion":{"insideOldVersion":{"stdout":"hello\n"}}}`, out)
+}
+
 func (ModuleSuite) TestModuleNamingCompatArgName(ctx context.Context, t *testctx.T) {
 	for _, tc := range []string{"new", "old"} {
 		c := connect(ctx, t)
