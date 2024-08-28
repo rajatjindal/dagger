@@ -171,11 +171,6 @@ func (iface *InterfaceType) Install(ctx context.Context, dag *dagql.Server) erro
 	ctx = bklog.WithLogger(ctx, bklog.G(ctx).WithField("interface", iface.typeDef.Name))
 	slog.ExtraDebug("installing interface")
 
-	ctx, err := iface.mod.addCompatToCtx(ctx)
-	if err != nil {
-		return err
-	}
-
 	if iface.mod.InstanceID == nil {
 		return fmt.Errorf("installing interface %q too early", iface.typeDef.Name)
 	}

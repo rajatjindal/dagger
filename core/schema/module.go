@@ -10,7 +10,6 @@ import (
 	"golang.org/x/sync/errgroup"
 
 	"github.com/dagger/dagger/core"
-	"github.com/dagger/dagger/core/compat"
 	"github.com/dagger/dagger/core/modules"
 	"github.com/dagger/dagger/dagql"
 	"github.com/dagger/dagger/engine"
@@ -1198,8 +1197,4 @@ func (s *moduleSchema) writeDaggerConfig(
 	}
 
 	return nil
-}
-
-func (s *moduleSchema) addCompatToCtx(ctx context.Context) context.Context {
-	return compat.AddCompatToContext(ctx, s.dag.View)
 }
