@@ -9,7 +9,6 @@ import (
 	"github.com/moby/buildkit/solver/pb"
 	"github.com/vektah/gqlparser/v2/ast"
 
-	"github.com/dagger/dagger/core/compat"
 	"github.com/dagger/dagger/dagql"
 	"github.com/dagger/dagger/dagql/call"
 	"github.com/dagger/dagger/engine/slog"
@@ -123,24 +122,10 @@ func (mod *Module) IDModule() *call.Module {
 	return call.NewModule(mod.InstanceID, mod.Name(), ref)
 }
 
-func (mod *Module) addCompatToCtx(ctx context.Context) (context.Context, error) {
-	engineVersion, err := mod.Source.Self.ModuleEngineVersion(ctx)
-	if err != nil {
-		return nil, err
-	}
-
-	return compat.AddCompatToContext(ctx, engineVersion), nil
-}
-
 func (mod *Module) Initialize(ctx context.Context, oldID *call.ID, newID *call.ID, dag *dagql.Server) (*Module, error) {
 	modName := mod.Name()
 	newMod := mod.Clone()
 	newMod.InstanceID = oldID // updated to newID once the call to initialize is done
-
-	ctx, err := mod.addCompatToCtx(ctx)
-	if err != nil {
-		return nil, err
-	}
 
 	// construct a special function with no object or function name, which tells
 	// the SDK to return the module's definition (in terms of objects, fields and
