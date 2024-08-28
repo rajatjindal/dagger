@@ -132,7 +132,7 @@ func (mod *Module) addCompatToCtx(ctx context.Context) (context.Context, error) 
 	return compat.AddCompatToContext(ctx, engineVersion), nil
 }
 
-func (mod *Module) Initialize(ctx context.Context, oldID *call.ID, newID *call.ID) (*Module, error) {
+func (mod *Module) Initialize(ctx context.Context, oldID *call.ID, newID *call.ID, dag *dagql.Server) (*Module, error) {
 	modName := mod.Name()
 	newMod := mod.Clone()
 	newMod.InstanceID = oldID // updated to newID once the call to initialize is done
