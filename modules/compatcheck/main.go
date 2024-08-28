@@ -59,7 +59,7 @@ func (m *Compatcheck) Run(ctx context.Context,
 
 // setup dagger engine/client with requested version and
 // fetches schema using dagger query
-func (m *Compatcheck) Runs(ctx context.Context, source *dagger.Directory) (string, error) {
+func (m *Compatcheck) Runs(ctx context.Context, source *dagger.Directory) (*dagger.Container, error) {
 	engineVersion := "dev"
 
 	var engineSvc *dagger.Service
@@ -72,13 +72,12 @@ func (m *Compatcheck) Runs(ctx context.Context, source *dagger.Directory) (strin
 		engineSvc = engineServiceWithVersion(engineVersion)
 		client, err = engineClientContainerWithVersion(ctx, engineSvc, engineVersion)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 	}
 
-	out, err := client.From("golang:1.22.5-alpine").
+	container := client.From("golang:1.22.5-alpine").
 		WithWorkdir("/work/minimal").
-		WithExec([]string{"dagger", "init", "--name=minimal", "--sdk=go", "--source=."}).
 		WithNewFile("main.go", `package main
 	
 	import (
@@ -100,6 +99,7 @@ func (m *Compatcheck) Runs(ctx context.Context, source *dagger.Directory) (strin
 	}
 	`,
 		).
+		WithExec([]string{"dagger", "init", "--name=minimal", "--sdk=go", "--source=."}).
 		WithWorkdir("/work").
 		WithExec([]string{"dagger", "init", "--name=oldversion", "--sdk=go", "--source=."}).
 		WithNewFile("main.go", `package main
@@ -128,16 +128,18 @@ func (m *Oldversion) InsideOldVersion(skipTParse string) *dagger.Container {
 			  "sdk": "go",
 			  "engineVersion": "v0.12.5"
 			}`).
-		WithExec([]string{"dagger", "install", "minimal", "-m=.", "-n=minimal"}).
-		WithNewFile("query.graphql", `{oldversion{insideOldVersion(skipTParse:"hello"){stdout}}}`).
-		WithExec([]string{"dagger", "query", "--doc", "query.graphql"}).
+		WithExec([]string{"dagger", "install", "minimal", "-m=."}).
+		WithNewFile("query.graphql", `{oldversion{insideOldVersion(skipTparse:"hello"){stdout}}}`)
 
-		// WithNewFile("/base-schema-query.graphql", introspectionQuery).
-		// WithExec([]string{"dagger", "query", "--doc", "/base-schema-query.graphql"}).
+		// WithNewFile("/base-schema-query.graphql", introspectionQuery)
 
-		Stdout(ctx)
+	out, err := container.WithExec([]string{"dagger", "query", "--doc", "query.graphql"}).Stdout(ctx)
+	if err != nil {
+		return nil, err
+	}
 
-	return out, err
+	fmt.Println(out)
+	return container, nil
 }
 
 // setup dagger engine/client with requested version and
