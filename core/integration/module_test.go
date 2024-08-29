@@ -90,8 +90,8 @@ func New() *Oldversion {
 	}
 }
 
-func (m *Oldversion) InsideOldVersion(skipTParse string) *dagger.Container {
-	return dag.Minimal().WithSecondFunction(skipTParse)
+func (m *Oldversion) InsideOldVersion(skipTParseOld string) *dagger.Container {
+	return dag.Minimal().WithSecondFunction(skipTParseOld)
 }
 `,
 		).
@@ -100,10 +100,10 @@ func (m *Oldversion) InsideOldVersion(skipTParse string) *dagger.Container {
 			  "sdk": "go",
 			  "engineVersion": "v0.12.5"
 			}`).
-		With(daggerExec("install", "minimal", "-m=.", "-n=minimal"))
+		With(daggerExec("install", "minimal", "-m=."))
 
 	out, err := devModGen.
-		With(daggerQuery(`{oldversion{insideOldVersion(skipTParse:"hello"){stdout}}}`)).
+		With(daggerQuery(`{oldversion{insideOldVersion(skipTparseOld:"hello"){stdout}}}`)).
 		Stdout(ctx)
 	require.NoError(t, err)
 	require.JSONEq(t, `{"oldversion":{"insideOldVersion":{"stdout":"hello\n"}}}`, out)
