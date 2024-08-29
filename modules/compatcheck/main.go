@@ -59,7 +59,7 @@ func (m *Compatcheck) Run(ctx context.Context,
 
 // setup dagger engine/client with requested version and
 // fetches schema using dagger query
-func (m *Compatcheck) Runs(ctx context.Context, source *dagger.Directory) (*dagger.Container, error) {
+func (m *Compatcheck) RunTerminal(ctx context.Context, source *dagger.Directory) (*dagger.Container, error) {
 	engineVersion := "dev"
 
 	var engineSvc *dagger.Service
@@ -76,7 +76,7 @@ func (m *Compatcheck) Runs(ctx context.Context, source *dagger.Directory) (*dagg
 		}
 	}
 
-	container := client.From("golang:1.22.5-alpine").
+	return client.From("golang:1.22.5").
 		WithWorkdir("/work/minimal").
 		WithNewFile("main.go", `package main
 	
@@ -118,8 +118,8 @@ func New() *Oldversion {
 	}
 }
 
-func (m *Oldversion) InsideOldVersion(skipTParse string) *dagger.Container {
-	return dag.Minimal().WithSecondFunction(skipTParse)
+func (m *Oldversion) InsideOldVersion(skipTParseOld string) *dagger.Container {
+	return dag.Minimal().WithSecondFunction(skipTParseOld)
 }
 `,
 		).
@@ -129,17 +129,26 @@ func (m *Oldversion) InsideOldVersion(skipTParse string) *dagger.Container {
 			  "engineVersion": "v0.12.5"
 			}`).
 		WithExec([]string{"dagger", "install", "minimal", "-m=."}).
-		WithNewFile("query.graphql", `{oldversion{insideOldVersion(skipTparse:"hello"){stdout}}}`)
+		WithNewFile("query.graphql", `{oldversion{insideOldVersion(skipTparseOld:"hello"){stdout}}}`).Terminal(), nil
+	// WithNewFile("query.graphql", introspectionQuery).Stdout(ctx)
+	// WithExec([]string{"dagger", "query", "--doc", "query.graphql"}).Stdout(ctx)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-		// WithNewFile("/base-schema-query.graphql", introspectionQuery)
+	// fmt.Println(out)
+	// return container, nil
 
-	out, err := container.WithExec([]string{"dagger", "query", "--doc", "query.graphql"}).Stdout(ctx)
+	// return "", err
+}
+
+func (m *Compatcheck) RunOut(ctx context.Context, source *dagger.Directory) (string, error) {
+	container, err := m.RunTerminal(ctx, source)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	fmt.Println(out)
-	return container, nil
+	return container.Stdout(ctx)
 }
 
 // setup dagger engine/client with requested version and
