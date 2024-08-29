@@ -188,7 +188,7 @@ func (cls Class[T]) TypeDefinition(views ...string) *ast.Definition {
 func (cls Class[T]) ParseField(ctx context.Context, view string, astField *ast.Field, vars map[string]any) (Selector, *ast.Type, error) {
 	field, ok := cls.Field(astField.Name, view)
 	if !ok {
-		return Selector{}, nil, fmt.Errorf("%s has no such field: %q", cls.TypeName(), astField.Name)
+		return Selector{}, nil, fmt.Errorf("%s has no such field: %q, all fields %#v", cls.TypeName(), astField.Name, cls.fields)
 	}
 	args := make([]NamedInput, len(astField.Arguments))
 	for i, arg := range astField.Arguments {

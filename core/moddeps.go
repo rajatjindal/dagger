@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/dagger/dagger/cmd/codegen/introspection"
+	"github.com/dagger/dagger/core/compat"
 	"github.com/dagger/dagger/dagql"
 	dagintro "github.com/dagger/dagger/dagql/introspection"
 	"github.com/moby/buildkit/util/compression"
@@ -130,6 +131,7 @@ func (d *ModDeps) lazilyLoadSchema(ctx context.Context) (
 	}()
 
 	dag := dagql.NewServer[*Query](d.root)
+	//(rajatjindal): tried commenting below as well
 	for _, mod := range d.Mods {
 		if version, ok := mod.View(); ok {
 			dag.View = version
@@ -151,6 +153,10 @@ func (d *ModDeps) lazilyLoadSchema(ctx context.Context) (
 	var objects []*ModuleObjectType
 	var ifaces []*InterfaceType
 	for _, mod := range d.Mods {
+		if version, ok := mod.View(); ok {
+			ctx = compat.MustAddCompatToContext(ctx, version)
+		}
+
 		err := mod.Install(ctx, dag)
 		if err != nil {
 			return nil, loadedSchemaJSONFile, fmt.Errorf("failed to get schema for module %q: %w", mod.Name(), err)
@@ -215,6 +221,7 @@ func (d *ModDeps) lazilyLoadSchema(ctx context.Context) (
 		}
 	}
 
+	ctx = compat.MustAddCompatToContext(ctx, dag.View)
 	schemaJSON, err := schemaIntrospectionJSON(ctx, dag)
 	if err != nil {
 		return nil, loadedSchemaJSONFile, fmt.Errorf("failed to get schema introspection JSON: %w", err)
