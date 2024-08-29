@@ -30,8 +30,6 @@ type CaserImpl struct {
 	impl *strcase.Caser
 }
 
-var defaultCaser = NewCaser()
-
 func NewCaser() *CaserImpl {
 	var splitFn = strcase.NewSplitFn(
 		[]rune{'*', '.', ',', '-', '_'},
@@ -113,6 +111,9 @@ func (c *LegacyCaser) ConfigureAcronyms(key, value string) {
 	legacy.ConfigureAcronym(key, value)
 }
 
+// default caser implementation
+var defaultCaser = NewCaser()
+
 // ToPascal returns words in PascalCase (capitalized words concatenated together).
 func ToPascal(inp string) string {
 	return defaultCaser.impl.ToCase(inp, strcase.TitleCase|strcase.PreserveInitialism, '\u0000')
@@ -138,7 +139,7 @@ func ToSnake(inp string) string {
 	return defaultCaser.ToSnake(inp)
 }
 
-// ToSnake returns words in snake_case (lower case words with underscores).
+// no-op when defaultCaser = CaserImpl{}
 func ConfigureAcronyms(key, value string) {
 	defaultCaser.ConfigureAcronyms(key, value)
 }
