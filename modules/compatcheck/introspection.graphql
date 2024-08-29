@@ -1,5 +1,4 @@
 query IntrospectionQuery {
-  __schemaVersion
   __schema {
     queryType {
       name

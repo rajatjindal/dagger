@@ -59,6 +59,82 @@ func (m *Compatcheck) Run(ctx context.Context,
 
 // setup dagger engine/client with requested version and
 // fetches schema using dagger query
+func (m *Compatcheck) GetTerminal(ctx context.Context, source *dagger.Directory) (*dagger.Container, error) {
+	devModGen := devEngineAndClient(source).
+		WithWorkdir("/work/minimal").
+		WithExec([]string{"dagger", "init", "--name=second", "--sdk=go", "--source=."}).
+		WithNewFile("main.go", `package main
+	
+	import (
+		"dagger/second/internal/dagger"
+	)
+	
+	type Second struct {}
+	
+	func New() *Second {
+		return &Second{}
+	}
+
+	func (m *Minimal) Echo() *dagger.Container {
+		return dag.Container().WithExec([]string{"dagger", "version"})
+	}
+	`,
+		).
+		WithWorkdir("/work").
+		WithExec([]string{"dagger", "init", "--name=first", "--sdk=go", "--source=."}).
+		WithNewFile("main.go", `package main
+
+import (
+	"dagger/first/internal/dagger"
+)
+
+type First struct {}
+
+func New() *First {
+	return &First{}
+}
+
+func (m *First) NestedEcho() *dagger.Container {
+	return dag.Second().Echo()
+}
+
+func (m *First) Echo(arg string) *dagger.Container {
+	return dag.Container().WithExec([]string{"dagger", "version"})
+}
+`,
+		).
+		WithNewFile("dagger.json", `{
+			  "name": "first",
+			  "sdk": "go",
+			  "engineVersion": "v0.12.5"
+			}`).
+		WithExec([]string{"dagger", "install", "second", "-m=."})
+
+	return devModGen, nil
+	// return devModGen.
+	// 	WithNewFile("/query.graphql", `{first{echo(arg:"hello"){stdout}}}`).
+	// 	// this should work with getKubectlCLIVersion, but currently fails with
+	// 	// Oldversion has no such field: "getKubectlCLIVersion"
+	// 	// it has : "getKubectlCliversion" - but this is as per old version (which is expected isnt it?)
+	// 	// but then why skipTParseOld works. it should have been skipTparseOld in that case?
+	// 	// this is very confusing. I think I need to document the views and what is expected where.
+	// 	// only thing I can think of is that we fixed the arg name thingy. lets try changing it back once.
+	// 	// WithNewFile("/query2.graphql", `{oldversion{getKubectlCLIVersion{stdout}}}`).
+	// 	// WithExec([]string{"dagger", "query", "--doc", "/query2.graphql"}).
+	// 	WithExec([]string{"dagger", "query", "--doc", "/query.graphql"}), nil
+}
+
+func (m *Compatcheck) GetOutput(ctx context.Context, source *dagger.Directory) (string, error) {
+	container, err := m.GetTerminal(ctx, source)
+	if err != nil {
+		return "", err
+	}
+
+	return container.Stdout(ctx)
+}
+
+// setup dagger engine/client with requested version and
+// fetches schema using dagger query
 func (m *Compatcheck) getSchemaForModuleForEngineVersion(ctx context.Context, module, engineVersion string, source *dagger.Directory) (string, string, error) {
 	var engineSvc *dagger.Service
 	var client *dagger.Container

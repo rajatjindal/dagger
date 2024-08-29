@@ -405,6 +405,12 @@ func (s *Server) Resolve(ctx context.Context, self Object, sels ...Selection) (m
 	pool := pool.New().WithErrors()
 	for _, sel := range sels {
 		pool.Go(func() error {
+			if sel.Selector.View != "" {
+				ctx = compat.MustAddCompatToContext(ctx, sel.Selector.View)
+			} else {
+				ctx = compat.MustAddCompatToContext(ctx, s.View)
+			}
+
 			res, err := s.resolvePath(ctx, self, sel)
 			if err != nil {
 				return err
@@ -572,7 +578,7 @@ func CurrentID(ctx context.Context) *call.ID {
 func NoopDone(res Typed, cached bool, rerr error) {}
 
 func (s *Server) cachedSelect(ctx context.Context, self Object, sel Selector) (res Typed, chained *call.ID, rerr error) {
-	ctx = compat.AddCompatToContext(ctx, s.View)
+	// ctx = compat.MustAddCompatToContext(ctx, s.View)
 	chainedID, err := self.IDFor(ctx, sel)
 	if err != nil {
 		return nil, nil, err

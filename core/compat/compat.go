@@ -2,6 +2,7 @@ package compat
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/dagger/dagger/engine/strcase"
 	"golang.org/x/mod/semver"
@@ -15,7 +16,16 @@ type Compat struct {
 	Strcase strcase.Caser
 }
 
-func GetCompatFromContext(ctx context.Context) *Compat {
+func MustGetCompatFromContext(ctx context.Context) *Compat {
+	okval, ok := ctx.Value(CompatCtxKey{}).(*Compat)
+	if !ok {
+		panic("compat context is not set")
+	}
+
+	return okval
+}
+
+func getCompatFromContext(ctx context.Context) *Compat {
 	okval, ok := ctx.Value(CompatCtxKey{}).(*Compat)
 	if !ok {
 		return &Compat{
@@ -26,8 +36,27 @@ func GetCompatFromContext(ctx context.Context) *Compat {
 	return okval
 }
 
+func MustAddCompatToContext(ctx context.Context, engineVersion string) context.Context {
+	compat := getCompatFromContext(ctx)
+	if compat == nil {
+		compat = &Compat{}
+	}
+
+	if !semver.IsValid(engineVersion) {
+		panic(fmt.Sprintf("INVALID ENGINE VERSION %q", engineVersion))
+	}
+
+	if semver.Compare(engineVersion, strcaseVersionCutOff) > 0 {
+		compat.Strcase = strcase.NewCaser()
+	} else {
+		compat.Strcase = strcase.NewLegacyCaser()
+	}
+
+	return context.WithValue(ctx, CompatCtxKey{}, compat)
+}
+
 func AddCompatToContext(ctx context.Context, engineVersion string) context.Context {
-	compat := GetCompatFromContext(ctx)
+	compat := getCompatFromContext(ctx)
 	if compat == nil {
 		compat = &Compat{}
 	}
@@ -42,5 +71,5 @@ func AddCompatToContext(ctx context.Context, engineVersion string) context.Conte
 }
 
 func Strcase(ctx context.Context) strcase.Caser {
-	return GetCompatFromContext(ctx).Strcase
+	return MustGetCompatFromContext(ctx).Strcase
 }

@@ -50,7 +50,7 @@ func (ModuleSuite) TestModuleNamingCompatDependency(ctx context.Context, t *test
 	devModGen := c.Container().From(golangImage).
 		WithMountedFile(testCLIBinPath, daggerCliFile(t, c)).
 		WithWorkdir("/work/minimal").
-		With(daggerExec("init", "--name=minimal", "--sdk=go", "--source=.")).
+		WithExec([]string{"dagger", "init", "--name=minimal", "--sdk=go", "--source=."}).
 		WithNewFile("main.go", `package main
 	
 	import (
@@ -58,13 +58,17 @@ func (ModuleSuite) TestModuleNamingCompatDependency(ctx context.Context, t *test
 	)
 	
 	type Minimal struct {
-		Config dagger.JSON
+		KubectlCLIVersion string
 	}
 	
 	func New() *Minimal {
 		return &Minimal{
-			Config: "{\"a\":1}",
+			KubectlCLIVersion: "v0.0.1",
 		}
+	}
+
+	func (m *Minimal) WithFirstCLIVersion() *dagger.Container {
+		return dag.Container().From("alpine:latest").WithExec([]string{"echo", m.KubectlCLIVersion})
 	}
 
 	func (m *Minimal) WithSecondFunction(skipTParse string) *dagger.Container {
@@ -73,7 +77,7 @@ func (ModuleSuite) TestModuleNamingCompatDependency(ctx context.Context, t *test
 	`,
 		).
 		WithWorkdir("/work").
-		With(daggerExec("init", "--name=oldversion", "--sdk=go", "--source=.")).
+		WithExec([]string{"dagger", "init", "--name=oldversion", "--sdk=go", "--source=."}).
 		WithNewFile("main.go", `package main
 
 import (
@@ -90,6 +94,10 @@ func New() *Oldversion {
 	}
 }
 
+func (m *Oldversion) GetKubectlCLIVersion() *dagger.Container {
+	return dag.Minimal().WithFirstCLIVersion()
+}
+
 func (m *Oldversion) InsideOldVersion(skipTParseOld string) *dagger.Container {
 	return dag.Minimal().WithSecondFunction(skipTParseOld)
 }
@@ -100,13 +108,19 @@ func (m *Oldversion) InsideOldVersion(skipTParseOld string) *dagger.Container {
 			  "sdk": "go",
 			  "engineVersion": "v0.12.5"
 			}`).
-		With(daggerExec("install", "minimal", "-m=."))
+		WithExec([]string{"dagger", "install", "minimal", "-m=."})
 
 	out, err := devModGen.
-		With(daggerQuery(`{oldversion{insideOldVersion(skipTparseOld:"hello"){stdout}}}`)).
+		With(daggerQuery(`{oldversion{insideOldVersion(skipTParseOld:"hello"){stdout}}}`)).
 		Stdout(ctx)
 	require.NoError(t, err)
 	require.JSONEq(t, `{"oldversion":{"insideOldVersion":{"stdout":"hello\n"}}}`, out)
+
+	out2, err := devModGen.
+		With(daggerQuery(`{oldversion{getKubectlCliversion{stdout}}}`)).
+		Stdout(ctx)
+	require.NoError(t, err)
+	require.JSONEq(t, `{"oldversion":{"getKubectlCliversion":{"stdout":"v0.0.1\n"}}}`, out2)
 }
 
 func (ModuleSuite) TestModuleNamingCompatArgName(ctx context.Context, t *testctx.T) {

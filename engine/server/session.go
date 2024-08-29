@@ -41,6 +41,7 @@ import (
 	"github.com/dagger/dagger/analytics"
 	"github.com/dagger/dagger/auth"
 	"github.com/dagger/dagger/core"
+	"github.com/dagger/dagger/core/compat"
 	"github.com/dagger/dagger/core/schema"
 	"github.com/dagger/dagger/dagql"
 	"github.com/dagger/dagger/dagql/call"
@@ -555,6 +556,11 @@ func (srv *Server) initializeDaggerClient(
 		if err := modID.Decode(opts.EncodedModuleID); err != nil {
 			return fmt.Errorf("failed to decode module ID: %w", err)
 		}
+		if modID.View() != "" {
+			ctx = compat.MustAddCompatToContext(ctx, modID.View())
+		} else {
+			ctx = compat.MustAddCompatToContext(ctx, "v0.12.5") // hardcode for now
+		}
 		modInst, err := dagql.NewID[*core.Module](modID).Load(ctx, coreMod.Dag)
 		if err != nil {
 			return fmt.Errorf("failed to load module: %w", err)
@@ -887,6 +893,15 @@ func (srv *Server) serveHTTPToClient(w http.ResponseWriter, r *http.Request, opt
 
 	clientMetadata := opts.ClientMetadata
 	ctx = engine.ContextWithClientMetadata(ctx, clientMetadata)
+
+	//allow this to be empty version for now
+	//this does not get engine version, lets add fake for now
+	compat.AddCompatToContext(ctx, "v0.12.5")
+	// if opts.CallID != nil {
+	// 	ctx = compat.MustAddCompatToContext(ctx, opts.CallID.View())
+	// } else {
+	// 	ctx = compat.MustAddCompatToContext(ctx, clientMetadata.ClientVersion)
+	// }
 
 	// propagate span context from the client
 	ctx = telemetry.Propagator.Extract(ctx, propagation.HeaderCarrier(r.Header))
