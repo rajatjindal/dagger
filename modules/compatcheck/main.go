@@ -59,6 +59,93 @@ func (m *Compatcheck) Run(ctx context.Context,
 
 // setup dagger engine/client with requested version and
 // fetches schema using dagger query
+func (m *Compatcheck) GetTerminal(ctx context.Context, source *dagger.Directory) (*dagger.Container, error) {
+	devModGen := devEngineAndClient(source).
+		WithWorkdir("/work/minimal").
+		WithExec([]string{"dagger", "init", "--name=minimal", "--sdk=go", "--source=."}).
+		WithNewFile("main.go", `package main
+	
+	import (
+		"dagger/minimal/internal/dagger"
+	)
+	
+	type Minimal struct {
+		KubectlCLIVersion string
+	}
+	
+	func New() *Minimal {
+		return &Minimal{
+			KubectlCLIVersion: "v0.0.1",
+		}
+	}
+
+	func (m *Minimal) WithFirstCLIVersion() *dagger.Container {
+		return dag.Container().From("alpine:latest").WithExec([]string{"echo", m.KubectlCLIVersion})
+	}
+
+	func (m *Minimal) WithSecondFunction(skipTParse string) *dagger.Container {
+		return dag.Container().From("alpine:latest").WithExec([]string{"echo", skipTParse})
+	}
+	`,
+		).
+		WithWorkdir("/work").
+		WithExec([]string{"dagger", "init", "--name=oldversion", "--sdk=go", "--source=."}).
+		WithNewFile("main.go", `package main
+
+import (
+	"dagger/oldversion/internal/dagger"
+)
+
+type Oldversion struct {
+	Config dagger.JSON
+}
+
+func New() *Oldversion {
+	return &Oldversion{
+		Config: "{\"a\":1}",
+	}
+}
+
+func (m *Oldversion) GetKubectlCLIVersion() *dagger.Container {
+	return dag.Minimal().WithFirstCLIVersion()
+}
+
+func (m *Oldversion) InsideOldVersion(skipTParseOld string) *dagger.Container {
+	return dag.Minimal().WithSecondFunction(skipTParseOld)
+}
+`,
+		).
+		WithNewFile("dagger.json", `{
+			  "name": "oldversion",
+			  "sdk": "go",
+			  "engineVersion": "v0.12.5"
+			}`).
+		WithExec([]string{"dagger", "install", "minimal", "-m=."})
+
+	return devModGen.
+		WithNewFile("/query.graphql", `{oldversion{insideOldVersion(skipTparseOld:"hello"){stdout}}}`).
+		// this should work with getKubectlCLIVersion, but currently fails with
+		// Oldversion has no such field: "getKubectlCLIVersion"
+		// it has : "getKubectlCliversion" - but this is as per old version (which is expected isnt it?)
+		// but then why skipTParseOld works. it should have been skipTparseOld in that case?
+		// this is very confusing. I think I need to document the views and what is expected where.
+		// only thing I can think of is that we fixed the arg name thingy. lets try changing it back once.
+		WithNewFile("/query2.graphql", `{oldversion{getKubectlCLIVersion{stdout}}}`).
+		// WithExec([]string{"dagger", "query", "--doc", "/query2.graphql"}).
+		WithExec([]string{"dagger", "query", "--doc", "/query.graphql"}), nil
+}
+
+func (m *Compatcheck) GetOutput(ctx context.Context, source *dagger.Directory) (string, error) {
+	container, err := m.GetTerminal(ctx, source)
+	if err != nil {
+		return "", err
+	}
+
+	return container.Stdout(ctx)
+}
+
+// setup dagger engine/client with requested version and
+// fetches schema using dagger query
 func (m *Compatcheck) getSchemaForModuleForEngineVersion(ctx context.Context, module, engineVersion string, source *dagger.Directory) (string, string, error) {
 	var engineSvc *dagger.Service
 	var client *dagger.Container

@@ -50,7 +50,7 @@ func (c *CaserImpl) ToPascal(inp string) string {
 
 // ToCamel returns words in camelCase (capitalized words concatenated together, with first word lower case).
 func (c *CaserImpl) ToCamel(inp string) string {
-	return c.impl.ToCamel(inp)
+	return c.impl.ToCase(inp, strcase.CamelCase|strcase.PreserveInitialism, '\u0000')
 }
 
 // ToKebab returns words in kebab-case (lower case words with dashes).
