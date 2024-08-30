@@ -125,7 +125,7 @@ func (fn *ModuleFunction) setCallInputs(ctx context.Context, opts *CallOpts) ([]
 	hasArg := map[string]bool{}
 
 	for i, input := range opts.Inputs {
-		normalizedName := gqlArgName(ctx, input.Name)
+		normalizedName := input.Name
 		arg, ok := fn.args[normalizedName]
 		if !ok {
 			return nil, fmt.Errorf("failed to find arg %q\n, normalized %q\n, . all %#v\n. strcase -> %T\nmod: %#v", input.Name, normalizedName, fn.args, compat.Strcase(ctx), fn.mod.Source.Self.ModuleEngineVersion)

@@ -130,6 +130,7 @@ func (d *ModDeps) lazilyLoadSchema(ctx context.Context) (
 	}()
 
 	dag := dagql.NewServer[*Query](d.root)
+	//(rajatjindal): tried commenting below as well
 	for _, mod := range d.Mods {
 		if version, ok := mod.View(); ok {
 			dag.View = version
@@ -151,6 +152,11 @@ func (d *ModDeps) lazilyLoadSchema(ctx context.Context) (
 	var objects []*ModuleObjectType
 	var ifaces []*InterfaceType
 	for _, mod := range d.Mods {
+		// (rajatjindal): tried adding this view info per dependency
+		// if version, ok := mod.View(); ok {
+		// 	dag.View = version
+		// }
+
 		err := mod.Install(ctx, dag)
 		if err != nil {
 			return nil, loadedSchemaJSONFile, fmt.Errorf("failed to get schema for module %q: %w", mod.Name(), err)
