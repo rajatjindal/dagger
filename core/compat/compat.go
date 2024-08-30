@@ -15,6 +15,15 @@ type Compat struct {
 	Strcase strcase.Caser
 }
 
+func MustGetCompatFromContext(ctx context.Context) *Compat {
+	okval, ok := ctx.Value(CompatCtxKey{}).(*Compat)
+	if !ok {
+		panic("compat context is not set")
+	}
+
+	return okval
+}
+
 func GetCompatFromContext(ctx context.Context) *Compat {
 	okval, ok := ctx.Value(CompatCtxKey{}).(*Compat)
 	if !ok {
@@ -42,5 +51,5 @@ func AddCompatToContext(ctx context.Context, engineVersion string) context.Conte
 }
 
 func Strcase(ctx context.Context) strcase.Caser {
-	return GetCompatFromContext(ctx).Strcase
+	return MustGetCompatFromContext(ctx).Strcase
 }

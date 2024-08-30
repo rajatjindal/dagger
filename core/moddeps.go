@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/dagger/dagger/cmd/codegen/introspection"
+	"github.com/dagger/dagger/core/compat"
 	"github.com/dagger/dagger/dagql"
 	dagintro "github.com/dagger/dagger/dagql/introspection"
 	"github.com/moby/buildkit/util/compression"
@@ -131,12 +132,12 @@ func (d *ModDeps) lazilyLoadSchema(ctx context.Context) (
 
 	dag := dagql.NewServer[*Query](d.root)
 	//(rajatjindal): tried commenting below as well
-	for _, mod := range d.Mods {
-		if version, ok := mod.View(); ok {
-			dag.View = version
-			break
-		}
-	}
+	// for _, mod := range d.Mods {
+	// 	if version, ok := mod.View(); ok {
+	// 		dag.View = version
+	// 		break
+	// 	}
+	// }
 
 	dag.Around(AroundFunc)
 
@@ -153,9 +154,9 @@ func (d *ModDeps) lazilyLoadSchema(ctx context.Context) (
 	var ifaces []*InterfaceType
 	for _, mod := range d.Mods {
 		// (rajatjindal): tried adding this view info per dependency
-		// if version, ok := mod.View(); ok {
-		// 	dag.View = version
-		// }
+		if version, ok := mod.View(); ok {
+			ctx = compat.AddCompatToContext(ctx, version)
+		}
 
 		err := mod.Install(ctx, dag)
 		if err != nil {
