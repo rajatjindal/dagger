@@ -41,6 +41,7 @@ import (
 	"github.com/dagger/dagger/analytics"
 	"github.com/dagger/dagger/auth"
 	"github.com/dagger/dagger/core"
+	"github.com/dagger/dagger/core/compat"
 	"github.com/dagger/dagger/core/schema"
 	"github.com/dagger/dagger/dagql"
 	"github.com/dagger/dagger/dagql/call"
@@ -887,6 +888,13 @@ func (srv *Server) serveHTTPToClient(w http.ResponseWriter, r *http.Request, opt
 
 	clientMetadata := opts.ClientMetadata
 	ctx = engine.ContextWithClientMetadata(ctx, clientMetadata)
+
+	//allow this to be empty version for now
+	if opts.CallID != nil {
+		ctx = compat.AddCompatToContext(ctx, opts.CallID.View())
+	} else {
+		ctx = compat.AddCompatToContext(ctx, clientMetadata.ClientVersion)
+	}
 
 	// propagate span context from the client
 	ctx = telemetry.Propagator.Extract(ctx, propagation.HeaderCarrier(r.Header))

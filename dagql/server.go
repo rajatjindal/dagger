@@ -405,6 +405,12 @@ func (s *Server) Resolve(ctx context.Context, self Object, sels ...Selection) (m
 	pool := pool.New().WithErrors()
 	for _, sel := range sels {
 		pool.Go(func() error {
+			if sel.Selector.View != "" {
+				ctx = compat.AddCompatToContext(ctx, sel.Selector.View)
+			} else {
+				ctx = compat.AddCompatToContext(ctx, s.View)
+			}
+
 			res, err := s.resolvePath(ctx, self, sel)
 			if err != nil {
 				return err

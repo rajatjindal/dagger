@@ -24,7 +24,7 @@ func MustGetCompatFromContext(ctx context.Context) *Compat {
 	return okval
 }
 
-func GetCompatFromContext(ctx context.Context) *Compat {
+func getCompatFromContext(ctx context.Context) *Compat {
 	okval, ok := ctx.Value(CompatCtxKey{}).(*Compat)
 	if !ok {
 		return &Compat{
@@ -36,7 +36,7 @@ func GetCompatFromContext(ctx context.Context) *Compat {
 }
 
 func AddCompatToContext(ctx context.Context, engineVersion string) context.Context {
-	compat := GetCompatFromContext(ctx)
+	compat := getCompatFromContext(ctx)
 	if compat == nil {
 		compat = &Compat{}
 	}
