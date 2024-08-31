@@ -2,6 +2,7 @@ package compat
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/dagger/dagger/engine/strcase"
 	"golang.org/x/mod/semver"
@@ -33,6 +34,25 @@ func getCompatFromContext(ctx context.Context) *Compat {
 	}
 
 	return okval
+}
+
+func MustAddCompatToContext(ctx context.Context, engineVersion string) context.Context {
+	compat := getCompatFromContext(ctx)
+	if compat == nil {
+		compat = &Compat{}
+	}
+
+	if !semver.IsValid(engineVersion) {
+		panic(fmt.Sprintf("INVALID ENGINE VERSION %q", engineVersion))
+	}
+
+	if semver.Compare(engineVersion, strcaseVersionCutOff) > 0 {
+		compat.Strcase = strcase.NewCaser()
+	} else {
+		compat.Strcase = strcase.NewLegacyCaser()
+	}
+
+	return context.WithValue(ctx, CompatCtxKey{}, compat)
 }
 
 func AddCompatToContext(ctx context.Context, engineVersion string) context.Context {

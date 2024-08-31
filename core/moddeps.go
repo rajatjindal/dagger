@@ -154,7 +154,7 @@ func (d *ModDeps) lazilyLoadSchema(ctx context.Context) (
 	var ifaces []*InterfaceType
 	for _, mod := range d.Mods {
 		if version, ok := mod.View(); ok {
-			ctx = compat.AddCompatToContext(ctx, version)
+			ctx = compat.MustAddCompatToContext(ctx, version)
 		}
 
 		err := mod.Install(ctx, dag)
@@ -221,7 +221,7 @@ func (d *ModDeps) lazilyLoadSchema(ctx context.Context) (
 		}
 	}
 
-	ctx = compat.AddCompatToContext(ctx, dag.View)
+	ctx = compat.MustAddCompatToContext(ctx, dag.View)
 	schemaJSON, err := schemaIntrospectionJSON(ctx, dag)
 	if err != nil {
 		return nil, loadedSchemaJSONFile, fmt.Errorf("failed to get schema introspection JSON: %w", err)
