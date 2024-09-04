@@ -572,7 +572,7 @@ func CurrentID(ctx context.Context) *call.ID {
 func NoopDone(res Typed, cached bool, rerr error) {}
 
 func (s *Server) cachedSelect(ctx context.Context, self Object, sel Selector) (res Typed, chained *call.ID, rerr error) {
-	ctx = compat.AddCompatToContext(ctx, s.View)
+	ctx = compat.AddCompatToContext(ctx, sel.View)
 	chainedID, err := self.IDFor(ctx, sel)
 	if err != nil {
 		return nil, nil, err

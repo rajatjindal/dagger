@@ -7,7 +7,7 @@ import (
 	"golang.org/x/mod/semver"
 )
 
-const strcaseVersionCutOff = "v0.12.5"
+const strcaseVersionCutOff = "v0.12.8"
 
 type CompatCtxKey struct{}
 
