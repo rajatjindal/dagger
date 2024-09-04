@@ -354,9 +354,11 @@ var GlobalView View = nil
 // This means that each call for a field is associated with the server view,
 // which results in slightly different caching behavior. Additionally, it can
 // be overridden in different views.
-type AllView struct{}
+var AllView View = allView{}
 
-func (v AllView) Contains(s string) bool {
+type allView struct{}
+
+func (v allView) Contains(s string) bool {
 	return true
 }
 

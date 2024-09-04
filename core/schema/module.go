@@ -244,6 +244,7 @@ func (s *moduleSchema) Install() {
 			ArgDoc("description", `The doc string to set.`),
 
 		dagql.Func("withArg", s.functionWithArg).
+			View(dagql.AllView).
 			Doc(`Returns the function with the provided argument`).
 			ArgDoc("name", `The name of the argument`).
 			ArgDoc("typeDef", `The type of the argument`).
@@ -265,21 +266,25 @@ func (s *moduleSchema) Install() {
 			Doc(`Sets the kind of the type.`),
 
 		dagql.Func("withScalar", s.typeDefWithScalar).
+			View(dagql.AllView).
 			Doc(`Returns a TypeDef of kind Scalar with the provided name.`),
 
 		dagql.Func("withListOf", s.typeDefWithListOf).
 			Doc(`Returns a TypeDef of kind List with the provided type for its elements.`),
 
 		dagql.Func("withObject", s.typeDefWithObject).
+			View(dagql.AllView).
 			Doc(`Returns a TypeDef of kind Object with the provided name.`,
 				`Note that an object's fields and functions may be omitted if the
 				intent is only to refer to an object. This is how functions are able to
 				return their own object, or any other circular reference.`),
 
 		dagql.Func("withInterface", s.typeDefWithInterface).
+			View(dagql.AllView).
 			Doc(`Returns a TypeDef of kind Interface with the provided name.`),
 
 		dagql.Func("withField", s.typeDefWithObjectField).
+			View(dagql.AllView).
 			Doc(`Adds a static field for an Object TypeDef, failing if the type is not an object.`).
 			ArgDoc("name", `The name of the field in the object`).
 			ArgDoc("typeDef", `The type of the field`).
@@ -292,6 +297,7 @@ func (s *moduleSchema) Install() {
 			Doc(`Adds a function for constructing a new instance of an Object TypeDef, failing if the type is not an object.`),
 
 		dagql.Func("withEnum", s.typeDefWithEnum).
+			View(dagql.AllView).
 			Doc(`Returns a TypeDef of kind Enum with the provided name.`,
 				`Note that an enum's values may be omitted if the intent is only to refer to an enum.
 				This is how functions are able to return their own, or any other circular reference.`).

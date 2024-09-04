@@ -1773,7 +1773,7 @@ func InstallViewer(srv *dagql.Server) {
 			View(dagql.GlobalView).
 			Doc("available on all views"),
 		dagql.Func("all", getView).
-			View(dagql.AllView{}).
+			View(dagql.AllView).
 			Doc("available on all views"),
 
 		dagql.Func("shared", getView).

@@ -79,7 +79,7 @@ func gqlFieldName(ctx context.Context, name string) string {
 }
 
 // AllVersion is a view that contains all versions.
-var AllVersion = dagql.AllView{}
+var AllVersion = dagql.AllView
 
 // AfterVersion is a view that checks if a target version is greater than *or*
 // equal to the filtered version.
