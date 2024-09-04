@@ -32,7 +32,8 @@ func AddCompatToContext(ctx context.Context, engineVersion string) context.Conte
 		compat = &Compat{}
 	}
 
-	if semver.Compare(engineVersion, strcaseVersionCutOff) > 0 {
+	// if engineVersion is empty OR not a valid semver, treat it as newer version
+	if !semver.IsValid(engineVersion) || semver.Compare(engineVersion, strcaseVersionCutOff) > 0 {
 		compat.Strcase = strcase.NewCaser()
 	} else {
 		compat.Strcase = strcase.NewLegacyCaser()

@@ -83,7 +83,7 @@ func (m *Compatcheck) getSchemaForModuleForEngineVersion(ctx context.Context, mo
 	}
 
 	withModuleIntrospection, err := client.WithNewFile("/schema-query.graphql", introspectionQuery).
-		WithExec([]string{"dagger", "query", "-m", module, "--doc", "/schema-query.graphql"}).
+		WithExec([]string{"dagger", "query", "-m", module, "--doc", "/schema-query.graphql"}).Terminal().
 		Stdout(ctx)
 
 	if err != nil {
