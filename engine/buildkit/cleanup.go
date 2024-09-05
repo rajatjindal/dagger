@@ -18,13 +18,13 @@ type CleanupFunc struct {
 
 func (c *Cleanups) Add(msg string, f func() error) CleanupFunc {
 	fOnce := sync.OnceValue(func() error {
-		slog.ExtraDebug("running cleanup", "msg", msg)
+		slog.Info("running cleanup", "msg", msg)
 		start := time.Now()
 		err := f()
 		if err != nil {
 			slog.Error("cleanup failed", "msg", msg, "err", err, "duration", time.Since(start))
 		} else {
-			slog.ExtraDebug("cleanup succeeded", "msg", msg, "duration", time.Since(start))
+			slog.Info("cleanup succeeded", "msg", msg, "duration", time.Since(start))
 		}
 		return err
 	})

@@ -1596,7 +1596,8 @@ func (p *Playground) SayHello() string {
 }
 
 func (GoSuite) TestModuleNamingCompatArgName(ctx context.Context, t *testctx.T) {
-	for _, tc := range []string{"new", "old"} {
+	//v0.12.8 is cutoff for strcase change, so using v0.12.6 to simulate old version
+	for _, tc := range []string{"v0.12.6"} {
 		c := connect(ctx, t)
 
 		devModGen := c.Container().From(golangImage).
@@ -1624,7 +1625,7 @@ func (GoSuite) TestModuleNamingCompatArgName(ctx context.Context, t *testctx.T) 
 	`,
 			)
 
-		if tc == "new" {
+		if tc == "dev" {
 			out, err := devModGen.
 				With(daggerQuery(`{minimal{withSecondFunction(skipTParse:"hello"){stdout}}}`)).
 				Stdout(ctx)
@@ -1632,15 +1633,14 @@ func (GoSuite) TestModuleNamingCompatArgName(ctx context.Context, t *testctx.T) 
 			require.JSONEq(t, `{"minimal":{"withSecondFunction":{"stdout":"hello\n"}}}`, out)
 		} else {
 			// now simulate old version
-			versionAModGen := devModGen.WithNewFile("dagger.json", `{
+			versionAModGen := devModGen.WithNewFile("dagger.json", fmt.Sprintf(`{
 			  "name": "minimal",
 			  "sdk": "go",
-			  "engineVersion": "v0.12.5"
-			}`).
-				With(daggerExec("develop", "--compat=v0.12.5"))
+			  "engineVersion": "%s"
+			}`, tc))
 
 			out, err := versionAModGen.
-				With(daggerQuery(`{minimal{withSecondFunction(skipTparse:"hello"){stdout}}}`)).
+				With(daggerQuery(`{minimal{withSecondFunction(skipTParse:"hello"){stdout}}}`)).
 				Stdout(ctx)
 			require.NoError(t, err)
 			require.JSONEq(t, `{"minimal":{"withSecondFunction":{"stdout":"hello\n"}}}`, out)
@@ -1649,7 +1649,8 @@ func (GoSuite) TestModuleNamingCompatArgName(ctx context.Context, t *testctx.T) 
 }
 
 func (GoSuite) TestModuleNamingCompatFuncName(ctx context.Context, t *testctx.T) {
-	for _, tc := range []string{"new", "old"} {
+	//v0.12.8 is cutoff for strcase change, so using v0.12.6 to simulate old version
+	for _, tc := range []string{"dev", "v0.12.6"} {
 		c := connect(ctx, t)
 
 		devModGen := c.Container().From(golangImage).
@@ -1676,24 +1677,24 @@ func (GoSuite) TestModuleNamingCompatFuncName(ctx context.Context, t *testctx.T)
 	`,
 			)
 
-		if tc == "new" {
+		if tc == "dev" {
 			out, err := devModGen.
-				With(daggerQuery(`{minimal{withDaggerCLIAlpine(stringArg:"hello"){stdout}}}`)).
+				With(daggerQuery(`{minimal{withDaggerCLIAlpine(stringArg:"dev"){stdout}}}`)).
 				Stdout(ctx)
 			require.NoError(t, err)
-			require.JSONEq(t, `{"minimal":{"withDaggerCLIAlpine":{"stdout":"hello\n"}}}`, out)
+			require.JSONEq(t, `{"minimal":{"withDaggerCLIAlpine":{"stdout":"dev\n"}}}`, out)
 		} else {
 			// now simulate old version
-			versionAModGen := devModGen.WithNewFile("dagger.json", `{
+			versionAModGen := devModGen.WithNewFile("dagger.json", fmt.Sprintf(`{
 			  "name": "minimal",
 			  "sdk": "go",
-			  "engineVersion": "v0.12.5"
-			}`)
+			  "engineVersion": "%s"
+			}`, tc))
 			out, err := versionAModGen.
-				With(daggerQuery(`{minimal{withDaggerClialpine(stringArg:"hello"){stdout}}}`)).
+				With(daggerQuery(`{minimal{withDaggerClialpine(stringArg:"old"){stdout}}}`)).
 				Stdout(ctx)
 			require.NoError(t, err)
-			require.JSONEq(t, `{"minimal":{"withDaggerClialpine":{"stdout":"hello\n"}}}`, out)
+			require.JSONEq(t, `{"minimal":{"withDaggerClialpine":{"stdout":"old\n"}}}`, out)
 		}
 	}
 }

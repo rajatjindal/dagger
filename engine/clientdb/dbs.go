@@ -105,7 +105,7 @@ func (dbs *DBs) GC(keep map[string]bool) error {
 		removed = append(removed, ent.Name())
 	}
 	if len(removed) > 0 {
-		slog.ExtraDebug("removed client DBs", "clients", removed)
+		slog.Info("removed client DBs", "clients", removed)
 	}
 	return errs
 }

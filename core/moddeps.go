@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/dagger/dagger/cmd/codegen/introspection"
+	"github.com/dagger/dagger/core/compat"
 	"github.com/dagger/dagger/dagql"
 	dagintro "github.com/dagger/dagger/dagql/introspection"
 	"github.com/moby/buildkit/util/compression"
@@ -151,6 +152,10 @@ func (d *ModDeps) lazilyLoadSchema(ctx context.Context) (
 	var objects []*ModuleObjectType
 	var ifaces []*InterfaceType
 	for _, mod := range d.Mods {
+		if version, ok := mod.View(); ok {
+			dag.View = version
+		}
+		ctx = compat.AddCompatToContext(ctx, dag.View)
 		err := mod.Install(ctx, dag)
 		if err != nil {
 			return nil, loadedSchemaJSONFile, fmt.Errorf("failed to get schema for module %q: %w", mod.Name(), err)

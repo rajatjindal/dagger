@@ -244,7 +244,6 @@ func (s *moduleSchema) Install() {
 			ArgDoc("description", `The doc string to set.`),
 
 		dagql.Func("withArg", s.functionWithArg).
-			View(dagql.AllView).
 			Doc(`Returns the function with the provided argument`).
 			ArgDoc("name", `The name of the argument`).
 			ArgDoc("typeDef", `The type of the argument`).

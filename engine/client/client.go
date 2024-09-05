@@ -570,7 +570,7 @@ func (c *otlpConsumer) Consume(ctx context.Context, cb func([]byte) error) (rerr
 		if rerr != nil {
 			slog.Error("consume failed", "err", rerr)
 		} else {
-			slog.ExtraDebug("done consuming", "ctxErr", ctx.Err())
+			slog.Info("done consuming", "ctxErr", ctx.Err())
 		}
 	}()
 
@@ -647,10 +647,10 @@ func (c *Client) exportTraces(ctx context.Context, httpClient *httpClient) error
 
 		spans := telemetry.SpansFromPB(req.GetResourceSpans())
 
-		slog.ExtraDebug("received spans from engine", "len", len(spans))
+		slog.Info("received spans from engine", "len", len(spans))
 
 		for _, span := range spans {
-			slog.ExtraDebug("received span from engine", "span", span.Name(), "id", span.SpanContext().SpanID(), "endTime", span.EndTime())
+			slog.Info("received span from engine", "span", span.Name(), "id", span.SpanContext().SpanID(), "endTime", span.EndTime())
 		}
 
 		if err := c.Params.EngineTrace.ExportSpans(ctx, spans); err != nil {
@@ -682,7 +682,7 @@ func (c *Client) exportLogs(ctx context.Context, httpClient *httpClient) error {
 
 		logs := telemetry.LogsFromPB(req.GetResourceLogs())
 
-		slog.ExtraDebug("received logs from engine", "len", len(logs))
+		slog.Info("received logs from engine", "len", len(logs))
 
 		if err := c.EngineLogs.Export(ctx, logs); err != nil {
 			return fmt.Errorf("export %d logs: %w", len(logs), err)

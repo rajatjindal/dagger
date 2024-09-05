@@ -9,6 +9,7 @@ import (
 	"github.com/moby/buildkit/solver/pb"
 	"github.com/vektah/gqlparser/v2/ast"
 
+	"github.com/dagger/dagger/core/compat"
 	"github.com/dagger/dagger/dagql"
 	"github.com/dagger/dagger/dagql/call"
 	"github.com/dagger/dagger/engine/slog"
@@ -127,6 +128,13 @@ func (mod *Module) Initialize(ctx context.Context, oldID *call.ID, newID *call.I
 	newMod := mod.Clone()
 	newMod.InstanceID = oldID // updated to newID once the call to initialize is done
 
+	engineVersion, err := mod.Source.Self.ModuleEngineVersion(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	ctx = compat.AddCompatToContext(ctx, engineVersion)
+
 	// construct a special function with no object or function name, which tells
 	// the SDK to return the module's definition (in terms of objects, fields and
 	// functions)
@@ -144,7 +152,7 @@ func (mod *Module) Initialize(ctx context.Context, oldID *call.ID, newID *call.I
 		return nil, fmt.Errorf("failed to create module definition function for module %q: %w", modName, err)
 	}
 
-	result, err := getModDefFn.Call(ctx, &CallOpts{Cache: true, SkipSelfSchema: true, Server: dag})
+	result, err := getModDefFn.Call(ctx, &CallOpts{Cache: false, SkipSelfSchema: true, Server: dag})
 	if err != nil {
 		return nil, fmt.Errorf("failed to call module %q to get functions: %w", modName, err)
 	}
@@ -179,14 +187,14 @@ func (mod *Module) Initialize(ctx context.Context, oldID *call.ID, newID *call.I
 }
 
 func (mod *Module) Install(ctx context.Context, dag *dagql.Server) error {
-	slog.ExtraDebug("installing module", "name", mod.Name())
+	slog.Info("installing module", "name", mod.Name())
 	start := time.Now()
-	defer func() { slog.ExtraDebug("done installing module", "name", mod.Name(), "took", time.Since(start)) }()
+	defer func() { slog.Info("done installing module", "name", mod.Name(), "took", time.Since(start)) }()
 
 	for _, def := range mod.ObjectDefs {
 		objDef := def.AsObject.Value
 
-		slog.ExtraDebug("installing object", "name", mod.Name(), "object", objDef.Name)
+		slog.Info("installing object", "name", mod.Name(), "object", objDef.Name)
 
 		// check whether this is a pre-existing object from a dependency module
 		modType, ok, err := mod.Deps.ModTypeFor(ctx, def)
@@ -215,7 +223,7 @@ func (mod *Module) Install(ctx context.Context, dag *dagql.Server) error {
 	for _, def := range mod.InterfaceDefs {
 		ifaceDef := def.AsInterface.Value
 
-		slog.ExtraDebug("installing interface", "name", mod.Name(), "interface", ifaceDef.Name)
+		slog.Info("installing interface", "name", mod.Name(), "interface", ifaceDef.Name)
 
 		iface := &InterfaceType{
 			typeDef: ifaceDef,
@@ -230,7 +238,7 @@ func (mod *Module) Install(ctx context.Context, dag *dagql.Server) error {
 	for _, def := range mod.EnumDefs {
 		enumDef := def.AsEnum.Value
 
-		slog.ExtraDebug("installing enum", "name", mod.Name(), "enum", enumDef.Name, "values", len(enumDef.Values))
+		slog.Info("installing enum", "name", mod.Name(), "enum", enumDef.Name, "values", len(enumDef.Values))
 
 		enum := &ModuleEnum{
 			TypeDef: enumDef,
@@ -303,7 +311,7 @@ func (mod *Module) ModTypeFor(ctx context.Context, typeDef *TypeDef, checkDirect
 			return modType, ok, err
 		}
 		modType, ok = nil, false
-		slog.ExtraDebug("module did not find scalar", "mod", mod.Name(), "scalar", typeDef.AsScalar.Value.Name)
+		slog.Info("module did not find scalar", "mod", mod.Name(), "scalar", typeDef.AsScalar.Value.Name)
 	case TypeDefKindEnum:
 		modType, ok, err = mod.modTypeFromDeps(ctx, typeDef, checkDirectDeps)
 		if ok || err != nil {
@@ -374,7 +382,7 @@ func (mod *Module) modTypeForObject(typeDef *TypeDef) (ModType, bool) {
 		}
 	}
 
-	slog.ExtraDebug("module did not find object", "mod", mod.Name(), "object", typeDef.AsObject.Value.Name)
+	slog.Info("module did not find object", "mod", mod.Name(), "object", typeDef.AsObject.Value.Name)
 	return nil, false
 }
 
@@ -388,7 +396,7 @@ func (mod *Module) modTypeForInterface(typeDef *TypeDef) (ModType, bool) {
 		}
 	}
 
-	slog.ExtraDebug("module did not find interface", "mod", mod.Name(), "interface", typeDef.AsInterface.Value.Name)
+	slog.Info("module did not find interface", "mod", mod.Name(), "interface", typeDef.AsInterface.Value.Name)
 	return nil, false
 }
 
@@ -402,7 +410,7 @@ func (mod *Module) modTypeForEnum(typeDef *TypeDef) (ModType, bool) {
 		}
 	}
 
-	slog.ExtraDebug("module did not find enum", "mod", mod.Name(), "enum", typeDef.AsEnum.Value.Name)
+	slog.Info("module did not find enum", "mod", mod.Name(), "enum", typeDef.AsEnum.Value.Name)
 	return nil, false
 }
 

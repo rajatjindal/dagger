@@ -402,6 +402,12 @@ func (s *Server) ExecOp(ctx context.Context, gqlOp *graphql.OperationContext) (m
 func (s *Server) Resolve(ctx context.Context, self Object, sels ...Selection) (map[string]any, error) {
 	results := new(sync.Map)
 
+	// for _, ss := range sels {
+	// 	if strings.ToLower(ss.Name()) == "skiptparse" || strings.ToLower(ss.Name()) == "withdaggerclialpine" {
+	// 		panic(fmt.Sprintf("SELS -> %#v", sels))
+	// 	}
+	// }
+
 	pool := pool.New().WithErrors()
 	for _, sel := range sels {
 		pool.Go(func() error {
@@ -572,7 +578,10 @@ func CurrentID(ctx context.Context) *call.ID {
 func NoopDone(res Typed, cached bool, rerr error) {}
 
 func (s *Server) cachedSelect(ctx context.Context, self Object, sel Selector) (res Typed, chained *call.ID, rerr error) {
-	ctx = compat.AddCompatToContext(ctx, sel.View)
+	if sel.View != "" {
+		ctx = compat.AddCompatToContext(ctx, sel.View)
+	}
+
 	chainedID, err := self.IDFor(ctx, sel)
 	if err != nil {
 		return nil, nil, err

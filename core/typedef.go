@@ -35,6 +35,10 @@ type Function struct {
 }
 
 func NewFunction(ctx context.Context, name string, returnType *TypeDef) *Function {
+	// if strings.ToLower(name) == "withdaggerclialpine" {
+	// 	panic(fmt.Sprintf("NewFunction -> WHAT IS THE CTX HERE : %#v %T", compat.GetCompatFromContext(ctx), compat.Strcase(ctx)))
+	// }
+
 	return &Function{
 		Name:         compat.Strcase(ctx).ToCamel(name),
 		ReturnType:   returnType,
@@ -115,6 +119,10 @@ func (fn *Function) WithDescription(desc string) *Function {
 }
 
 func (fn *Function) WithArg(ctx context.Context, name string, typeDef *TypeDef, desc string, defaultValue JSON, defaultPath string, ignore []string) *Function {
+	// if strings.ToLower(name) == "skiptparse" {
+	// 	panic(fmt.Sprintf("WHAT IS THE CTX HERE : %#v %T", compat.GetCompatFromContext(ctx), compat.Strcase(ctx)))
+	// }
+
 	fn = fn.Clone()
 	fn.Args = append(fn.Args, &FunctionArg{
 		Name:         compat.Strcase(ctx).ToCamel(name),

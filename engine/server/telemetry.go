@@ -253,7 +253,7 @@ func spanNames(spans []sdktrace.ReadOnlySpan) []string {
 }
 
 func (ps SpansPubSub) ExportSpans(ctx context.Context, spans []sdktrace.ReadOnlySpan) error {
-	slog.ExtraDebug("pubsub exporting spans", "client", ps.client.clientID, "count", len(spans))
+	slog.Info("pubsub exporting spans", "client", ps.client.clientID, "count", len(spans))
 
 	tx, err := ps.client.db.Begin()
 	if err != nil {
@@ -363,7 +363,7 @@ type LogsPubSub struct {
 }
 
 func (ps LogsPubSub) Export(ctx context.Context, logs []sdklog.Record) error {
-	slog.ExtraDebug("pubsub exporting logs", "client", ps.client.clientID, "count", len(logs))
+	slog.Info("pubsub exporting logs", "client", ps.client.clientID, "count", len(logs))
 
 	tx, err := ps.client.db.Begin()
 	if err != nil {
@@ -486,11 +486,11 @@ func (ps *PubSub) sseHandler(w http.ResponseWriter, r *http.Request, client *dag
 				// NB: logging here is a bit too crazy
 			case <-client.shutdownCh:
 				// Client is shutting down; next time we receive no data, we'll exit.
-				slog.ExtraDebug("shutting down")
+				slog.Info("shutting down")
 				terminating = true
 			case <-r.Context().Done():
 				// Client went away, no point hanging around.
-				slog.ExtraDebug("client went away")
+				slog.Info("client went away")
 				return nil
 			}
 			continue

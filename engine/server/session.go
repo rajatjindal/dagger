@@ -170,11 +170,11 @@ func (client *daggerClient) FlushTelemetry(ctx context.Context) error {
 	slog := slog.With("client", client.clientID)
 	var errs error
 	if client.tracerProvider != nil {
-		slog.ExtraDebug("force flushing client traces")
+		slog.Info("force flushing client traces")
 		errs = errors.Join(errs, client.tracerProvider.ForceFlush(ctx))
 	}
 	if client.loggerProvider != nil {
-		slog.ExtraDebug("force flushing client logs")
+		slog.Info("force flushing client logs")
 		errs = errors.Join(errs, client.loggerProvider.ForceFlush(ctx))
 	}
 	return errs
@@ -184,11 +184,11 @@ func (client *daggerClient) ShutdownTelemetry(ctx context.Context) error {
 	slog := slog.With("client", client.clientID)
 	var errs error
 	if client.tracerProvider != nil {
-		slog.ExtraDebug("force flushing client traces")
+		slog.Info("force flushing client traces")
 		errs = errors.Join(errs, client.tracerProvider.Shutdown(ctx))
 	}
 	if client.loggerProvider != nil {
-		slog.ExtraDebug("force flushing client logs")
+		slog.Info("force flushing client logs")
 		errs = errors.Join(errs, client.loggerProvider.Shutdown(ctx))
 	}
 	return errs
@@ -212,8 +212,8 @@ func (srv *Server) initializeDaggerSession(
 	sess *daggerSession,
 	failureCleanups *buildkit.Cleanups,
 ) error {
-	slog.ExtraDebug("initializing new session", "session", clientMetadata.SessionID)
-	defer slog.ExtraDebug("initialized new session", "session", clientMetadata.SessionID)
+	slog.Info("initializing new session", "session", clientMetadata.SessionID)
+	defer slog.Info("initialized new session", "session", clientMetadata.SessionID)
 
 	sess.sessionID = clientMetadata.SessionID
 	sess.mainClientCallerID = clientMetadata.ClientID
@@ -953,7 +953,7 @@ func (srv *Server) serveSessionAttachables(w http.ResponseWriter, r *http.Reques
 	bklog.G(ctx).Debugf("session manager handling conn %s", client.clientID)
 	defer func() {
 		bklog.G(ctx).WithError(rerr).Debugf("session manager handle conn done %s", client.clientID)
-		slog.ExtraDebug("session manager handle conn done",
+		slog.Info("session manager handle conn done",
 			"err", rerr,
 			"ctxErr", ctx.Err(),
 			"clientID", client.clientID,
@@ -1042,7 +1042,7 @@ func (srv *Server) serveQuery(w http.ResponseWriter, r *http.Request, client *da
 	// get the schema we're gonna serve to this client based on which modules they have loaded, if any
 	schema, err := client.deps.Schema(ctx)
 	if err != nil {
-		return gqlErr(fmt.Errorf("failed to get schema: %w", err), http.StatusBadRequest)
+		return gqlErr(fmt.Errorf("session.go failed to get schema: %w", err), http.StatusBadRequest)
 	}
 
 	gqlSrv := handler.NewDefaultServer(schema)
@@ -1124,7 +1124,7 @@ func (srv *Server) serveShutdown(w http.ResponseWriter, r *http.Request, client 
 
 	// Flush telemetry across the entire session so that any child clients will
 	// save telemetry into their parent's DB, including to this client.
-	slog.ExtraDebug("flushing session telemetry")
+	slog.Info("flushing session telemetry")
 	if err := sess.FlushTelemetry(ctx); err != nil {
 		slog.Error("failed to flush telemetry", "error", err)
 	}

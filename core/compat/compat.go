@@ -7,12 +7,16 @@ import (
 	"golang.org/x/mod/semver"
 )
 
-const strcaseVersionCutOff = "v0.12.8"
+// the new strcase implementation is used if the version
+// is greater than this cutoff version
+const strcaseVersionCutOff = "v0.12.7"
 
 type CompatCtxKey struct{}
 
 type Compat struct {
-	Strcase strcase.Caser
+	EngineVersion string
+	LegacyOrNew   string
+	Strcase       strcase.Caser
 }
 
 func GetCompatFromContext(ctx context.Context) *Compat {
@@ -28,15 +32,16 @@ func GetCompatFromContext(ctx context.Context) *Compat {
 
 func AddCompatToContext(ctx context.Context, engineVersion string) context.Context {
 	compat := GetCompatFromContext(ctx)
-	if compat == nil {
-		compat = &Compat{}
-	}
 
 	// if engineVersion is empty OR not a valid semver, treat it as newer version
 	if !semver.IsValid(engineVersion) || semver.Compare(engineVersion, strcaseVersionCutOff) > 0 {
 		compat.Strcase = strcase.NewCaser()
+		compat.LegacyOrNew = "new"
+		compat.EngineVersion = engineVersion
 	} else {
 		compat.Strcase = strcase.NewLegacyCaser()
+		compat.LegacyOrNew = "legacy"
+		compat.EngineVersion = engineVersion
 	}
 
 	return context.WithValue(ctx, CompatCtxKey{}, compat)

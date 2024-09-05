@@ -1429,9 +1429,9 @@ type containerImportArgs struct {
 
 func (s *containerSchema) import_(ctx context.Context, parent *core.Container, args containerImportArgs) (*core.Container, error) {
 	start := time.Now()
-	slog.ExtraDebug("importing container", "source", args.Source.Display(), "tag", args.Tag)
+	slog.Info("importing container", "source", args.Source.Display(), "tag", args.Tag)
 	defer func() {
-		slog.ExtraDebug("done importing container", "source", args.Source.Display(), "tag", args.Tag, "took", start)
+		slog.Info("done importing container", "source", args.Source.Display(), "tag", args.Tag, "took", start)
 	}()
 	source, err := args.Source.Load(ctx, s.srv)
 	if err != nil {
