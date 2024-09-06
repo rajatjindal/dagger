@@ -1175,7 +1175,7 @@ func (DirectorySuite) TestDirectoryLaziness(ctx context.Context, t *testctx.T) {
 
 	t.Run("verify when the dir does not exist in a container pipeline", func(ctx context.Context, t *testctx.T) {
 		c := connect(ctx, t)
-		_, err := c.Container().Directory("/dont-exist").Sync(ctx)
+		_, err := c.Container().From("alpine:latest").Directory("/dont-exist").Sync(ctx)
 
 		require.ErrorContains(t, err, "/dont-exist: no such file or directory")
 	})

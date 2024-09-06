@@ -153,9 +153,9 @@ func (dir *Directory) WithPipeline(ctx context.Context, name, description string
 }
 
 func (dir *Directory) Evaluate(ctx context.Context) (*buildkit.Result, error) {
-	// if dir.LLB == nil {
-	// 	return nil, nil
-	// }
+	if dir.LLB == nil {
+		return nil, nil
+	}
 
 	svcs, err := dir.Query.Services(ctx)
 	if err != nil {
