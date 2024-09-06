@@ -1208,6 +1208,18 @@ func (DirectorySuite) TestDirectoryLaziness(ctx context.Context, t *testctx.T) {
 		require.False(t, exists)
 	})
 
+	// TODO(rajatjindal): not sure what should happen here
+	// t.Run("fetch id of the non existing dir", func(ctx context.Context, t *testctx.T) {
+	// 	c := connect(ctx, t)
+
+	// 	id, _ := c.Container().
+	// 		From("alpine:latest").
+	// 		Directory("/dont-exist").ID(ctx)
+
+	// 	// require.Error(t, err)
+	// 	require.Equal(t, "", id)
+	// })
+
 	t.Run("fetch glob of the non existing dir", func(ctx context.Context, t *testctx.T) {
 		c := connect(ctx, t)
 

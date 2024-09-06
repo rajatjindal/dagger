@@ -798,16 +798,16 @@ func (container *Container) File(ctx context.Context, filePath string) (*File, e
 		return nil, err
 	}
 
-	// check that the file actually exists so the user gets an error earlier
-	// rather than when the file is used
-	info, err := file.Stat(ctx)
-	if err != nil {
-		return nil, err
-	}
+	// // check that the file actually exists so the user gets an error earlier
+	// // rather than when the file is used
+	// info, err := file.Stat(ctx)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	if info.IsDir() {
-		return nil, fmt.Errorf("path %s is a directory, not a file", filePath)
-	}
+	// if info.IsDir() {
+	// 	return nil, fmt.Errorf("path %s is a directory, not a file", filePath)
+	// }
 
 	return file, nil
 }
