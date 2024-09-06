@@ -455,30 +455,30 @@ func (dir *Directory) Directory(ctx context.Context, subdir string) (*Directory,
 }
 
 func (dir *Directory) File(ctx context.Context, file string) (*File, error) {
-	svcs, err := dir.Query.Services(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get services: %w", err)
-	}
-	bk, err := dir.Query.Buildkit(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get buildkit client: %w", err)
-	}
+	// svcs, err := dir.Query.Services(ctx)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("failed to get services: %w", err)
+	// }
+	// bk, err := dir.Query.Buildkit(ctx)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("failed to get buildkit client: %w", err)
+	// }
 
-	err = validateFileName(file)
+	err := validateFileName(file)
 	if err != nil {
 		return nil, err
 	}
 
-	// check that the file actually exists so the user gets an error earlier
-	// rather than when the file is used
-	info, err := dir.Stat(ctx, bk, svcs, file)
-	if err != nil {
-		return nil, err
-	}
+	// // check that the file actually exists so the user gets an error earlier
+	// // rather than when the file is used
+	// info, err := dir.Stat(ctx, bk, svcs, file)
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	if info.IsDir() {
-		return nil, fmt.Errorf("path %s is a directory, not a file", file)
-	}
+	// if info.IsDir() {
+	// 	return nil, fmt.Errorf("path %s is a directory, not a file", file)
+	// }
 
 	return &File{
 		Query:    dir.Query,
@@ -786,6 +786,15 @@ func (dir *Directory) Export(ctx context.Context, destPath string, merge bool) (
 		defPB = def.ToPB()
 	} else {
 		defPB = dir.LLB
+	}
+
+	info, err := dir.Stat(ctx, bk, svcs, ".")
+	if err != nil {
+		return fmt.Errorf("failed to check stat on dir: %w", err)
+	}
+
+	if !info.IsDir() {
+		return fmt.Errorf("path %s is a file, not a directory", dir.Dir)
 	}
 
 	ctx, span := Tracer(ctx).Start(ctx, fmt.Sprintf("export directory %s to host %s", dir.Dir, destPath))

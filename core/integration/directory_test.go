@@ -1156,6 +1156,7 @@ func (DirectorySuite) TestDirectoryLaziness(ctx context.Context, t *testctx.T) {
 		c := connect(ctx, t)
 
 		exists, err := c.Directory().Directory("/dont-exist").Exists(ctx)
+
 		require.NoError(t, err)
 		require.False(t, exists)
 	})
@@ -1167,6 +1168,7 @@ func (DirectorySuite) TestDirectoryLaziness(ctx context.Context, t *testctx.T) {
 			WithExec([]string{"mkdir", "-p", "/foo"}).
 			Directory("/foo").
 			Exists(ctx)
+
 		require.NoError(t, err)
 		require.True(t, exists)
 	})
@@ -1174,6 +1176,7 @@ func (DirectorySuite) TestDirectoryLaziness(ctx context.Context, t *testctx.T) {
 	t.Run("verify when the dir does not exist in a container pipeline", func(ctx context.Context, t *testctx.T) {
 		c := connect(ctx, t)
 		_, err := c.Container().Directory("/dont-exist").Sync(ctx)
+
 		require.ErrorContains(t, err, "/dont-exist: no such file or directory")
 	})
 
@@ -1187,8 +1190,8 @@ func (DirectorySuite) TestDirectoryLaziness(ctx context.Context, t *testctx.T) {
 			Directory("/abc").
 			Exists(ctx)
 
-		require.True(t, exists)
 		require.NoError(t, err)
+		require.True(t, exists)
 	})
 
 	t.Run("verify when the dir is removed using WithoutDirectory", func(ctx context.Context, t *testctx.T) {
@@ -1203,5 +1206,16 @@ func (DirectorySuite) TestDirectoryLaziness(ctx context.Context, t *testctx.T) {
 
 		require.NoError(t, err)
 		require.False(t, exists)
+	})
+
+	t.Run("fetch glob of the non existing dir", func(ctx context.Context, t *testctx.T) {
+		c := connect(ctx, t)
+
+		list, err := c.Container().
+			From("alpine:latest").
+			Directory("/dont-exist").Glob(ctx, "*.*")
+
+		require.Error(t, err)
+		require.Equal(t, []string(nil), list)
 	})
 }
