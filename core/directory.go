@@ -325,6 +325,11 @@ func (dir *Directory) Glob(ctx context.Context, pattern string) ([]string, error
 		return nil, fmt.Errorf("failed to get buildkit client: %w", err)
 	}
 
+	_, err = dir.Stat(ctx, bk, svcs, ".")
+	if err != nil {
+		return nil, err
+	}
+
 	detach, _, err := svcs.StartBindings(ctx, dir.Services)
 	if err != nil {
 		return nil, err
