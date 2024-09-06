@@ -153,9 +153,9 @@ func (dir *Directory) WithPipeline(ctx context.Context, name, description string
 }
 
 func (dir *Directory) Evaluate(ctx context.Context) (*buildkit.Result, error) {
-	if dir.LLB == nil {
-		return nil, nil
-	}
+	// if dir.LLB == nil {
+	// 	return nil, nil
+	// }
 
 	svcs, err := dir.Query.Services(ctx)
 	if err != nil {
@@ -164,6 +164,15 @@ func (dir *Directory) Evaluate(ctx context.Context) (*buildkit.Result, error) {
 	bk, err := dir.Query.Buildkit(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get buildkit client: %w", err)
+	}
+
+	info, err := dir.Stat(ctx, bk, svcs, ".")
+	if err != nil {
+		return nil, fmt.Errorf("failed to check stat on dir: %w", err)
+	}
+
+	if !info.IsDir() {
+		return nil, fmt.Errorf("path %s is a file, not a directory", dir.Dir)
 	}
 
 	detach, _, err := svcs.StartBindings(ctx, dir.Services)
@@ -214,6 +223,43 @@ func (dir *Directory) Stat(ctx context.Context, bk *buildkit.Client, svcs *Servi
 	return ref.StatFile(ctx, bkgw.StatRequest{
 		Path: src,
 	})
+}
+
+func (dir *Directory) Exists(ctx context.Context) (bool, error) {
+	svcs, err := dir.Query.Services(ctx)
+	if err != nil {
+		return false, fmt.Errorf("failed to get services: %w", err)
+	}
+
+	bk, err := dir.Query.Buildkit(ctx)
+	if err != nil {
+		return false, fmt.Errorf("failed to get buildkit client: %w", err)
+	}
+
+	info, err := dir.Stat(ctx, bk, svcs, ".")
+	if err != nil {
+		// TODO(rajatjindal): check if there is a better way like fs.IsError(NoSuchFileOrDirectory)
+		if strings.Contains(err.Error(), "no such file or directory") {
+			return false, nil
+		}
+
+		return false, fmt.Errorf("failed to check stat on dir: %w", err)
+	}
+
+	if !info.IsDir() {
+		return false, fmt.Errorf("path %s is a file, not a directory", dir.Dir)
+	}
+
+	/*
+		TODO: check for testcases where:
+
+		1. dir does not exist
+		2. dir owned by root?
+		3. dir is actually a file
+		4. casing?
+	*/
+
+	return true, nil
 }
 
 func (dir *Directory) Entries(ctx context.Context, src string) ([]string, error) {
@@ -378,27 +424,27 @@ func (dir *Directory) WithNewFile(ctx context.Context, dest string, content []by
 func (dir *Directory) Directory(ctx context.Context, subdir string) (*Directory, error) {
 	dir = dir.Clone()
 
-	svcs, err := dir.Query.Services(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get services: %w", err)
-	}
-	bk, err := dir.Query.Buildkit(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get buildkit client: %w", err)
-	}
+	// svcs, err := dir.Query.Services(ctx)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("failed to get services: %w", err)
+	// }
+	// bk, err := dir.Query.Buildkit(ctx)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("failed to get buildkit client: %w", err)
+	// }
 
 	dir.Dir = path.Join(dir.Dir, subdir)
 
-	// check that the directory actually exists so the user gets an error earlier
-	// rather than when the dir is used
-	info, err := dir.Stat(ctx, bk, svcs, ".")
-	if err != nil {
-		return nil, err
-	}
+	// // check that the directory actually exists so the user gets an error earlier
+	// // rather than when the dir is used
+	// info, err := dir.Stat(ctx, bk, svcs, ".")
+	// if err != nil {
+	// 	return nil, err
+	// }
 
-	if !info.IsDir() {
-		return nil, fmt.Errorf("path %s is a file, not a directory", subdir)
-	}
+	// if !info.IsDir() {
+	// 	return nil, fmt.Errorf("path %s is a file, not a directory", subdir)
+	// }
 
 	return dir, nil
 }

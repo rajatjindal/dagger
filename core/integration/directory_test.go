@@ -1150,3 +1150,52 @@ func (DirectorySuite) TestGlob(ctx context.Context, t *testctx.T) {
 		require.ErrorContains(t, err, "no such file or directory")
 	})
 }
+
+func (DirectorySuite) TestDirectoryLaziness(ctx context.Context, t *testctx.T) {
+	t.Run("when dir does not exist in a directory pipeline", func(ctx context.Context, t *testctx.T) {
+		c := connect(ctx, t)
+
+		exists, err := c.Directory().Directory("/dont-exist").Exists(ctx)
+		require.NoError(t, err)
+		require.False(t, exists)
+	})
+
+	t.Run("verify when dir is created in the pipeline", func(ctx context.Context, t *testctx.T) {
+		c := connect(ctx, t)
+		exists, err := c.Container().
+			From("alpine:latest").
+			WithExec([]string{"mkdir", "-p", "/foo"}).
+			Directory("/foo").
+			Exists(ctx)
+		require.NoError(t, err)
+		require.True(t, exists)
+	})
+
+	t.Run("verify when the dir does not exist in a container pipeline", func(ctx context.Context, t *testctx.T) {
+		c := connect(ctx, t)
+		_, err := c.Container().Directory("/dont-exist").Sync(ctx)
+		require.ErrorContains(t, err, "/dont-exist: no such file or directory")
+	})
+
+	// t.Run("verify when the dir is mounted in a container pipeline", func(ctx context.Context, t *testctx.T) {
+	// 	c := connect(ctx, t)
+	// 	_, err := c.Container().Sync(ctx)
+	// 	require.ErrorContains(t, err, "/dont-exist: no such file or directory")
+	// })
+
+	t.Run("verify when the dir is removed using WithoutDirectory", func(ctx context.Context, t *testctx.T) {
+		c := connect(ctx, t)
+		exists, err := c.Container().
+			From("alpine:latest").
+			WithExec([]string{"mkdir", "-p", "/foo"}).
+			WithoutDirectory("/foo").
+			Rootfs().
+			Directory("/foo").
+			Exists(ctx)
+		require.False(t, exists)
+		require.Error(t, err)
+	})
+
+	// _, err = c.Container().Directory("/dont-exist").Entries(ctx)
+	// require.Error(t, err)
+}

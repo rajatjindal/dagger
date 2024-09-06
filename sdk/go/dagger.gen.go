@@ -2461,6 +2461,17 @@ func (r *Directory) Sync(ctx context.Context) (*Directory, error) {
 	}, nil
 }
 
+// Check if directory exists
+func (r *Directory) Exists(ctx context.Context) (bool, error) {
+	q := r.query.Select("exists")
+
+
+	var response bool
+	q = q.Bind(&response)
+	
+	return response, q.Execute(ctx)
+}
+
 // DirectoryTerminalOpts contains options for Directory.Terminal
 type DirectoryTerminalOpts struct {
 	// If set, override the container's default terminal command and invoke these command arguments instead.

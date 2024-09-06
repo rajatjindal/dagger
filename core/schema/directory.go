@@ -31,6 +31,8 @@ func (s *directorySchema) Install() {
 			ArgDoc("name", "Name of the sub-pipeline.").
 			ArgDoc("description", "Description of the sub-pipeline.").
 			ArgDoc("labels", "Labels to apply to the sub-pipeline."),
+		dagql.Func("exists", s.exists).
+			Doc(`Check if the directory exists or not`),
 		dagql.Func("entries", s.entries).
 			Doc(`Returns a list of files and directories at the given path.`).
 			ArgDoc("path", `Location of the directory to look at (e.g., "/src").`),
@@ -183,6 +185,16 @@ func (s *directorySchema) entries(ctx context.Context, parent *core.Directory, a
 		return nil, err
 	}
 	return dagql.NewStringArray(ents...), nil
+}
+
+type existsArgs struct{}
+
+func (s *directorySchema) exists(ctx context.Context, parent *core.Directory, _ existsArgs) (dagql.Boolean, error) {
+	exists, err := parent.Exists(ctx)
+	if err != nil {
+		return false, err
+	}
+	return dagql.NewBoolean(exists), nil
 }
 
 type globArgs struct {
