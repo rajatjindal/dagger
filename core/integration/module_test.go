@@ -5007,6 +5007,134 @@ func (GoSuite) TestModuleNamingCompatDependencyTestcase1(ctx context.Context, t 
 	require.Contains(t, out, "one-wonderful-argument")
 }
 
+// foo: dev; bar: v0.12.5 (dependency has old engine version)
+func (GoSuite) TestModuleNamingCompatDependencyTestcase2(ctx context.Context, t *testctx.T) {
+	c := connect(ctx, t)
+
+	// module bar has fn: WithKubectlCLIVersion and WithSecondFunction
+	// module foo depends on bar and has fn: GetKubectlCLIVersion (which calls bar.WithKubectlCLIVersion)
+	//
+	// tests to perform
+	// 1. foo: dev; bar: dev (both have new engine version)
+	// 2. foo: dev; bar: v0.12.5 (dependency has old engine version)
+	// 3. foo: v0.12.5; bar: dev (main module has old engine version)
+	// 4. foo: v0.12.5; bar: v0.12.5 (both have old engine version)
+
+	// foo: dev; bar: v0.12.5 (dependency has old engine version)
+	devModGen := c.Container().From(golangImage).
+		WithMountedFile(testCLIBinPath, daggerCliFile(t, c)).
+		// First the dependency module setup (bar)
+		WithWorkdir("/work/bar").
+		With(daggerExec("init", "--name=bar", "--sdk=go", "--source=.")).
+		WithNewFile("dagger.json", fmt.Sprintf(`{
+			"name": "bar",
+			"sdk": "go",
+			"engineVersion": "%s"
+		}`, "v0.12.5")).
+		WithNewFile("main.go", `package main
+
+			import (
+				"context"
+			)
+
+			type Bar struct {
+				KubectlCLIVersion string
+			}
+
+			func New() *Bar {
+				return &Bar{
+					KubectlCLIVersion: "v0.0.1",
+				}
+			}
+
+			func (m *Bar) WithFirstCLIVersion(ctx context.Context) (string, error) {
+				return dag.Container().From("alpine:latest").WithExec([]string{"echo", m.KubectlCLIVersion}).Stdout(ctx)
+			}
+
+			func (m *Bar) WithSecondFunction(ctx context.Context, skipTParse string) (string, error) {
+				return dag.Container().From("alpine:latest").WithExec([]string{"echo", skipTParse}).Stdout(ctx)
+			}
+			`,
+		).
+		// Now the main module (foo)
+		WithWorkdir("/work").
+		With(daggerExec("init", "--name=foo", "--sdk=go", "--source=.")).
+		With(daggerExec("install", "bar", "-m=.")).
+		WithNewFile("main.go", `package main
+
+		import (
+			"context"
+		)
+
+		type Foo struct {}
+
+		func New() *Foo {
+			return &Foo{}
+		}
+
+		func (m *Foo) GetKubectlCLIVersion(ctx context.Context) (string, error) {
+			return dag.Bar().WithFirstCliversion(ctx) 
+		}
+
+		func (m *Foo) InsideOldVersion(ctx context.Context, skipTParseOld string) (string, error) {
+			return dag.Bar().WithSecondFunction(ctx, skipTParseOld)
+		}
+		`,
+		)
+
+	out, err := devModGen.
+		With(daggerExec("functions", "-m", ".")).
+		Stdout(ctx)
+	require.NoError(t, err)
+	require.Contains(t, out, "get-kubectl-cli-version")
+	require.Contains(t, out, "inside-old-version")
+
+	out, err = devModGen.
+		With(daggerExec("call", "get-kubectl-cli-version", "-m", ".")).
+		Stdout(ctx)
+	require.NoError(t, err)
+	require.Contains(t, out, "v0.0.1")
+
+	out, err = devModGen.
+		With(daggerExec("call", "inside-old-version", "--skip-t-parse-old", "one-wonderful-argument", "-m", ".")).
+		Stdout(ctx)
+	require.NoError(t, err)
+	require.Contains(t, out, "one-wonderful-argument")
+}
+
+/*
+step 1:
+
+current status for testcase - 3
+
+foo: v0.12.5
+bar: dev
+
+in foo/internal/dagger/dagger.gen.go - skipTParse
+in /schema.json -> skipTParse
+
+but getting error:
+
+invoke: input: bar.withSecondFunction resolve: failed to set call inputs: failed to find arg "skipTParse"
+			, normalized "skipTParse"
+			, . all map[string]*core.UserModFunctionArg{"skipTparse":(*core.UserModFunctionArg)(0x4000eaecd8)}
+			. strcase -> *strcase.LegacyCaser
+
+step 2:
+
+changed setCallInputs function in modfunc.go to use normalized name, like we were doing earlier. lets see what happens now:
+this fixed it.
+
+BUT
+
+lets try Testcase1 and testcase 4 again to be sure
+testcase 1 -> works
+testcase 2 -> works too?
+testcase 3 -> works
+testcase 4 -> works
+
+*/
+
 func (GoSuite) TestModuleNamingCompatDependencyTestcase3(ctx context.Context, t *testctx.T) {
 	c := connect(ctx, t)
 
@@ -5053,6 +5181,11 @@ func (GoSuite) TestModuleNamingCompatDependencyTestcase3(ctx context.Context, t 
 		// Now the main module (foo)
 		WithWorkdir("/work").
 		With(daggerExec("init", "--name=foo", "--sdk=go", "--source=.")).
+		WithNewFile("dagger.json", fmt.Sprintf(`{
+			"name": "foo",
+			"sdk": "go",
+			"engineVersion": "%s"
+		}`, "v0.12.5")).
 		With(daggerExec("install", "bar", "-m=.")).
 		WithNewFile("main.go", `package main
 
@@ -5074,8 +5207,19 @@ func (GoSuite) TestModuleNamingCompatDependencyTestcase3(ctx context.Context, t 
 			return dag.Bar().WithSecondFunction(ctx, skipTParseOld)
 		}
 		`,
-		).
-		With(daggerExec("develop", "--compat=v0.12.5"))
+		)
+
+	// TODO(rajatjindal): because we are installing module as per its engine version
+	// then, the codegen should generate code as per the dependency's engine version as well
+	// this might be our issue here.
+	// so need to debug codegen now
+	// out, err := devModGen.
+	// 	WithExec([]string{"grep", "-i", "skip", "internal/dagger/dagger.gen.go"}).
+	// 	Stdout(ctx)
+
+	// require.NoError(t, err)
+	// require.Contains(t, out, "get-kubectl-cliversion")
+	// require.Contains(t, out, "inside-old-version")
 
 	out, err := devModGen.
 		With(daggerExec("functions", "-m", ".")).

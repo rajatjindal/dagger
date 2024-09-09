@@ -430,6 +430,21 @@ func (m *HasNotMainGo) Hello() string { return "Hello, world!" }
 		require.NoError(t, err)
 		require.Contains(t, sourceSubdirEnts, "go.mod", "go.sum")
 	})
+
+	t.Run("module with single character followed by hyphen", func(ctx context.Context, t *testctx.T) {
+		c := connect(ctx, t)
+
+		modGen := c.Container().From(golangImage).
+			WithMountedFile(testCLIBinPath, daggerCliFile(t, c)).
+			WithWorkdir("/work").
+			With(daggerExec("init", "--name=a-module", "--sdk=go", "--source=."))
+
+		out, err := modGen.
+			With(daggerQuery(`{aModule{containerEcho(stringArg:"hello"){stdout}}}`)).
+			Stdout(ctx)
+		require.NoError(t, err)
+		require.JSONEq(t, `{"aModule":{"containerEcho":{"stdout":"hello\n"}}}`, out)
+	})
 }
 
 //go:embed testdata/modules/go/minimal/main.go
