@@ -557,9 +557,9 @@ func (srv *Server) initializeDaggerClient(
 			return fmt.Errorf("failed to decode module ID: %w", err)
 		}
 		if modID.View() != "" {
-			ctx = compat.MustAddCompatToContext(ctx, modID.View())
+			ctx = compat.AddCompatToContext(ctx, modID.View())
 		} else {
-			ctx = compat.MustAddCompatToContext(ctx, "v0.12.5") // hardcode for now
+			// ctx = compat.AddCompatToContext(ctx, "v0.12.5") // hardcode for now
 		}
 		modInst, err := dagql.NewID[*core.Module](modID).Load(ctx, coreMod.Dag)
 		if err != nil {
@@ -896,11 +896,11 @@ func (srv *Server) serveHTTPToClient(w http.ResponseWriter, r *http.Request, opt
 
 	//allow this to be empty version for now
 	//this does not get engine version, lets add fake for now
-	compat.AddCompatToContext(ctx, "v0.12.5")
+	// compat.AddCompatToContext(ctx, "v0.12.5")
 	// if opts.CallID != nil {
-	// 	ctx = compat.MustAddCompatToContext(ctx, opts.CallID.View())
+	// 	ctx = compat.AddCompatToContext(ctx, opts.CallID.View())
 	// } else {
-	// 	ctx = compat.MustAddCompatToContext(ctx, clientMetadata.ClientVersion)
+	// 	ctx = compat.AddCompatToContext(ctx, clientMetadata.ClientVersion)
 	// }
 
 	// propagate span context from the client
