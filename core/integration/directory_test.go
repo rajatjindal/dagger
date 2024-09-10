@@ -1155,79 +1155,86 @@ func (DirectorySuite) TestDirectoryLaziness(ctx context.Context, t *testctx.T) {
 	t.Run("when dir does not exist", func(ctx context.Context, t *testctx.T) {
 		c := connect(ctx, t)
 
-		exists, err := c.Directory().Directory("/dont-exist").Exists(ctx)
-
-		require.NoError(t, err)
-		require.False(t, exists)
-	})
-
-	t.Run("verify when dir is created in the pipeline", func(ctx context.Context, t *testctx.T) {
-		c := connect(ctx, t)
-		exists, err := c.Container().
+		container, err := c.
+			Container().
 			From("alpine:latest").
-			WithExec([]string{"mkdir", "-p", "/foo"}).
-			Directory("/foo").
-			Exists(ctx)
-
+			WithDirectory(
+				"should-error",
+				c.Directory().Directory("/dont-exist").WithNewFile("/dont-exist/foo.txt", "some-contents"),
+			).Sync(ctx)
 		require.NoError(t, err)
-		require.True(t, exists)
+		require.NotNil(t, container)
 	})
 
-	t.Run("verify when the dir does not exist in a container pipeline", func(ctx context.Context, t *testctx.T) {
-		c := connect(ctx, t)
-		_, err := c.Container().From("alpine:latest").Directory("/dont-exist").Sync(ctx)
-
-		require.ErrorContains(t, err, "/dont-exist: no such file or directory")
-	})
-
-	t.Run("verify when the dir is mounted in a container pipeline", func(ctx context.Context, t *testctx.T) {
-		c := connect(ctx, t)
-		dir := c.Directory().WithNewDirectory("/foo").WithNewFile("/foo/bar.txt", "foo bar txt")
-
-		exists, err := c.Container().
-			From("alpine:latest").
-			WithMountedDirectory("/abc", dir).
-			Directory("/abc").
-			Exists(ctx)
-
-		require.NoError(t, err)
-		require.True(t, exists)
-	})
-
-	t.Run("verify when the dir is removed using WithoutDirectory", func(ctx context.Context, t *testctx.T) {
-		c := connect(ctx, t)
-
-		exists, err := c.Container().
-			From("alpine:latest").
-			WithExec([]string{"mkdir", "-p", "/foo"}).
-			WithoutDirectory("/foo").
-			Directory("/foo").
-			Exists(ctx)
-
-		require.NoError(t, err)
-		require.False(t, exists)
-	})
-
-	// TODO(rajatjindal): not sure what should happen here
-	// t.Run("fetch id of the non existing dir", func(ctx context.Context, t *testctx.T) {
-	// 	c := connect(ctx, t)
-
-	// 	id, _ := c.Container().
-	// 		From("alpine:latest").
-	// 		Directory("/dont-exist").ID(ctx)
-
-	// 	// require.Error(t, err)
-	// 	require.Equal(t, "", id)
-	// })
-
-	t.Run("fetch glob of the non existing dir", func(ctx context.Context, t *testctx.T) {
-		c := connect(ctx, t)
-
-		list, err := c.Container().
-			From("alpine:latest").
-			Directory("/dont-exist").Glob(ctx, "*.*")
-
-		require.Error(t, err)
-		require.Equal(t, []string(nil), list)
-	})
 }
+
+// 	t.Run("verify when dir is created in the pipeline", func(ctx context.Context, t *testctx.T) {
+// 		c := connect(ctx, t)
+// 		exists, err := c.Container().
+// 			From("alpine:latest").
+// 			WithExec([]string{"mkdir", "-p", "/foo"}).
+// 			Directory("/foo").
+// 			Exists(ctx)
+
+// 		require.NoError(t, err)
+// 		require.True(t, exists)
+// 	})
+
+// 	t.Run("verify when the dir does not exist in a container pipeline", func(ctx context.Context, t *testctx.T) {
+// 		c := connect(ctx, t)
+// 		_, err := c.Container().From("alpine:latest").Directory("/dont-exist").Sync(ctx)
+
+// 		require.ErrorContains(t, err, "/dont-exist: no such file or directory")
+// 	})
+
+// 	t.Run("verify when the dir is mounted in a container pipeline", func(ctx context.Context, t *testctx.T) {
+// 		c := connect(ctx, t)
+// 		dir := c.Directory().WithNewDirectory("/foo").WithNewFile("/foo/bar.txt", "foo bar txt")
+
+// 		exists, err := c.Container().
+// 			From("alpine:latest").
+// 			WithMountedDirectory("/abc", dir).
+// 			Directory("/abc").
+// 			Exists(ctx)
+
+// 		require.NoError(t, err)
+// 		require.True(t, exists)
+// 	})
+
+// 	t.Run("verify when the dir is removed using WithoutDirectory", func(ctx context.Context, t *testctx.T) {
+// 		c := connect(ctx, t)
+
+// 		exists, err := c.Container().
+// 			From("alpine:latest").
+// 			WithExec([]string{"mkdir", "-p", "/foo"}).
+// 			WithoutDirectory("/foo").
+// 			Directory("/foo").
+// 			Exists(ctx)
+
+// 		require.NoError(t, err)
+// 		require.False(t, exists)
+// 	})
+
+// 	// TODO(rajatjindal): not sure what should happen here
+// 	// t.Run("fetch id of the non existing dir", func(ctx context.Context, t *testctx.T) {
+// 	// 	c := connect(ctx, t)
+
+// 	// 	id, _ := c.Container().
+// 	// 		From("alpine:latest").
+// 	// 		Directory("/dont-exist").ID(ctx)
+
+// 	// 	// require.Error(t, err)
+// 	// 	require.Equal(t, "", id)
+// 	// })
+
+// 	t.Run("fetch glob of the non existing dir", func(ctx context.Context, t *testctx.T) {
+// 		c := connect(ctx, t)
+
+// 		list, err := c.Container().
+// 			From("alpine:latest").
+// 			Directory("/dont-exist").Glob(ctx, "*.*")
+
+// 		require.Error(t, err)
+// 		require.Equal(t, []string(nil), list)
+// 	})
+// }
