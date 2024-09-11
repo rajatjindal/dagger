@@ -1207,3 +1207,93 @@ func (DirectorySuite) TestDigest(ctx context.Context, t *testctx.T) {
 		require.Equal(t, "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855", digest)
 	})
 }
+
+func (DirectorySuite) TestDirectoryLazinessError(ctx context.Context, t *testctx.T) {
+	c := connect(ctx, t)
+
+	t.Run("container", func(ctx context.Context, t *testctx.T) {
+		t.Run("tc1", func(ctx context.Context, t *testctx.T) {
+			// without validation, it return error
+			err := c.Container().From("alpine:latest").Directory("/doesnt-exist").AsModule().Initialize().Serve(ctx)
+			require.EqualError(t, err, "input: container.from.directory resolve: lstat /doesnt-exist: no such file or directory\n")
+			// require.EqualError(t, err, "input: container.from.directory.asModule.initialize resolve: module name and SDK must be set\n")
+		})
+
+		t.Run("tc2", func(ctx context.Context, t *testctx.T) {
+			// without validation, it returns "input: container.from.directory.diff.entries resolve: resolve : lstat /tmp/buildkit-mount2166899413/doesnt-exist: no such file or directory\n"
+			_, err := c.Container().From("alpine:latest").Directory("/doesnt-exist").Diff(c.Directory().Directory("/doesnt-exist")).Entries(ctx)
+			require.EqualError(t, err, "input: directory.directory resolve: /doesnt-exist: no such file or directory\n")
+			// require.EqualError(t, err, "input: container.from.directory.diff.entries resolve: resolve : lstat /tmp/buildkit-mount3884148634/doesnt-exist: no such file or directory\n"
+		})
+
+		t.Run("tc3", func(ctx context.Context, t *testctx.T) {
+			c := connect(ctx, t)
+			// without validation, it returns "input: container.from.directory.file resolve: lstat /doesnt-exist/foo.txt: no such file or directory\n"
+			_, err := c.Container().From("alpine:latest").Directory("/doesnt-exist").File("foo.txt").Contents(ctx)
+			require.EqualError(t, err, "input: container.from.directory resolve: lstat /doesnt-exist: no such file or directory\n")
+			// require.EqualError(t, err, "input: container.from.directory.file resolve: lstat /doesnt-exist/foo.txt: no such file or directory\n")
+		})
+
+		t.Run("tc4", func(ctx context.Context, t *testctx.T) {
+			// without validation, it returns "input: container.from.directory.entries resolve: resolve : lstat /tmp/buildkit-mount3306785835/doesnt-exist: no such file or directory\n"
+			_, err := c.Container().From("alpine:latest").Directory("/doesnt-exist").Entries(ctx)
+			require.EqualError(t, err, "input: container.from.directory resolve: lstat /doesnt-exist: no such file or directory\n")
+			// require.EqualError(t, err, "input: container.from.directory.entries resolve: resolve : lstat /tmp/buildkit-mount3859364930/doesnt-exist: no such file or directory\n")
+		})
+
+		t.Run("tc5", func(ctx context.Context, t *testctx.T) {
+			// without validation, this does not return any error
+			_, err := c.Container().From("alpine:latest").Directory("/doesnt-exist").Sync(ctx)
+			require.EqualError(t, err, "input: container.from.directory resolve: lstat /doesnt-exist: no such file or directory\n")
+			require.NoError(t, err)
+		})
+
+		t.Run("tc6", func(ctx context.Context, t *testctx.T) {
+			// without validation, it returns error -> "input: container.from.directory.glob resolve: resolve : lstat /tmp/buildkit-mount2890696365/doesnt-exist: no such file or directory\n"
+			_, err := c.Container().From("alpine:latest").Directory("/doesnt-exist").Glob(ctx, "*.*")
+			require.EqualError(t, err, "input: container.from.directory resolve: lstat /doesnt-exist: no such file or directory\n")
+			// require.EqualError(t, err, "input: container.from.directory.glob resolve: resolve : lstat /tmp/buildkit-mount426363861/doesnt-exist: no such file or directory\n")
+		})
+
+		t.Run("tc7", func(ctx context.Context, t *testctx.T) {
+			// without validation, it returns error -> "input: container.from.directory.glob resolve: resolve : lstat /tmp/buildkit-mount2890696365/doesnt-exist: no such file or directory\n"
+			dir := c.Container().From("alpine:latest").Directory("/doesnt-exist")
+
+			_, err := c.
+				Container().
+				From("alpine:latest").
+				WithDirectory("/mounted-foo", dir).
+				Directory("/mounted-foo").
+				Glob(ctx, "*.*")
+
+			require.EqualError(t, err, "input: container.from.directory resolve: lstat /doesnt-exist: no such file or directory\n")
+			// require.EqualError(t, err, "input: container.from.withDirectory.directory.glob resolve: failed to compute cache key: failed to calculate checksum of ref n9lagq287siw2a6os7nzr7ix7::hnrt1bom67rf2upvpvhamp6xb: \"/doesnt-exist\": not found\n")
+		})
+
+		t.Run("tc8", func(ctx context.Context, t *testctx.T) {
+			// without validation, it returns error -> "input: container.from.directory.glob resolve: resolve : lstat /tmp/buildkit-mount2890696365/doesnt-exist: no such file or directory\n"
+			_, err := c.
+				Container().
+				From("alpine:latest").
+				WithDirectory("/mounted-foo", c.Container().From("alpine:latest").Directory("/doesnt-exist")).
+				Directory("/mounted-foo").
+				Glob(ctx, "*.*")
+
+			require.EqualError(t, err, "input: container.from.directory resolve: lstat /doesnt-exist: no such file or directory\n")
+			// require.EqualError(t, err, "input: container.from.withDirectory.directory.glob resolve: failed to compute cache key: failed to calculate checksum of ref n9lagq287siw2a6os7nzr7ix7::hnrt1bom67rf2upvpvhamp6xb: \"/doesnt-exist\": not found\n")
+		})
+
+		t.Run("tc9", func(ctx context.Context, t *testctx.T) {
+			// without validation, it returns error -> "input: container.from.directory.glob resolve: resolve : lstat /tmp/buildkit-mount2890696365/doesnt-exist: no such file or directory\n"
+			_, err := c.
+				Container().
+				From("alpine:latest").
+				WithMountedDirectory("/mounted-foo", c.Container().From("alpine:latest").Directory("/doesnt-exist")).
+				Directory("/mounted-foo").
+				Glob(ctx, "*.*")
+
+			require.EqualError(t, err, "input: container.from.directory resolve: lstat /doesnt-exist: no such file or directory\n")
+			// require.EqualError(t, err, "input: container.from.withMountedDirectory.directory.glob resolve: resolve : lstat /tmp/buildkit-mount1338184602/doesnt-exist: no such file or directory\n")
+		})
+	})
+}
