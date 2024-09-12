@@ -1306,5 +1306,15 @@ func (DirectorySuite) TestDirectoryLazinessError(ctx context.Context, t *testctx
 				Stdout(ctx)
 			require.Nil(t, err)
 		})
+
+		t.Run("tc12", func(ctx context.Context, t *testctx.T) {
+			_, err := c.
+				Container().
+				From("alpine:latest").
+				WithDirectory("/doesnt-exist", c.Directory()).
+				WithNewFile("hello.txt", "hello-world").
+				File("hello.txt").Contents(ctx)
+			require.Nil(t, err)
+		})
 	})
 }
