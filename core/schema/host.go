@@ -293,10 +293,11 @@ func (s *hostSchema) tunnel(ctx context.Context, parent *core.Host, args hostTun
 		ports = append(ports, collectInputsSlice(args.Ports)...)
 	}
 
+	p := 3000
 	if len(ports) == 0 {
 		for _, port := range svc.Container.Ports {
 			ports = append(ports, core.PortForward{
-				Frontend: nil, // pick a random port on the host
+				Frontend: &p, // pick a random port on the host
 				Backend:  port.Port,
 				Protocol: port.Protocol,
 			})
