@@ -2336,3 +2336,43 @@ func calculateNestingLimit(ctx context.Context, c *dagger.Client, t *testctx.T) 
 
 	return calculatedNestingLimit
 }
+
+func (ServiceSuite) TestServiceUp(ctx context.Context, t *testctx.T) {
+	c := connect(ctx, t)
+
+	ctx, cancel := context.WithCancel(ctx)
+	go func() {
+		c.Container().
+			From("python").
+			WithExposedPort(8000, dagger.ContainerWithExposedPortOpts{
+				Description: "eight thousand",
+			}).
+			WithExec([]string{"python", "-m", "http.server"}).
+			AsService().Up(ctx)
+	}()
+
+	ticker := time.NewTicker(10 * time.Second)
+	timer := time.NewTimer(2 * time.Second)
+
+	for {
+		select {
+		case <-ticker.C:
+			timer.Stop()
+			cancel()
+			require.NoError(t, fmt.Errorf("coult not call service in 10s"))
+		case <-timer.C:
+			resp, err := http.Get("http://localhost:8000")
+			if err != nil {
+				continue
+			}
+
+			if resp.StatusCode != 200 {
+				continue
+			}
+
+			cancel()
+			ticker.Stop()
+			timer.Stop()
+		}
+	}
+}

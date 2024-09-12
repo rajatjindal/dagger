@@ -1213,14 +1213,12 @@ func (DirectorySuite) TestDirectoryLazinessError(ctx context.Context, t *testctx
 
 	t.Run("container", func(ctx context.Context, t *testctx.T) {
 		t.Run("tc1", func(ctx context.Context, t *testctx.T) {
-			// without validation, it return error
 			err := c.Container().From("alpine:latest").Directory("/doesnt-exist").AsModule().Initialize().Serve(ctx)
 			require.EqualError(t, err, "input: container.from.directory resolve: lstat /doesnt-exist: no such file or directory\n")
 			// require.EqualError(t, err, "input: container.from.directory.asModule.initialize resolve: module name and SDK must be set\n")
 		})
 
 		t.Run("tc2", func(ctx context.Context, t *testctx.T) {
-			// without validation, it returns "input: container.from.directory.diff.entries resolve: resolve : lstat /tmp/buildkit-mount2166899413/doesnt-exist: no such file or directory\n"
 			_, err := c.Container().From("alpine:latest").Directory("/doesnt-exist").Diff(c.Directory().Directory("/doesnt-exist")).Entries(ctx)
 			require.EqualError(t, err, "input: directory.directory resolve: /doesnt-exist: no such file or directory\n")
 			// require.EqualError(t, err, "input: container.from.directory.diff.entries resolve: resolve : lstat /tmp/buildkit-mount3884148634/doesnt-exist: no such file or directory\n"
@@ -1228,35 +1226,30 @@ func (DirectorySuite) TestDirectoryLazinessError(ctx context.Context, t *testctx
 
 		t.Run("tc3", func(ctx context.Context, t *testctx.T) {
 			c := connect(ctx, t)
-			// without validation, it returns "input: container.from.directory.file resolve: lstat /doesnt-exist/foo.txt: no such file or directory\n"
 			_, err := c.Container().From("alpine:latest").Directory("/doesnt-exist").File("foo.txt").Contents(ctx)
 			require.EqualError(t, err, "input: container.from.directory resolve: lstat /doesnt-exist: no such file or directory\n")
 			// require.EqualError(t, err, "input: container.from.directory.file resolve: lstat /doesnt-exist/foo.txt: no such file or directory\n")
 		})
 
 		t.Run("tc4", func(ctx context.Context, t *testctx.T) {
-			// without validation, it returns "input: container.from.directory.entries resolve: resolve : lstat /tmp/buildkit-mount3306785835/doesnt-exist: no such file or directory\n"
 			_, err := c.Container().From("alpine:latest").Directory("/doesnt-exist").Entries(ctx)
 			require.EqualError(t, err, "input: container.from.directory resolve: lstat /doesnt-exist: no such file or directory\n")
 			// require.EqualError(t, err, "input: container.from.directory.entries resolve: resolve : lstat /tmp/buildkit-mount3859364930/doesnt-exist: no such file or directory\n")
 		})
 
 		t.Run("tc5", func(ctx context.Context, t *testctx.T) {
-			// without validation, this does not return any error
 			_, err := c.Container().From("alpine:latest").Directory("/doesnt-exist").Sync(ctx)
 			require.EqualError(t, err, "input: container.from.directory resolve: lstat /doesnt-exist: no such file or directory\n")
 			require.NoError(t, err)
 		})
 
 		t.Run("tc6", func(ctx context.Context, t *testctx.T) {
-			// without validation, it returns error -> "input: container.from.directory.glob resolve: resolve : lstat /tmp/buildkit-mount2890696365/doesnt-exist: no such file or directory\n"
 			_, err := c.Container().From("alpine:latest").Directory("/doesnt-exist").Glob(ctx, "*.*")
 			require.EqualError(t, err, "input: container.from.directory resolve: lstat /doesnt-exist: no such file or directory\n")
 			// require.EqualError(t, err, "input: container.from.directory.glob resolve: resolve : lstat /tmp/buildkit-mount426363861/doesnt-exist: no such file or directory\n")
 		})
 
 		t.Run("tc7", func(ctx context.Context, t *testctx.T) {
-			// without validation, it returns error -> "input: container.from.directory.glob resolve: resolve : lstat /tmp/buildkit-mount2890696365/doesnt-exist: no such file or directory\n"
 			dir := c.Container().From("alpine:latest").Directory("/doesnt-exist")
 
 			_, err := c.
@@ -1271,7 +1264,6 @@ func (DirectorySuite) TestDirectoryLazinessError(ctx context.Context, t *testctx
 		})
 
 		t.Run("tc8", func(ctx context.Context, t *testctx.T) {
-			// without validation, it returns error -> "input: container.from.directory.glob resolve: resolve : lstat /tmp/buildkit-mount2890696365/doesnt-exist: no such file or directory\n"
 			_, err := c.
 				Container().
 				From("alpine:latest").
@@ -1284,7 +1276,6 @@ func (DirectorySuite) TestDirectoryLazinessError(ctx context.Context, t *testctx
 		})
 
 		t.Run("tc9", func(ctx context.Context, t *testctx.T) {
-			// without validation, it returns error -> "input: container.from.directory.glob resolve: resolve : lstat /tmp/buildkit-mount2890696365/doesnt-exist: no such file or directory\n"
 			_, err := c.
 				Container().
 				From("alpine:latest").
@@ -1294,6 +1285,26 @@ func (DirectorySuite) TestDirectoryLazinessError(ctx context.Context, t *testctx
 
 			require.EqualError(t, err, "input: container.from.directory resolve: lstat /doesnt-exist: no such file or directory\n")
 			// require.EqualError(t, err, "input: container.from.withMountedDirectory.directory.glob resolve: resolve : lstat /tmp/buildkit-mount1338184602/doesnt-exist: no such file or directory\n")
+		})
+
+		//starting here
+		t.Run("tc10", func(ctx context.Context, t *testctx.T) {
+			_, err := c.
+				Container().
+				From("alpine:latest").
+				WithWorkdir("/doesnt-exist").WithExec([]string{"ls", "-ltr"}).
+				Stdout(ctx)
+			require.Nil(t, err)
+		})
+
+		t.Run("tc11", func(ctx context.Context, t *testctx.T) {
+			_, err := c.
+				Container().
+				From("alpine:latest").
+				WithMountedCache("/cache", c.CacheVolume("hello")).
+				WithExec([]string{"sh", "-c", "ls -ltr"}).
+				Stdout(ctx)
+			require.Nil(t, err)
 		})
 	})
 }

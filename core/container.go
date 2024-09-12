@@ -825,25 +825,25 @@ func (container *Container) Directory(ctx context.Context, dirPath string) (*Dir
 		return nil, err
 	}
 
-	// svcs, err := container.Query.Services(ctx)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("failed to get services: %w", err)
-	// }
-	// bk, err := container.Query.Buildkit(ctx)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("failed to get buildkit client: %w", err)
-	// }
+	svcs, err := container.Query.Services(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get services: %w", err)
+	}
+	bk, err := container.Query.Buildkit(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get buildkit client: %w", err)
+	}
 
-	// // check that the directory actually exists so the user gets an error earlier
-	// // rather than when the dir is used
-	// info, err := dir.Stat(ctx, bk, svcs, ".")
-	// if err != nil {
-	// 	return nil, err
-	// }
+	// check that the directory actually exists so the user gets an error earlier
+	// rather than when the dir is used
+	info, err := dir.Stat(ctx, bk, svcs, ".")
+	if err != nil {
+		return nil, err
+	}
 
-	// if !info.IsDir() {
-	// 	return nil, fmt.Errorf("path %s is a file, not a directory", dirPath)
-	// }
+	if !info.IsDir() {
+		return nil, fmt.Errorf("path %s is a file, not a directory", dirPath)
+	}
 
 	return dir, nil
 }
