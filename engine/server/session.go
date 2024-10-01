@@ -124,8 +124,9 @@ type daggerClient struct {
 	// used to determine when to cleanup the client+session
 	activeCount int
 
-	secretStore *core.SecretStore
-	socketStore *core.SocketStore
+	secretStore      *core.SecretStore
+	socketStore      *core.SocketStore
+	cacheVolumeStore *core.CacheVolumeStore
 
 	dagqlRoot *core.Query
 
@@ -409,6 +410,8 @@ func (srv *Server) initializeDaggerClient(
 	// initialize all the buildkit+session attachable state for the client
 	client.secretStore = core.NewSecretStore()
 	client.socketStore = core.NewSocketStore(srv.bkSessionManager)
+	client.cacheVolumeStore = core.NewCacheVolumeStore()
+
 	if opts.CallID != nil {
 		if opts.CallerClientID == "" {
 			return fmt.Errorf("caller client ID is not set")
@@ -1252,6 +1255,15 @@ func (srv *Server) Sockets(ctx context.Context) (*core.SocketStore, error) {
 		return nil, err
 	}
 	return client.socketStore, nil
+}
+
+// The socket store for the current client
+func (srv *Server) CacheVolumes(ctx context.Context) (*core.CacheVolumeStore, error) {
+	client, err := srv.clientFromContext(ctx)
+	if err != nil {
+		return nil, err
+	}
+	return client.cacheVolumeStore, nil
 }
 
 // A map of unique IDs for the result of a given cache entry set query, allowing further queries on the result

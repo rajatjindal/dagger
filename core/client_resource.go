@@ -20,6 +20,9 @@ func GetClientResourceAccessor(ctx context.Context, parent *Query, externalName 
 		scopeDigest = m.Source.ID().Digest()
 	}
 
+	// if externalName == "volume-name" {
+	// 	return "", fmt.Errorf(scopeDigest.String())
+	// }
 	// Use an HMAC, which allows us to keep the externalName un-inferrable.
 	// This also protects from length-extension attacks (where if we had
 	// access to secret FOO in scope X, we could derive access to FOOBAR).

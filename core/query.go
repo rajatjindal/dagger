@@ -59,6 +59,9 @@ type Server interface {
 	// The socket store for the current client
 	Sockets(context.Context) (*SocketStore, error)
 
+	// The cache volume store for the current client
+	CacheVolumes(context.Context) (*CacheVolumeStore, error)
+
 	// Add client-isolated resources like secrets, sockets, etc. to the current client's session based
 	// on anything embedded in the given ID. skipTopLevel, if true, will result in the leaf selection
 	// of the ID to be skipped when walking the ID to find these resources.

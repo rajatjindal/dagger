@@ -589,7 +589,7 @@ func (container *Container) WithMountedCache(ctx context.Context, target string,
 
 	mount := ContainerMount{
 		Target:           target,
-		CacheVolumeID:    cache.Sum(),
+		CacheVolumeID:    cache.IDDigest.String(),
 		CacheSharingMode: sharingMode,
 	}
 
