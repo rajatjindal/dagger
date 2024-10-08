@@ -575,6 +575,16 @@ func (s *Server) cachedSelect(ctx context.Context, self Object, sel Selector) (r
 	if err != nil {
 		return nil, nil, err
 	}
+
+	//Error: input: moduleSource.withContextDirectory.asModule panic while
+	//resolving ModuleSource.asModule: chained id -> cacheVolume(key: "modgomodcache"): CacheVolume!
+
+	// invoke: input: cacheVolume panic while resolving Query.cacheVolume:
+	// chained id -> true xxh3:039fe334cf37fb3a - cacheVolume(key: "volume-name-check-else")
+	// if strings.Contains(chainedID.Display(), "volume-name-check-else") {
+	// 	panic(fmt.Sprintf("chained id -> %t %s - %s", chainedID.IsTainted(), chainedID.Digest().String(), sel.String()))
+	// }
+
 	ctx = idToContext(ctx, chainedID)
 	dig := chainedID.Digest()
 	var val Typed
@@ -696,6 +706,10 @@ func (s *Server) resolvePath(ctx context.Context, self Object, sel Selection) (r
 	}
 
 	if len(sel.Subselections) == 0 {
+		// if strings.Contains(chainedID.Display(), "volume-name-check-else") {
+		// 	raw, _ := json.Marshal(val)
+		// 	panic(fmt.Sprintf("returning from len(sel.Subselections) %s", string(raw)))
+		// }
 		return val, nil
 	}
 

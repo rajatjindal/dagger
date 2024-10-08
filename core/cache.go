@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"strings"
 
+	"github.com/opencontainers/go-digest"
 	"github.com/vektah/gqlparser/v2/ast"
 
 	"github.com/dagger/dagger/dagql"
@@ -14,7 +15,8 @@ import (
 
 // CacheVolume is a persistent volume with a globally scoped identifier.
 type CacheVolume struct {
-	Keys []string `json:"keys"`
+	Keys     []string `json:"keys"`
+	IDDigest digest.Digest
 }
 
 func (*CacheVolume) Type() *ast.Type {
@@ -29,7 +31,9 @@ func (*CacheVolume) TypeDescription() string {
 }
 
 func NewCache(keys ...string) *CacheVolume {
-	return &CacheVolume{Keys: keys}
+	return &CacheVolume{
+		Keys: keys,
+	}
 }
 
 func (cache *CacheVolume) Clone() *CacheVolume {
