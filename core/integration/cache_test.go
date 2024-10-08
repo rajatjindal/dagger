@@ -107,3 +107,158 @@ func (CacheSuite) TestLocalImportCacheReuse(ctx context.Context, t *testctx.T) {
 
 	require.Equal(t, out1, out2)
 }
+
+// func (CacheSuite) TestCacheIsNamespaced(ctx context.Context, t *testctx.T) {
+// 	c := connect(ctx, t)
+
+// 	fooTmpl := `package main
+// 	import (
+// 		"context"
+// 	)
+
+// 	type Foo struct {}
+// 	func (f *Foo) GetCacheVolumeId(ctx context.Context) (string, error) {
+// 		id, err := dag.CacheVolume("volume-name").ID(ctx)
+// 		return string(id), err
+// 	}
+// 	`
+// 	barTmpl := `package main
+// 	import (
+// 		"context"
+// 	)
+
+// 	type Bar struct {}
+// 	func (b *Bar) GetCacheVolumeId(ctx context.Context) (string, error) {
+// 		id, err := dag.CacheVolume("volume-name").ID(ctx)
+// 		return string(id), err
+// 	}
+// 	`
+// 	ctr := c.Container().
+// 		From(golangImage).
+// 		WithMountedFile(testCLIBinPath, daggerCliFile(t, c)).
+// 		WithWorkdir("/work/bar").
+// 		With(daggerExec("init", "--name=bar", "--source=.", "--sdk=go")).
+// 		WithNewFile("main.go", barTmpl).
+// 		WithWorkdir("/work/foo").
+// 		With(daggerExec("init", "--name=foo", "--source=.", "--sdk=go")).
+// 		WithNewFile("main.go", fooTmpl)
+
+// 	fooId, err := ctr.
+// 		WithWorkdir("/work/foo").
+// 		With(daggerExec("call", "get-cache-volume-id")).
+// 		Stdout(ctx)
+// 	require.NoError(t, err)
+
+// 	barId, err := ctr.
+// 		WithWorkdir("/work/bar").
+// 		With(daggerExec("call", "get-cache-volume-id")).
+// 		Stdout(ctx)
+// 	require.NoError(t, err)
+// 	require.NotEqual(t, fooId, barId)
+// }
+
+// func (CacheSuite) TestCacheVolumeCanBePassedById(ctx context.Context, t *testctx.T) {
+// 	c := connect(ctx, t)
+
+// 	fooTmpl := `package main
+
+// import (
+// 	"context"
+// )
+
+// type Foo struct{}
+
+// func (f *Foo) GetCacheVolumeId(ctx context.Context) (string, error) {
+// 	cacheVolume := dag.CacheVolume("volume-name2")
+// 	_, err := dag.Container().
+// 		From("alpine:latest").
+// 		WithMountedCache("/foo", cacheVolume).
+// 		WithExec([]string{"sh", "-c", "echo -n 'hello foo' > /foo/bar.txt"}).
+// 		Sync(ctx)
+// 	if err != nil {
+// 		return "", err
+// 	}
+
+// 	id, err := cacheVolume.ID(ctx)
+// 	return string(id), err
+// }
+
+// func (f *Foo) UseCacheVolumeAcrossModuleUsingId(ctx context.Context, id string) (string, error) {
+// 	return dag.Bar().UseCacheVolumeID(ctx, id)
+// }
+
+// func (f *Foo) UseCacheVolumeAcrossModuleUsingName(ctx context.Context, name string) (string, error) {
+// 	return dag.Bar().UseCacheVolumeByName(ctx, name)
+// }
+// 	`
+
+// 	barTmpl := `package main
+
+// import (
+// 	"context"
+// 	"dagger/bar/internal/dagger"
+// )
+
+// type Bar struct{}
+
+// func (f *Bar) UseCacheVolumeId(ctx context.Context, id string) (string, error) {
+// 	return dag.Container().
+// 		From("alpine:latest").
+// 		WithMountedCache("/bar", dag.LoadCacheVolumeFromID(dagger.CacheVolumeID(id))).
+// 		WithExec([]string{"sh", "-c", "ls /bar/bar.txt"}).
+// 		Stdout(ctx)
+// }
+
+// func (f *Bar) UseCacheVolumeByName(ctx context.Context, name string) (string, error) {
+// 	return dag.Container().
+// 		From("alpine:latest").
+// 		WithMountedCache("/bar", dag.CacheVolume(name)).
+// 		WithExec([]string{"sh", "-c", "ls /bar/bar.txt"}).
+// 		Stdout(ctx)
+// }
+// `
+
+// 	ctr := c.Container().
+// 		From(golangImage).
+// 		WithMountedFile(testCLIBinPath, daggerCliFile(t, c)).
+// 		WithWorkdir("/work/bar").
+// 		With(daggerExec("init", "--name=bar", "--source=.", "--sdk=go")).
+// 		WithNewFile("main.go", barTmpl).
+// 		WithWorkdir("/work").
+// 		With(daggerExec("init", "--name=foo", "--source=.", "--sdk=go")).
+// 		WithNewFile("main.go", fooTmpl).
+// 		With(daggerExec("use", "./bar"))
+
+// 	fooCacheVolId, err := ctr.
+// 		WithWorkdir("/work").
+// 		With(daggerExec("call", "get-cache-volume-id")).
+// 		Stdout(ctx)
+// 	require.NoError(t, err)
+
+// 	usingIdOutput, err := ctr.
+// 		WithWorkdir("/work").
+// 		With(daggerExec("call", "use-cache-volume-across-module-using-id", fmt.Sprintf("--id=%s", fooCacheVolId))).
+// 		Stdout(ctx)
+// 	require.NoError(t, err)
+// 	require.Equal(t, "/bar/bar.txt\n", usingIdOutput)
+
+// 	usingNameOutput, err := ctr.
+// 		WithWorkdir("/work").
+// 		With(daggerExec("call", "use-cache-volume-across-module-using-name", "--name=volume-name2")).
+// 		Stdout(ctx)
+// 	require.NoError(t, err)
+// 	require.Equal(t, "/bar/bar.txt\n", usingNameOutput)
+
+// 	//verify bar module cannot directly consume cache volume by name
+// 	usingNameOutputDiffModule, err := dag.Container().
+// 		From("alpine:latest").
+// 		WithMountedFile(testCLIBinPath, daggerCliFile(t, c)).
+// 		WithWorkdir("/work/bar").
+// 		With(daggerExec("init", "--name=bar", "--source=.", "--sdk=go")).
+// 		WithNewFile("main.go", barTmpl).
+// 		With(daggerExec("call", "use-cache-volume-by-name", "--name=volume-name2")).
+// 		Stdout(ctx)
+
+// 	require.NoError(t, err)
+// 	require.Equal(t, "/bar/bar2.txt\n", usingNameOutputDiffModule)
+// }
