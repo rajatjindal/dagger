@@ -7420,7 +7420,7 @@ export class ModuleSource extends BaseClient {
   }
 
   /**
-   * The dependencies of the module source. Includes dependencies from the configuration and any extras from withDependencies calls.
+   * The effective module source dependencies from the configuration, and calls to withDependencies and withoutDependencies.
    */
   dependencies = async (): Promise<ModuleDependency[]> => {
     type dependencies = {
@@ -7844,6 +7844,23 @@ export class ModuleSource extends BaseClient {
         {
           operation: "withView",
           args: { name, patterns },
+        },
+      ],
+      ctx: this._ctx,
+    })
+  }
+
+  /**
+   * Remove the provided dependencies from the module source's dependency list.
+   * @param dependencies The dependencies to remove.
+   */
+  withoutDependencies = (dependencies: ModuleDependency[]): ModuleSource => {
+    return new ModuleSource({
+      queryTree: [
+        ...this._queryTree,
+        {
+          operation: "withoutDependencies",
+          args: { dependencies },
         },
       ],
       ctx: this._ctx,

@@ -455,21 +455,70 @@ func (s *moduleSchema) moduleSourceWithName(
 	return src, nil
 }
 
-func (s *moduleSchema) moduleSourceDependencies(
-	ctx context.Context,
-	src dagql.Instance[*core.ModuleSource],
-	args struct{},
-) ([]dagql.Instance[*core.ModuleDependency], error) {
+func (s *moduleSchema) filterUnInstalledDeps(ctx context.Context, src dagql.Instance[*core.ModuleSource]) ([]*modules.ModuleConfigDependency, error) {
 	modCfg, ok, err := src.Self.ModuleConfig(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get module config: %w", err)
 	}
 
+	if !ok {
+		return []*modules.ModuleConfigDependency{}, nil
+	}
+
+	bk, err := src.Self.Query.Buildkit(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get buildkit client: %w", err)
+	}
+
+	currentDeps := modCfg.Dependencies
+	filterDeps := src.Self.WithoutDependencies
+
+	effectiveDependencies := []*modules.ModuleConfigDependency{}
+	for _, dep := range filterDeps {
+		parsedFilterDep := parseRefString(ctx, bk, dep)
+
+		var cleanPath = filepath.Clean(parsedFilterDep.modPath)
+
+		found := false
+		for _, currentDep := range currentDeps {
+			currentDepParsed := parseRefString(ctx, bk, currentDep.Source)
+
+			// filter by git source dependency
+			if currentDepParsed.modPath == parsedFilterDep.modPath ||
+				// filter by mod path
+				currentDepParsed.modPath == cleanPath ||
+				// filter by name
+				currentDep.Name == cleanPath {
+				found = true
+				continue
+			}
+
+			effectiveDependencies = append(effectiveDependencies, currentDep)
+		}
+
+		if !found {
+			return nil, fmt.Errorf("dependency %q was requested to be uninstalled, but it is not found in the dependencies list", parsedFilterDep)
+		}
+	}
+
+	return effectiveDependencies, nil
+}
+
+func (s *moduleSchema) moduleSourceDependencies(
+	ctx context.Context,
+	src dagql.Instance[*core.ModuleSource],
+	args struct{},
+) ([]dagql.Instance[*core.ModuleDependency], error) {
+	filteredDeps, err := s.filterUnInstalledDeps(ctx, src)
+	if err != nil {
+		return nil, err
+	}
+
 	var existingDeps []dagql.Instance[*core.ModuleDependency]
-	if ok && len(modCfg.Dependencies) > 0 {
-		existingDeps = make([]dagql.Instance[*core.ModuleDependency], len(modCfg.Dependencies))
+	if len(filteredDeps) > 0 {
+		existingDeps = []dagql.Instance[*core.ModuleDependency]{}
 		var eg errgroup.Group
-		for i, depCfg := range modCfg.Dependencies {
+		for _, depCfg := range filteredDeps {
 			eg.Go(func() error {
 				var depSrc dagql.Instance[*core.ModuleSource]
 				err := s.dag.Select(ctx, s.dag.Root(), &depSrc,
@@ -498,7 +547,8 @@ func (s *moduleSchema) moduleSourceDependencies(
 					return fmt.Errorf("failed to resolve dependency: %w", err)
 				}
 
-				err = s.dag.Select(ctx, s.dag.Root(), &existingDeps[i],
+				var onedep dagql.Instance[*core.ModuleDependency]
+				err = s.dag.Select(ctx, s.dag.Root(), &onedep,
 					dagql.Selector{
 						Field: "moduleDependency",
 						Args: []dagql.NamedInput{
@@ -510,6 +560,8 @@ func (s *moduleSchema) moduleSourceDependencies(
 				if err != nil {
 					return fmt.Errorf("failed to create module dependency: %w", err)
 				}
+
+				existingDeps = append(existingDeps, onedep)
 				return nil
 			})
 		}
@@ -597,6 +649,18 @@ func (s *moduleSchema) moduleSourceWithDependencies(
 		return nil, fmt.Errorf("failed to load module source dependencies from ids: %w", err)
 	}
 	src.WithDependencies = append(src.WithDependencies, newDeps...)
+	return src, nil
+}
+
+func (s *moduleSchema) moduleSourceWithoutDependencies(
+	ctx context.Context,
+	src *core.ModuleSource,
+	args struct {
+		Dependencies []string
+	},
+) (*core.ModuleSource, error) {
+	src = src.Clone()
+	src.WithoutDependencies = args.Dependencies
 	return src, nil
 }
 
@@ -1051,6 +1115,21 @@ func (s *moduleSchema) normalizeCallerLoadedSource(
 			return inst, fmt.Errorf("failed to set dependency: %w", err)
 		}
 	}
+
+	if len(src.WithoutDependencies) > 0 {
+		err = s.dag.Select(ctx, inst, &inst,
+			dagql.Selector{
+				Field: "withoutDependencies",
+				Args: []dagql.NamedInput{
+					{Name: "dependencies", Value: dagql.ArrayInput[dagql.String](dagql.NewStringArray(src.WithoutDependencies...))},
+				},
+			},
+		)
+		if err != nil {
+			return inst, fmt.Errorf("failed to set dependency: %w", err)
+		}
+	}
+
 	if src.WithViews != nil {
 		for _, view := range src.WithViews {
 			err = s.dag.Select(ctx, inst, &inst,
@@ -1183,6 +1262,26 @@ func (s *moduleSchema) collectCallerLocalDeps(
 			if parsed.kind != core.ModuleSourceKindLocal {
 				continue
 			}
+
+			// dont load dependency module source during uninstallation
+			// as it may have been removed before calling the uninstall
+			uninstallRequested := false
+			for _, removedDep := range src.WithoutDependencies {
+				var cleanPath = filepath.Clean(removedDep)
+
+				// ignore the dependency that we are currently uninstalling
+				if depCfg.Source == cleanPath || depCfg.Name == cleanPath {
+					uninstallRequested = true
+					break
+				}
+			}
+
+			// this dependency has been requested to be uninstalled.
+			// skip loading it
+			if uninstallRequested {
+				continue
+			}
+
 			depAbsPath := filepath.Join(sourceRootAbsPath, parsed.modPath)
 			err = s.collectCallerLocalDeps(ctx, query, contextAbsPath, depAbsPath, false, src, collectedDeps)
 			if err != nil {
