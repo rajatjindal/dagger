@@ -1079,3 +1079,251 @@ func (m *OtherObj) FnE() *dagger.Container {
 		require.Contains(t, lines, "fn-e            doc for FnE")
 	})
 }
+
+func (CLISuite) TestDaggerUnInstall(ctx context.Context, t *testctx.T) {
+	t.Run("local dep", func(ctx context.Context, t *testctx.T) {
+		t.Run("uninstall a dependency currently used in module", func(ctx context.Context, t *testctx.T) {
+			c := connect(ctx, t)
+
+			ctr := c.Container().
+				From("alpine:latest").
+				WithMountedFile(testCLIBinPath, daggerCliFile(t, c)).
+				WithWorkdir("/work/bar").
+				With(daggerExec("init", "--sdk=go", "--name=bar", "--source=.")).
+				WithWorkdir("/work").
+				With(daggerExec("init", "--sdk=go", "--name=foo", "--source=.")).
+				With(daggerExec("install", "./bar")).
+				WithNewFile("main.go", `package main
+
+import (
+	"context"
+)
+
+type Foo struct{}
+
+func (f *Foo) ContainerEcho(ctx context.Context, input string) (string, error) {
+	return dag.Bar().ContainerEcho(input).Stdout(ctx)
+}
+`)
+
+			daggerjson, err := ctr.File("dagger.json").Contents(ctx)
+			require.NoError(t, err)
+			require.Contains(t, daggerjson, "bar")
+
+			daggerjson, err = ctr.With(daggerExec("uninstall", "bar")).
+				File("dagger.json").Contents(ctx)
+			require.NoError(t, err)
+			require.NotContains(t, daggerjson, "bar")
+		})
+
+		t.Run("uninstall a dependency configured in dagger.json by name", func(ctx context.Context, t *testctx.T) {
+			c := connect(ctx, t)
+
+			ctr := c.Container().
+				From("alpine:latest").
+				WithMountedFile(testCLIBinPath, daggerCliFile(t, c)).
+				WithWorkdir("/work/bar").
+				With(daggerExec("init", "--sdk=go", "--name=bar", "--source=.")).
+				WithWorkdir("/work").
+				With(daggerExec("init", "--sdk=go", "--name=foo", "--source=.")).
+				With(daggerExec("install", "./bar", "--name=baz"))
+
+			daggerjson, err := ctr.File("dagger.json").Contents(ctx)
+			require.NoError(t, err)
+			require.Contains(t, daggerjson, "baz")
+
+			daggerjson, err = ctr.With(daggerExec("uninstall", "baz")).
+				File("dagger.json").Contents(ctx)
+			require.NoError(t, err)
+			require.NotContains(t, daggerjson, "baz")
+		})
+
+		t.Run("uninstall a dependency configured in dagger.json", func(ctx context.Context, t *testctx.T) {
+			c := connect(ctx, t)
+
+			ctr := c.Container().
+				From("alpine:latest").
+				WithMountedFile(testCLIBinPath, daggerCliFile(t, c)).
+				WithWorkdir("/work/bar").
+				With(daggerExec("init", "--sdk=go", "--name=bar", "--source=.")).
+				WithWorkdir("/work").
+				With(daggerExec("init", "--sdk=go", "--name=foo", "--source=.")).
+				With(daggerExec("install", "./bar"))
+
+			daggerjson, err := ctr.File("dagger.json").Contents(ctx)
+			require.NoError(t, err)
+			require.Contains(t, daggerjson, "bar")
+
+			daggerjson, err = ctr.With(daggerExec("uninstall", "bar")).
+				File("dagger.json").Contents(ctx)
+			require.NoError(t, err)
+			require.NotContains(t, daggerjson, "bar")
+		})
+
+		t.Run("uninstall a dependency configured in dagger.json using relative path syntax", func(ctx context.Context, t *testctx.T) {
+			c := connect(ctx, t)
+
+			ctr := c.Container().
+				From("alpine:latest").
+				WithMountedFile(testCLIBinPath, daggerCliFile(t, c)).
+				WithWorkdir("/work/bar").
+				With(daggerExec("init", "--sdk=go", "--name=bar", "--source=.")).
+				WithWorkdir("/work").
+				With(daggerExec("init", "--sdk=go", "--name=foo", "--source=.")).
+				With(daggerExec("install", "./bar"))
+
+			daggerjson, err := ctr.File("dagger.json").Contents(ctx)
+			require.NoError(t, err)
+			require.Contains(t, daggerjson, "bar")
+
+			daggerjson, err = ctr.With(daggerExec("uninstall", "./bar")).
+				File("dagger.json").Contents(ctx)
+			require.NoError(t, err)
+			require.NotContains(t, daggerjson, "bar")
+		})
+
+		t.Run("uninstall a dependency not configured in dagger.json", func(ctx context.Context, t *testctx.T) {
+			c := connect(ctx, t)
+
+			_, err := c.Container().
+				From("alpine:latest").
+				WithMountedFile(testCLIBinPath, daggerCliFile(t, c)).
+				WithWorkdir("/work/bar").
+				With(daggerExec("init", "--sdk=go", "--name=bar", "--source=.")).
+				WithWorkdir("/work").
+				With(daggerExec("init", "--sdk=go", "--name=foo", "--source=.")).
+				With(daggerExec("uninstall", "bar")).
+				File("dagger.json").Contents(ctx)
+			require.ErrorContains(t, err, `dependency "bar" was requested to be uninstalled, but it is not found in the dependencies list`)
+		})
+
+		t.Run("dependency source is removed before calling uninstall", func(ctx context.Context, t *testctx.T) {
+			c := connect(ctx, t)
+
+			ctr := c.Container().
+				From("alpine:latest").
+				WithMountedFile(testCLIBinPath, daggerCliFile(t, c)).
+				WithWorkdir("/work/bar").
+				With(daggerExec("init", "--sdk=go", "--name=bar", "--source=.")).
+				WithWorkdir("/work").
+				With(daggerExec("init", "--sdk=go", "--name=foo", "--source=.")).
+				With(daggerExec("install", "./bar"))
+
+			daggerjson, err := ctr.File("dagger.json").Contents(ctx)
+			require.NoError(t, err)
+			require.Contains(t, daggerjson, "bar")
+
+			daggerjson, err = ctr.
+				WithoutDirectory("/work/bar").
+				With(daggerExec("uninstall", "bar")).
+				File("dagger.json").Contents(ctx)
+			require.NoError(t, err)
+			require.NotContains(t, daggerjson, "bar")
+		})
+
+		t.Run("dependency source is removed before calling uninstall using relative path", func(ctx context.Context, t *testctx.T) {
+			c := connect(ctx, t)
+
+			ctr := c.Container().
+				From("alpine:latest").
+				WithMountedFile(testCLIBinPath, daggerCliFile(t, c)).
+				WithWorkdir("/work/bar").
+				With(daggerExec("init", "--sdk=go", "--name=bar", "--source=.")).
+				WithWorkdir("/work").
+				With(daggerExec("init", "--sdk=go", "--name=foo", "--source=.")).
+				With(daggerExec("install", "./bar"))
+
+			daggerjson, err := ctr.File("dagger.json").Contents(ctx)
+			require.NoError(t, err)
+			require.Contains(t, daggerjson, "bar")
+
+			daggerjson, err = ctr.
+				WithoutDirectory("/work/bar").
+				With(daggerExec("uninstall", "./bar")).
+				File("dagger.json").Contents(ctx)
+			require.NoError(t, err)
+			require.NotContains(t, daggerjson, "bar")
+		})
+	})
+
+	t.Run("git dependency", func(ctx context.Context, t *testctx.T) {
+		t.Run("uninstall a dependency configured in dagger.json with version number", func(ctx context.Context, t *testctx.T) {
+			c := connect(ctx, t)
+
+			ctr := c.Container().
+				From("alpine:latest").
+				WithMountedFile(testCLIBinPath, daggerCliFile(t, c)).
+				WithWorkdir("/work").
+				With(daggerExec("init", "--sdk=go", "--name=foo", "--source=.")).
+				With(daggerExec("install", "github.com/shykes/daggerverse/hello@v0.3.0"))
+
+			daggerjson, err := ctr.File("dagger.json").Contents(ctx)
+			require.NoError(t, err)
+			require.Contains(t, daggerjson, "hello")
+
+			daggerjson, err = ctr.With(daggerExec("uninstall", "github.com/shykes/daggerverse/hello@v0.3.0")).
+				File("dagger.json").Contents(ctx)
+			require.NoError(t, err)
+			require.NotContains(t, daggerjson, "hello")
+		})
+
+		t.Run("uninstall a dependency configured in dagger.json without version number", func(ctx context.Context, t *testctx.T) {
+			c := connect(ctx, t)
+
+			ctr := c.Container().
+				From("alpine:latest").
+				WithMountedFile(testCLIBinPath, daggerCliFile(t, c)).
+				WithWorkdir("/work").
+				With(daggerExec("init", "--sdk=go", "--name=foo", "--source=.")).
+				With(daggerExec("install", "github.com/shykes/daggerverse/hello"))
+
+			daggerjson, err := ctr.File("dagger.json").Contents(ctx)
+			require.NoError(t, err)
+			require.Contains(t, daggerjson, "hello")
+
+			daggerjson, err = ctr.With(daggerExec("uninstall", "github.com/shykes/daggerverse/hello@v0.3.0")).
+				File("dagger.json").Contents(ctx)
+			require.NoError(t, err)
+			require.NotContains(t, daggerjson, "hello")
+		})
+
+		t.Run("uninstall a dependency not configured in dagger.json", func(ctx context.Context, t *testctx.T) {
+			c := connect(ctx, t)
+
+			ctr := c.Container().
+				From("alpine:latest").
+				WithMountedFile(testCLIBinPath, daggerCliFile(t, c)).
+				WithWorkdir("/work").
+				With(daggerExec("init", "--sdk=go", "--name=foo", "--source=."))
+
+			_, err := ctr.With(daggerExec("uninstall", "github.com/shykes/daggerverse/hello@v0.3.0")).
+				File("dagger.json").Contents(ctx)
+			require.ErrorContains(t, err, `dependency "github.com/shykes/daggerverse/hello@v0.3.0" was requested to be uninstalled, but it is not found in the dependencies list`)
+		})
+
+		// this one is currently failing - I think this should be fixed
+		t.Run("uninstall a dependency by name", func(ctx context.Context, t *testctx.T) {
+			c := connect(ctx, t)
+
+			ctr := c.Container().
+				From("alpine:latest").
+				WithMountedFile(testCLIBinPath, daggerCliFile(t, c)).
+				WithWorkdir("/work").
+				With(daggerExec("init", "--sdk=go", "--name=foo", "--source=.")).
+				With(daggerExec("install", "github.com/shykes/daggerverse/hello"))
+
+			daggerjson, err := ctr.
+				File("dagger.json").
+				Contents(ctx)
+			require.NoError(t, err)
+			require.Contains(t, daggerjson, "hello")
+
+			daggerjson, err = ctr.
+				With(daggerExec("uninstall", "hello")).
+				File("dagger.json").
+				Contents(ctx)
+			require.NoError(t, err)
+			require.NotContains(t, daggerjson, "hello")
+		})
+	})
+}
