@@ -306,6 +306,126 @@ var moduleInstallCmd = &cobra.Command{
 	},
 }
 
+var moduleUnInstallCmd = &cobra.Command{
+	Use:     "uninstall [options] <module>",
+	Short:   "Uninstall a dependency",
+	Long:    "Uninstall module as a dependency from the current module. The target module must be local.",
+	Example: "dagger uninstall github.com/shykes/daggerverse/hello",
+	GroupID: moduleGroup.ID,
+	Args:    cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, extraArgs []string) (rerr error) {
+		ctx := cmd.Context()
+		return withEngine(ctx, client.Params{}, func(ctx context.Context, engineClient *client.Client) (err error) {
+			dag := engineClient.Dagger()
+			modConf, err := getDefaultModuleConfiguration(ctx, dag, true, false)
+			if err != nil {
+				return fmt.Errorf("failed to get configured module: %w", err)
+			}
+			if modConf.SourceKind != dagger.LocalSource {
+				return fmt.Errorf("module must be local")
+			}
+
+			// TODO(rajatjindal): I don't think we need to check for this here
+			// to enable fixing broken dependencies
+			// if !modConf.FullyInitialized() {
+			// 	return fmt.Errorf("module must be fully initialized")
+			// }
+
+			depRefStr := extraArgs[0]
+			depSrc := dag.ModuleSource(depRefStr)
+			// TODO(rajatjindal): possibly don't worry about this at all
+			depSrcKind, err := depSrc.Kind(ctx)
+			if err != nil {
+				return fmt.Errorf("failed to get module ref kind: %w", err)
+			}
+
+			// TODO(rajatjindal): we don't need to worry about this during uninstall process
+			// if depSrcKind == dagger.LocalSource {
+			// 	// need to ensure that local dep paths are relative to the parent root source
+			// 	depAbsPath, err := filepath.Abs(depRefStr)
+			// 	if err != nil {
+			// 		return fmt.Errorf("failed to get dep absolute path for %s: %w", depRefStr, err)
+			// 	}
+			// 	depRelPath, err := filepath.Rel(modConf.LocalRootSourcePath, depAbsPath)
+			// 	if err != nil {
+			// 		return fmt.Errorf("failed to get dep relative path: %w", err)
+			// 	}
+
+			// 	depSrc = dag.ModuleSource(depRelPath)
+			// }
+
+			dep := dag.ModuleDependency(depSrc, dagger.ModuleDependencyOpts{
+				Name: installName, // TODO(rajatjindal): do we need this?
+			})
+
+			modSrc := modConf.Source.
+				WithDependencies([]*dagger.ModuleDependency{dep}).
+				ResolveFromCaller()
+
+			_, err = modSrc.
+				AsModule().
+				GeneratedContextDiff().
+				Export(ctx, modConf.LocalContextPath)
+			if err != nil {
+				return fmt.Errorf("failed to generate code: %w", err)
+			}
+
+			depSrc = modSrc.ResolveDependency(depSrc)
+
+			name, err := depSrc.ModuleName(ctx)
+			if err != nil {
+				return err
+			}
+			sdk, err := depSrc.AsModule().SDK(ctx)
+			if err != nil {
+				return err
+			}
+			depRootSubpath, err := depSrc.SourceRootSubpath(ctx)
+			if err != nil {
+				return err
+			}
+
+			if depSrcKind == dagger.GitSource {
+				git := depSrc.AsGitSource()
+				gitURL, err := git.CloneRef(ctx)
+				if err != nil {
+					return err
+				}
+				gitVersion, err := git.Version(ctx)
+				if err != nil {
+					return err
+				}
+				gitCommit, err := git.Commit(ctx)
+				if err != nil {
+					return err
+				}
+
+				analytics.Ctx(ctx).Capture(ctx, "module_install", map[string]string{
+					"module_name":   name,
+					"install_name":  installName,
+					"module_sdk":    sdk,
+					"source_kind":   "git",
+					"git_symbolic":  filepath.Join(gitURL, depRootSubpath),
+					"git_clone_url": gitURL,
+					"git_subpath":   depRootSubpath,
+					"git_version":   gitVersion,
+					"git_commit":    gitCommit,
+				})
+			} else if depSrcKind == dagger.LocalSource {
+				analytics.Ctx(ctx).Capture(ctx, "module_install", map[string]string{
+					"module_name":   name,
+					"install_name":  installName,
+					"module_sdk":    sdk,
+					"source_kind":   "local",
+					"local_subpath": depRootSubpath,
+				})
+			}
+
+			return nil
+		})
+	},
+}
+
 var moduleDevelopCmd = &cobra.Command{
 	Use:   "develop [options]",
 	Short: "Prepare a local module for development",

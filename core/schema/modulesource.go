@@ -577,6 +577,23 @@ func (s *moduleSchema) moduleSourceWithDependencies(
 	return src, nil
 }
 
+func (s *moduleSchema) moduleSourceWithoutDependencies(
+	ctx context.Context,
+	src *core.ModuleSource,
+	args struct {
+		Dependencies []core.ModuleDependencyID
+	},
+) (*core.ModuleSource, error) {
+	src = src.Clone()
+	newDeps, err := collectIDInstances(ctx, s.dag, args.Dependencies)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load module source dependencies from ids: %w", err)
+	}
+
+	src.WithDependencies = append(src.WithDependencies, newDeps...)
+	return src, nil
+}
+
 func (s *moduleSchema) moduleSourceWithSDK(
 	ctx context.Context,
 	src *core.ModuleSource,

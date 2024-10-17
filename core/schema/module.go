@@ -122,6 +122,10 @@ func (s *moduleSchema) Install() {
 			Doc(`Append the provided dependencies to the module source's dependency list.`).
 			ArgDoc("dependencies", `The dependencies to append.`),
 
+		dagql.Func("withoutDependencies", s.moduleSourceWithoutDependencies).
+			Doc(`Remove the provided dependencies from the module source's dependency list.`).
+			ArgDoc("dependencies", `The dependencies to remove.`),
+
 		dagql.Func("withSDK", s.moduleSourceWithSDK).
 			Doc(`Update the module source with a new SDK.`).
 			ArgDoc("sdk", `The SDK to set.`),
