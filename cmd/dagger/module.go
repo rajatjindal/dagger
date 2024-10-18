@@ -333,11 +333,11 @@ var moduleUnInstallCmd = &cobra.Command{
 
 			depRefStr := extraArgs[0]
 			depSrc := dag.ModuleSource(depRefStr)
-			// TODO(rajatjindal): possibly don't worry about this at all
-			depSrcKind, err := depSrc.Kind(ctx)
-			if err != nil {
-				return fmt.Errorf("failed to get module ref kind: %w", err)
-			}
+			// // TODO(rajatjindal): possibly don't worry about this at all
+			// depSrcKind, err := depSrc.Kind(ctx)
+			// if err != nil {
+			// 	return fmt.Errorf("failed to get module ref kind: %w", err)
+			// }
 
 			// TODO(rajatjindal): we don't need to worry about this during uninstall process
 			// if depSrcKind == dagger.LocalSource {
@@ -359,7 +359,7 @@ var moduleUnInstallCmd = &cobra.Command{
 			})
 
 			modSrc := modConf.Source.
-				WithDependencies([]*dagger.ModuleDependency{dep}).
+				WithoutDependencies([]*dagger.ModuleDependency{dep}).
 				ResolveFromCaller()
 
 			_, err = modSrc.
@@ -368,57 +368,6 @@ var moduleUnInstallCmd = &cobra.Command{
 				Export(ctx, modConf.LocalContextPath)
 			if err != nil {
 				return fmt.Errorf("failed to generate code: %w", err)
-			}
-
-			depSrc = modSrc.ResolveDependency(depSrc)
-
-			name, err := depSrc.ModuleName(ctx)
-			if err != nil {
-				return err
-			}
-			sdk, err := depSrc.AsModule().SDK(ctx)
-			if err != nil {
-				return err
-			}
-			depRootSubpath, err := depSrc.SourceRootSubpath(ctx)
-			if err != nil {
-				return err
-			}
-
-			if depSrcKind == dagger.GitSource {
-				git := depSrc.AsGitSource()
-				gitURL, err := git.CloneRef(ctx)
-				if err != nil {
-					return err
-				}
-				gitVersion, err := git.Version(ctx)
-				if err != nil {
-					return err
-				}
-				gitCommit, err := git.Commit(ctx)
-				if err != nil {
-					return err
-				}
-
-				analytics.Ctx(ctx).Capture(ctx, "module_install", map[string]string{
-					"module_name":   name,
-					"install_name":  installName,
-					"module_sdk":    sdk,
-					"source_kind":   "git",
-					"git_symbolic":  filepath.Join(gitURL, depRootSubpath),
-					"git_clone_url": gitURL,
-					"git_subpath":   depRootSubpath,
-					"git_version":   gitVersion,
-					"git_commit":    gitCommit,
-				})
-			} else if depSrcKind == dagger.LocalSource {
-				analytics.Ctx(ctx).Capture(ctx, "module_install", map[string]string{
-					"module_name":   name,
-					"install_name":  installName,
-					"module_sdk":    sdk,
-					"source_kind":   "local",
-					"local_subpath": depRootSubpath,
-				})
 			}
 
 			return nil

@@ -445,7 +445,6 @@ func (s *moduleSchema) moduleSourceDependencies(
 
 	var existingDeps []dagql.Instance[*core.ModuleDependency]
 	if ok && len(modCfg.Dependencies) > 0 {
-		existingDeps = make([]dagql.Instance[*core.ModuleDependency], len(modCfg.Dependencies))
 		var eg errgroup.Group
 		for i, depCfg := range modCfg.Dependencies {
 			eg.Go(func() error {
@@ -461,6 +460,11 @@ func (s *moduleSchema) moduleSourceDependencies(
 				if err != nil {
 					return fmt.Errorf("failed to create module source from dependency: %w", err)
 				}
+
+				// return nil if the dependency is being uninstalled
+				// if slices.Contains(src.Self.WithoutDependencies, dagql.NewID[*core.ModuleDependency](depSrc.ID())) {
+				// 	return nil
+				// }
 
 				var resolvedDepSrc dagql.Instance[*core.ModuleSource]
 				err = s.dag.Select(ctx, src, &resolvedDepSrc,
@@ -585,12 +589,8 @@ func (s *moduleSchema) moduleSourceWithoutDependencies(
 	},
 ) (*core.ModuleSource, error) {
 	src = src.Clone()
-	newDeps, err := collectIDInstances(ctx, s.dag, args.Dependencies)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load module source dependencies from ids: %w", err)
-	}
 
-	src.WithDependencies = append(src.WithDependencies, newDeps...)
+	src.WithoutDependencies = args.Dependencies
 	return src, nil
 }
 
