@@ -445,6 +445,7 @@ func (s *moduleSchema) moduleSourceDependencies(
 
 	var existingDeps []dagql.Instance[*core.ModuleDependency]
 	if ok && len(modCfg.Dependencies) > 0 {
+		existingDeps = []dagql.Instance[*core.ModuleDependency]{}
 		var eg errgroup.Group
 		for i, depCfg := range modCfg.Dependencies {
 			eg.Go(func() error {
@@ -461,7 +462,26 @@ func (s *moduleSchema) moduleSourceDependencies(
 					return fmt.Errorf("failed to create module source from dependency: %w", err)
 				}
 
-				// return nil if the dependency is being uninstalled
+				for _, ddd := range src.Self.WithoutDependencies {
+					// dep.Self.Source.Self.Symbolic()
+					removedDep, err := ddd.Self.Source.Self.Symbolic()
+					if err != nil {
+						return err
+					}
+
+					currentDep, err := depSrc.Self.Symbolic()
+					if err != nil {
+						return err
+					}
+
+					if currentDep == removedDep {
+						return nil
+					}
+				}
+
+				// return fmt.Errorf("without dependencies: %#v, current id %#v", src.Self.WithoutDependencies[0].ID().Digest().String(), dagql.NewID[*core.ModuleDependency](depSrc.ID()).ID().Digest().String())
+				// // return fmt.Errorf("without dependencies: %#v, current id %#v", src.Self.WithoutDependencies, dagql.NewID[*core.ModuleDependency](depSrc.ID()))
+				// // return nil if the dependency is being uninstalled
 				// if slices.Contains(src.Self.WithoutDependencies, dagql.NewID[*core.ModuleDependency](depSrc.ID())) {
 				// 	return nil
 				// }
@@ -589,8 +609,13 @@ func (s *moduleSchema) moduleSourceWithoutDependencies(
 	},
 ) (*core.ModuleSource, error) {
 	src = src.Clone()
+	removedDeps, err := collectIDInstances(ctx, s.dag, args.Dependencies)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load module source dependencies from ids: %w", err)
+	}
 
-	src.WithoutDependencies = args.Dependencies
+	// return nil, fmt.Errorf("DEPENDENCIES TO UNINSTALL -> %#v", args.Dependencies)
+	src.WithoutDependencies = removedDeps
 	return src, nil
 }
 
@@ -1040,6 +1065,26 @@ func (s *moduleSchema) normalizeCallerLoadedSource(
 			return inst, fmt.Errorf("failed to set dependency: %w", err)
 		}
 	}
+
+	if len(src.WithoutDependencies) > 0 {
+		depIDs := make([]core.ModuleDependencyID, len(src.WithoutDependencies))
+		for i, dep := range src.WithoutDependencies {
+			depIDs[i] = dagql.NewID[*core.ModuleDependency](dep.ID())
+		}
+
+		err = s.dag.Select(ctx, inst, &inst,
+			dagql.Selector{
+				Field: "withoutDependencies",
+				Args: []dagql.NamedInput{
+					{Name: "dependencies", Value: dagql.ArrayInput[core.ModuleDependencyID](depIDs)},
+				},
+			},
+		)
+		if err != nil {
+			return inst, fmt.Errorf("failed to setRM dependency: %w", err)
+		}
+	}
+
 	if src.WithViews != nil {
 		for _, view := range src.WithViews {
 			err = s.dag.Select(ctx, inst, &inst,

@@ -325,34 +325,8 @@ var moduleUnInstallCmd = &cobra.Command{
 				return fmt.Errorf("module must be local")
 			}
 
-			// TODO(rajatjindal): I don't think we need to check for this here
-			// to enable fixing broken dependencies
-			// if !modConf.FullyInitialized() {
-			// 	return fmt.Errorf("module must be fully initialized")
-			// }
-
 			depRefStr := extraArgs[0]
 			depSrc := dag.ModuleSource(depRefStr)
-			// // TODO(rajatjindal): possibly don't worry about this at all
-			// depSrcKind, err := depSrc.Kind(ctx)
-			// if err != nil {
-			// 	return fmt.Errorf("failed to get module ref kind: %w", err)
-			// }
-
-			// TODO(rajatjindal): we don't need to worry about this during uninstall process
-			// if depSrcKind == dagger.LocalSource {
-			// 	// need to ensure that local dep paths are relative to the parent root source
-			// 	depAbsPath, err := filepath.Abs(depRefStr)
-			// 	if err != nil {
-			// 		return fmt.Errorf("failed to get dep absolute path for %s: %w", depRefStr, err)
-			// 	}
-			// 	depRelPath, err := filepath.Rel(modConf.LocalRootSourcePath, depAbsPath)
-			// 	if err != nil {
-			// 		return fmt.Errorf("failed to get dep relative path: %w", err)
-			// 	}
-
-			// 	depSrc = dag.ModuleSource(depRelPath)
-			// }
 
 			dep := dag.ModuleDependency(depSrc, dagger.ModuleDependencyOpts{
 				Name: installName, // TODO(rajatjindal): do we need this?
@@ -362,6 +336,12 @@ var moduleUnInstallCmd = &cobra.Command{
 				WithoutDependencies([]*dagger.ModuleDependency{dep}).
 				ResolveFromCaller()
 
+			// deps, err := modSrc.Dependencies(ctx)
+			// if err != nil {
+			// 	return err
+			// }
+
+			// return fmt.Errorf("DEPS AFTER WITHOUT -> %#v", deps)
 			_, err = modSrc.
 				AsModule().
 				GeneratedContextDiff().

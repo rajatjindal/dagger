@@ -115,6 +115,7 @@ func (s *moduleSchema) Install() {
 			Doc(`Update the module source with a new name.`).
 			ArgDoc("name", `The name to set.`),
 
+		//TODO(rajatjindal): update comment here to include uninstallation of dependency part as well
 		dagql.NodeFunc("dependencies", s.moduleSourceDependencies).
 			Doc(`The dependencies of the module source. Includes dependencies from the configuration and any extras from withDependencies calls.`),
 
@@ -849,6 +850,7 @@ func (s *moduleSchema) updateDeps(
 	if err != nil {
 		return fmt.Errorf("failed to load module dependencies: %w", err)
 	}
+
 	mod.DependencyConfig = make([]*core.ModuleDependency, len(deps))
 	for i, dep := range deps {
 		// verify that the dependency config actually exists
