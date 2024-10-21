@@ -2,6 +2,7 @@ package buildkit
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -118,6 +119,26 @@ func (c *Client) withClientCloseCancel(ctx context.Context) (context.Context, co
 }
 
 func (c *Client) Solve(ctx context.Context, req bkgw.SolveRequest) (_ *Result, rerr error) {
+	dag, err := DefToDAG(req.Definition)
+	if err != nil {
+		return nil, err
+	}
+
+	x := map[string]interface{}{
+		"OpDigest":    dag.OpDigest,
+		"Metadata":    dag.Metadata,
+		"Inputs":      dag.Inputs,
+		"OutputIndex": dag.outputIndex,
+		"AllOutputs":  dag.allOutputs,
+	}
+
+	raw, err := json.Marshal(x)
+	if err != nil {
+		return nil, err
+	}
+
+	bklog.G(ctx).Debugf("TRYING TO solve %s", string(raw))
+
 	ctx, cancel, err := c.withClientCloseCancel(ctx)
 	if err != nil {
 		return nil, err
