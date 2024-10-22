@@ -184,19 +184,19 @@ If --sdk is specified, the given SDK is installed in the module. You can do this
 			// dagger init --source <dir> --sdk go => "<dir>"
 
 			// if root dir is non-empty and --source is provided
-			// dagger init --source <dir> => "<dir>"
-			// dagger init --source <dir> --sdk go => "<dir>"
+			// 5. dagger init --source <dir> => "<dir>"
+			// 6. dagger init --source <dir> --sdk go => "<dir>"
 
 			// if .dagger dir exists
 			// dagger init -> ".dagger" NOT WORKING
 			// dagger init --sdk go -> ".dagger"
 
-			// dagger init -> "" - the default dir should be "" if SDK is not provided
-			// dagger init --sdk go -> "." - the default dir should be "." if the sdk is provided
+			// 1. dagger init -> "" - the default dir should be "" if SDK is not provided
+			// 2. dagger init --sdk go -> "." - the default dir should be "." if the sdk is provided
 
 			// some non-hidden files
-			// dagger init -> ".dagger"
-			// dagger init --sdk go -> ".dagger"
+			// 3. dagger init -> ".dagger"
+			// 4. dagger init --sdk go -> ".dagger"
 
 			// only bother setting source path if there's an sdk at this time
 
