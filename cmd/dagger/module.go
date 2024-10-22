@@ -59,6 +59,31 @@ const (
 	defaultModuleSourceDirName = "."
 )
 
+// if the source root path already has some files
+// then use `srcRootPath/.dagger` for source
+func getDefaultSourcePathDir(srcRootPath string) (string, error) {
+	list, err := os.ReadDir(srcRootPath)
+	if err != nil {
+		return "", err
+	}
+
+	for _, l := range list {
+		// .dagger already exist, return that
+		if l.Name() == ".dagger" {
+			return ".dagger", nil
+		}
+
+		// ignore hidden files
+		if strings.HasPrefix(l.Name(), ".") {
+			continue
+		}
+
+		return ".dagger", nil
+	}
+
+	return "", nil
+}
+
 func init() {
 	moduleFlags.StringVarP(&moduleURL, "mod", "m", "", "Path to the module directory. Either local path or a remote git repo")
 
@@ -147,11 +172,49 @@ If --sdk is specified, the given SDK is installed in the module. You can do this
 				moduleName = filepath.Base(modConf.LocalRootSourcePath)
 			}
 
+			defaultSourcePath, err := getDefaultSourcePathDir(modConf.LocalRootSourcePath)
+			if err != nil {
+				return err
+			}
+
+			// no other file
+
+			// if --source is provided
+			// dagger init --source <dir> => "<dir>"
+			// dagger init --source <dir> --sdk go => "<dir>"
+
+			// if root dir is non-empty and --source is provided
+			// dagger init --source <dir> => "<dir>"
+			// dagger init --source <dir> --sdk go => "<dir>"
+
+			// if .dagger dir exists
+			// dagger init -> ".dagger" NOT WORKING
+			// dagger init --sdk go -> ".dagger"
+
+			// dagger init -> "" - the default dir should be "" if SDK is not provided
+			// dagger init --sdk go -> "." - the default dir should be "." if the sdk is provided
+
+			// some non-hidden files
+			// dagger init -> ".dagger"
+			// dagger init --sdk go -> ".dagger"
+
 			// only bother setting source path if there's an sdk at this time
-			if sdk != "" {
-				if moduleSourcePath == "" {
-					moduleSourcePath = filepath.Join(modConf.LocalRootSourcePath, defaultModuleSourceDirName)
-				}
+
+			// dagger init -> "" - the default dir should be "" if SDK is not provided
+			// dagger init --sdk go -> "." - the default dir should be "." if the sdk is provided
+
+			// if user didn't provide source dir &&
+			// if calculatedDefaultSourcePath == "" &&
+			// sdk is provided, then use "." instead of empty
+			if moduleSourcePath == "" && defaultSourcePath == "" && sdk != "" {
+				moduleSourcePath = filepath.Join(modConf.LocalRootSourcePath, ".")
+			}
+
+			if moduleSourcePath == "" && defaultSourcePath != "" {
+				moduleSourcePath = defaultSourcePath
+			}
+
+			if moduleSourcePath != "" {
 				// ensure source path is relative to the source root
 				sourceAbsPath, err := filepath.Abs(moduleSourcePath)
 				if err != nil {
