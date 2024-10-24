@@ -465,6 +465,7 @@ func (s *moduleSchema) moduleSourceDependencies(
 		return nil, fmt.Errorf("failed to get module config: %w", err)
 	}
 
+	names := []string{}
 	effectiveDependencies := []*modules.ModuleConfigDependency{}
 	for _, dep := range src.Self.WithoutDependencies {
 		removedDep, err := dep.Self.Source.Self.Symbolic()
@@ -474,8 +475,16 @@ func (s *moduleSchema) moduleSourceDependencies(
 
 		found := false
 		for _, currentDep := range modCfg.Dependencies {
+			bk, err := src.Self.Query.Buildkit(ctx)
+			if err != nil {
+				return nil, fmt.Errorf("failed to get buildkit client: %w", err)
+			}
+
+			names = append(names, currentDep.Source)
+
+			parsed := parseRefString(ctx, bk, currentDep.Source)
 			// the currentDep is being uninstalled
-			if currentDep.Source == removedDep {
+			if parsed.repoRootSubdir == removedDep {
 				found = true
 				continue
 			}
@@ -484,7 +493,7 @@ func (s *moduleSchema) moduleSourceDependencies(
 		}
 
 		if !found {
-			return nil, fmt.Errorf("\n\ndependency with name %q was requested to be uninstalled, but it is not found in the dependencies list", removedDep)
+			return nil, fmt.Errorf("\n\ndependency with name %q was requested to be uninstalled, but it is not found in the dependencies list %#v", removedDep, names)
 		}
 	}
 
