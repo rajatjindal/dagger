@@ -105,7 +105,7 @@ func (f *Foo) ContainerEcho(ctx context.Context, input string) (string, error) {
 			With(daggerExec("init", "--sdk=go", "--name=foo", "--source=.")).
 			With(daggerExec("uninstall", "bar")).
 			File("dagger.json").Contents(ctx)
-		require.ErrorContains(t, err, `"bar" not found in the dependencies list`)
+		require.ErrorContains(t, err, `dependency with name "bar" was requested to be uninstalled, but it is not found in the dependencies list`)
 	})
 
 	// this one currently fails - do we need to handle this?
