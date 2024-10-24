@@ -762,6 +762,15 @@ func (src *GitModuleSource) RefString() string {
 	return refPath
 }
 
+func (src *GitModuleSource) RefString2() string {
+	refPath := src.CloneRef
+	subPath := filepath.Join("/", src.RootSubpath)
+	if subPath != "/" {
+		refPath += subPath
+	}
+	return refPath
+}
+
 func (src *GitModuleSource) Pin() string {
 	return src.Commit
 }

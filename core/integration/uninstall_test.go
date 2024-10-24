@@ -186,7 +186,7 @@ func (UnInstallSuite) TestUninstallGitRefDep(ctx context.Context, t *testctx.T) 
 
 		_, err := ctr.With(daggerExec("uninstall", "github.com/shykes/daggerverse/hello@v0.3.0")).
 			File("dagger.json").Contents(ctx)
-		require.ErrorContains(t, err, `"github.com/shykes/daggerverse/hello" not found in the dependencies list`)
+		require.ErrorContains(t, err, `dependency with name "github.com/shykes/daggerverse/hello" was requested to be uninstalled, but it is not found in the dependencies list`)
 	})
 
 	// this one is currently failing - I think this should be fixed
