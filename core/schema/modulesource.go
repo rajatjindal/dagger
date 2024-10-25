@@ -41,6 +41,7 @@ func (s *moduleSchema) moduleSource(ctx context.Context, query *core.Query, args
 	if err != nil {
 		return nil, fmt.Errorf("failed to get buildkit client: %w", err)
 	}
+
 	parsed := parseRefString(ctx, bk, args.RefString)
 
 	src := &core.ModuleSource{
@@ -70,6 +71,11 @@ func (s *moduleSchema) moduleSource(ctx context.Context, query *core.Query, args
 		})
 
 	case core.ModuleSourceKindGit:
+
+		// if args.RefString == "dagger-uninstall-test" || strings.Contains(args.RefString, "github.com/rkne/daggerverse") {
+		// 	return nil, fmt.Errorf("AM I HAPPENING %s", args.RefString)
+		// }
+
 		src.AsGitSource = dagql.NonNull(&core.GitModuleSource{})
 
 		src.AsGitSource.Value.Root = parsed.repoRoot.Root
@@ -455,36 +461,40 @@ func (s *moduleSchema) moduleSourceWithName(
 	return src, nil
 }
 
-func (s *moduleSchema) moduleSourceDependencies(
-	ctx context.Context,
-	src dagql.Instance[*core.ModuleSource],
-	args struct{},
-) ([]dagql.Instance[*core.ModuleDependency], error) {
-	modCfg, ok, err := src.Self.ModuleConfig(ctx)
+func (s *moduleSchema) filterUnInstalledDeps(ctx context.Context, src dagql.Instance[*core.ModuleSource]) ([]*modules.ModuleConfigDependency, error) {
+	modCfg, _, err := src.Self.ModuleConfig(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get module config: %w", err)
+	}
+	currentDeps := modCfg.Dependencies
+	filterDeps := src.Self.WithoutDependencies
+
+	if len(currentDeps) == 0 && len(filterDeps) > 0 {
+		return nil, fmt.Errorf("uninstall of dependency requested but no dependencies found")
+	}
+
+	bk, err := src.Self.Query.Buildkit(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get buildkit client: %w", err)
 	}
 
 	names := []string{}
 	effectiveDependencies := []*modules.ModuleConfigDependency{}
-	for _, dep := range src.Self.WithoutDependencies {
-		removedDep, err := dep.Self.Source.Self.Symbolic()
-		if err != nil {
-			return nil, err
-		}
+	for _, dep := range filterDeps {
+		parsedFilterDep := parseRefString(ctx, bk, dep)
+		// // parsedFilterDep, err := dep.Self.Source.Self.Symbolic()
+		// if err != nil {
+		// 	return nil, err
+		// }
 
 		found := false
-		for _, currentDep := range modCfg.Dependencies {
-			bk, err := src.Self.Query.Buildkit(ctx)
-			if err != nil {
-				return nil, fmt.Errorf("failed to get buildkit client: %w", err)
-			}
+		for _, currentDep := range currentDeps {
+			currentDepParsed := parseRefString(ctx, bk, currentDep.Source)
 
-			names = append(names, currentDep.Source)
+			names = append(names, currentDepParsed.modPath)
 
-			parsed := parseRefString(ctx, bk, currentDep.Source)
 			// the currentDep is being uninstalled
-			if parsed.repoRootSubdir == removedDep {
+			if currentDepParsed.modPath == parsedFilterDep.modPath {
 				found = true
 				continue
 			}
@@ -493,14 +503,29 @@ func (s *moduleSchema) moduleSourceDependencies(
 		}
 
 		if !found {
-			return nil, fmt.Errorf("\n\ndependency with name %q was requested to be uninstalled, but it is not found in the dependencies list %#v", removedDep, names)
+			return nil, fmt.Errorf("dependency with name %q was requested to be uninstalled, but it is not found in the dependencies list %#v", parsedFilterDep, names)
 		}
 	}
 
+	return effectiveDependencies, nil
+}
+
+func (s *moduleSchema) moduleSourceDependencies(
+	ctx context.Context,
+	src dagql.Instance[*core.ModuleSource],
+	args struct{},
+) ([]dagql.Instance[*core.ModuleDependency], error) {
+	return nil, fmt.Errorf("WITHOUT DEPS HERE")
+
+	filteredDeps, err := s.filterUnInstalledDeps(ctx, src)
+	if err != nil {
+		return nil, err
+	}
+
 	existingDeps := []dagql.Instance[*core.ModuleDependency]{}
-	if ok && len(effectiveDependencies) > 0 {
+	if len(filteredDeps) > 0 {
 		var eg errgroup.Group
-		for _, depCfg := range effectiveDependencies {
+		for _, depCfg := range filteredDeps {
 			eg.Go(func() error {
 				var depSrc dagql.Instance[*core.ModuleSource]
 				err := s.dag.Select(ctx, s.dag.Root(), &depSrc,
@@ -638,16 +663,10 @@ func (s *moduleSchema) moduleSourceWithoutDependencies(
 	ctx context.Context,
 	src *core.ModuleSource,
 	args struct {
-		Dependencies []core.ModuleDependencyID
+		Dependencies []string
 	},
 ) (*core.ModuleSource, error) {
-	src = src.Clone()
-	removedDeps, err := collectIDInstances(ctx, s.dag, args.Dependencies)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load module source dependencies from ids: %w", err)
-	}
-
-	src.WithoutDependencies = removedDeps
+	src.WithoutDependencies = args.Dependencies
 	return src, nil
 }
 
@@ -1104,16 +1123,11 @@ func (s *moduleSchema) normalizeCallerLoadedSource(
 	}
 
 	if len(src.WithoutDependencies) > 0 {
-		depIDs := make([]core.ModuleDependencyID, len(src.WithoutDependencies))
-		for i, dep := range src.WithoutDependencies {
-			depIDs[i] = dagql.NewID[*core.ModuleDependency](dep.ID())
-		}
-
 		err = s.dag.Select(ctx, inst, &inst,
 			dagql.Selector{
 				Field: "withoutDependencies",
 				Args: []dagql.NamedInput{
-					{Name: "dependencies", Value: dagql.ArrayInput[core.ModuleDependencyID](depIDs)},
+					{Name: "dependencies", Value: dagql.ArrayInput[dagql.String](dagql.NewStringArray(src.WithoutDependencies...))},
 				},
 			},
 		)
@@ -1252,13 +1266,9 @@ func (s *moduleSchema) collectCallerLocalDeps(
 		for _, depCfg := range modCfg.Dependencies {
 			uninstallRequested := false
 			for _, removedDep := range src.WithoutDependencies {
-				removedX, err := removedDep.Self.Source.Self.Symbolic()
-				if err != nil {
-					return nil, err
-				}
-
 				// ignore the dependency that we are currently uninstalling
-				if depCfg.Source == removedX {
+				//TODO(Rajatjindal): handle using parseGitRef
+				if depCfg.Source == removedDep {
 					uninstallRequested = true
 					break
 				}

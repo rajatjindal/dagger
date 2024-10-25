@@ -67,7 +67,7 @@ type ModuleSource struct {
 	// Settings that can be used to initialize or override the source's configuration
 	WithName            string
 	WithDependencies    []dagql.Instance[*ModuleDependency]
-	WithoutDependencies []dagql.Instance[*ModuleDependency]
+	WithoutDependencies []string
 	WithSDK             string
 	WithInitConfig      *ModuleInitConfig
 	WithSourceSubpath   string
