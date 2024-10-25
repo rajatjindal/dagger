@@ -515,8 +515,6 @@ func (s *moduleSchema) moduleSourceDependencies(
 	src dagql.Instance[*core.ModuleSource],
 	args struct{},
 ) ([]dagql.Instance[*core.ModuleDependency], error) {
-	return nil, fmt.Errorf("WITHOUT DEPS HERE")
-
 	filteredDeps, err := s.filterUnInstalledDeps(ctx, src)
 	if err != nil {
 		return nil, err
