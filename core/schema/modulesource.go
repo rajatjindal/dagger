@@ -472,6 +472,10 @@ func (s *moduleSchema) moduleSourceDependencies(
 		for i, depCfg := range modCfg.Dependencies {
 			eg.Go(func() error {
 				var depSrc dagql.Instance[*core.ModuleSource]
+				// TODO(rajatjindal): update the new version number here for
+				// the dependencies we want to update.
+				// Also error out if we are trying to update a module
+				// which is not a dependency
 				err := s.dag.Select(ctx, s.dag.Root(), &depSrc,
 					dagql.Selector{
 						Field: "moduleSource",
@@ -582,6 +586,22 @@ func (s *moduleSchema) moduleSourceDependencies(
 	})
 
 	return finalDeps, nil
+}
+
+func (s *moduleSchema) moduleSourceWithUpdateDependencies(
+	ctx context.Context,
+	src *core.ModuleSource,
+	args struct {
+		Dependencies []core.ModuleDependencyID
+	},
+) (*core.ModuleSource, error) {
+	src = src.Clone()
+	newDeps, err := collectIDInstances(ctx, s.dag, args.Dependencies)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load module source dependencies from ids: %w", err)
+	}
+	src.WithUpdateDependencies = newDeps
+	return src, nil
 }
 
 func (s *moduleSchema) moduleSourceWithDependencies(

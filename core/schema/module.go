@@ -122,6 +122,10 @@ func (s *moduleSchema) Install() {
 			Doc(`Update the module source with a new name.`).
 			ArgDoc("name", `The name to set.`),
 
+		dagql.Func("withUpdateDependencies", s.moduleSourceWithUpdateDependencies).
+			Doc(`Update one or more module dependencies.`).
+			ArgDoc("dependencies", `The dependencies to update.`),
+
 		dagql.NodeFunc("dependencies", s.moduleSourceDependencies).
 			Doc(`The dependencies of the module source. Includes dependencies from the configuration and any extras from withDependencies calls.`),
 

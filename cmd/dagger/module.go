@@ -346,6 +346,109 @@ var moduleInstallCmd = &cobra.Command{
 	},
 }
 
+var moduleUpdateCmd = &cobra.Command{
+	Use:     "update [options] <module>",
+	Aliases: []string{"use"},
+	Short:   "Update a dependency",
+	Long:    "Update a dependency to the version specified in the current module. The target module must be local.",
+	Example: "dagger update github.com/shykes/daggerverse/hello@v0.3.0",
+	GroupID: moduleGroup.ID,
+	Args:    cobra.ExactArgs(1),
+	RunE: func(cmd *cobra.Command, extraArgs []string) (rerr error) {
+		ctx := cmd.Context()
+		return withEngine(ctx, client.Params{}, func(ctx context.Context, engineClient *client.Client) (err error) {
+			dag := engineClient.Dagger()
+			modConf, err := getDefaultModuleConfiguration(ctx, dag, true, false)
+			if err != nil {
+				return fmt.Errorf("failed to get configured module: %w", err)
+			}
+			if modConf.SourceKind != dagger.LocalSource {
+				return fmt.Errorf("module must be local")
+			}
+			if !modConf.FullyInitialized() {
+				return fmt.Errorf("module must be fully initialized")
+			}
+
+			depRefStr := extraArgs[0]
+			depSrc := dag.ModuleSource(depRefStr)
+			depSrcKind, err := depSrc.Kind(ctx)
+			if err != nil {
+				return fmt.Errorf("failed to get module ref kind 3: %w", err)
+			}
+			if depSrcKind == dagger.LocalSource {
+				return fmt.Errorf("update command cannot be used to update local module dependency")
+			}
+
+			dep := dag.ModuleDependency(depSrc)
+
+			modSrc := modConf.Source.
+				WithDependencies([]*dagger.ModuleDependency{dep}).
+				ResolveFromCaller()
+
+			_, err = modSrc.
+				AsModule().
+				GeneratedContextDiff().
+				Export(ctx, modConf.LocalContextPath)
+			if err != nil {
+				return fmt.Errorf("failed to generate code: %w", err)
+			}
+
+			depSrc = modSrc.ResolveDependency(depSrc)
+
+			name, err := depSrc.ModuleName(ctx)
+			if err != nil {
+				return err
+			}
+			sdk, err := depSrc.AsModule().SDK(ctx)
+			if err != nil {
+				return err
+			}
+			depRootSubpath, err := depSrc.SourceRootSubpath(ctx)
+			if err != nil {
+				return err
+			}
+
+			if depSrcKind == dagger.GitSource {
+				git := depSrc.AsGitSource()
+				gitURL, err := git.CloneRef(ctx)
+				if err != nil {
+					return err
+				}
+				gitVersion, err := git.Version(ctx)
+				if err != nil {
+					return err
+				}
+				gitCommit, err := git.Commit(ctx)
+				if err != nil {
+					return err
+				}
+
+				analytics.Ctx(ctx).Capture(ctx, "module_install", map[string]string{
+					"module_name":   name,
+					"install_name":  installName,
+					"module_sdk":    sdk,
+					"source_kind":   "git",
+					"git_symbolic":  filepath.Join(gitURL, depRootSubpath),
+					"git_clone_url": gitURL,
+					"git_subpath":   depRootSubpath,
+					"git_version":   gitVersion,
+					"git_commit":    gitCommit,
+				})
+			} else if depSrcKind == dagger.LocalSource {
+				analytics.Ctx(ctx).Capture(ctx, "module_install", map[string]string{
+					"module_name":   name,
+					"install_name":  installName,
+					"module_sdk":    sdk,
+					"source_kind":   "local",
+					"local_subpath": depRootSubpath,
+				})
+			}
+
+			return nil
+		})
+	},
+}
+
 var moduleDevelopCmd = &cobra.Command{
 	Use:   "develop [options]",
 	Short: "Prepare a local module for development",
