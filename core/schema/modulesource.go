@@ -476,12 +476,42 @@ func (s *moduleSchema) moduleSourceDependencies(
 				// the dependencies we want to update.
 				// Also error out if we are trying to update a module
 				// which is not a dependency
-				err := s.dag.Select(ctx, s.dag.Root(), &depSrc,
+
+				bk, err := src.Self.Query.Buildkit(ctx)
+				if err != nil {
+					return fmt.Errorf("failed to get buildkit client: %w", err)
+				}
+
+				source := depCfg.Source
+				refPin := depCfg.Pin
+
+				for _, dd := range src.Self.WithUpdateDependencies {
+					updep := parseRefString(ctx, bk, dd)
+					parsed := parseRefString(ctx, bk, depCfg.Source)
+					if parsed.kind == core.ModuleSourceKindLocal {
+						return fmt.Errorf("cannot be used to update local dependency")
+					}
+
+					// return fmt.Errorf("UPDATE DEPS updated -> %#v, current -> %#v", updep, parsed)
+
+					// TODO(rajatjindal): validate the versions is higher
+					// OR confirm with team if we want to allow downgrade
+					// without any explicit flag
+					if updep.modPath == parsed.modPath {
+						source = dd
+						refPin = ""
+					}
+					// if dd.symbolic == depCfg.Symbolic then
+					// replace depCfg.refString = dd.refString
+					// AND depCfg.refPin = nil
+				}
+
+				err = s.dag.Select(ctx, s.dag.Root(), &depSrc,
 					dagql.Selector{
 						Field: "moduleSource",
 						Args: []dagql.NamedInput{
-							{Name: "refString", Value: dagql.String(depCfg.Source)},
-							{Name: "refPin", Value: dagql.String(depCfg.Pin)},
+							{Name: "refString", Value: dagql.String(source)},
+							{Name: "refPin", Value: dagql.String(refPin)},
 						},
 					},
 				)
@@ -592,15 +622,12 @@ func (s *moduleSchema) moduleSourceWithUpdateDependencies(
 	ctx context.Context,
 	src *core.ModuleSource,
 	args struct {
-		Dependencies []core.ModuleDependencyID
+		Dependencies []string
 	},
 ) (*core.ModuleSource, error) {
 	src = src.Clone()
-	newDeps, err := collectIDInstances(ctx, s.dag, args.Dependencies)
-	if err != nil {
-		return nil, fmt.Errorf("failed to load module source dependencies from ids: %w", err)
-	}
-	src.WithUpdateDependencies = newDeps
+
+	src.WithUpdateDependencies = args.Dependencies
 	return src, nil
 }
 
@@ -1071,6 +1098,21 @@ func (s *moduleSchema) normalizeCallerLoadedSource(
 			return inst, fmt.Errorf("failed to set dependency: %w", err)
 		}
 	}
+
+	if len(src.WithUpdateDependencies) > 0 {
+		err = s.dag.Select(ctx, inst, &inst,
+			dagql.Selector{
+				Field: "withUpdateDependencies",
+				Args: []dagql.NamedInput{
+					{Name: "dependencies", Value: dagql.ArrayInput[dagql.String](dagql.NewStringArray(src.WithUpdateDependencies...))},
+				},
+			},
+		)
+		if err != nil {
+			return inst, fmt.Errorf("failed to set update dependency: %w", err)
+		}
+	}
+
 	if src.WithViews != nil {
 		for _, view := range src.WithViews {
 			err = s.dag.Select(ctx, inst, &inst,
