@@ -1240,7 +1240,7 @@ func (DirectorySuite) TestDirectoryLazinessError(ctx context.Context, t *testctx
 		t.Run("tc5", func(ctx context.Context, t *testctx.T) {
 			_, err := c.Container().From("alpine:latest").Directory("/doesnt-exist").Sync(ctx)
 			require.EqualError(t, err, "input: container.from.directory resolve: lstat /doesnt-exist: no such file or directory\n")
-			require.NoError(t, err)
+			// require.NoError(t, err)
 		})
 
 		t.Run("tc6", func(ctx context.Context, t *testctx.T) {
