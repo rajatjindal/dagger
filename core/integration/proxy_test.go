@@ -208,7 +208,7 @@ http_access allow localhost
 			WithMountedDirectory("/src", thisRepo).
 			WithWorkdir("/src").
 			WithMountedFile("/ca.pem", certGen.caRootCert).
-			WithServiceBinding("engine", devEngine.AsService()).
+			WithServiceBinding("engine", devEngineContainerAsService(devEngine)).
 			WithMountedFile("/bin/dagger", daggerCliFile(t, c)).
 			WithEnvVariable("_EXPERIMENTAL_DAGGER_CLI_BIN", "/bin/dagger").
 			WithEnvVariable("_EXPERIMENTAL_DAGGER_RUNNER_HOST", "tcp://engine:1234").
@@ -458,7 +458,7 @@ func (ContainerSuite) TestSystemGoProxy(ctx context.Context, t *testctx.T) {
 						With(goCache(c)).
 						WithMountedDirectory("/src", thisRepo).
 						WithWorkdir("/src").
-						WithServiceBinding("engine", devEngine.AsService()).
+						WithServiceBinding("engine", devEngineContainerAsService(devEngine)).
 						WithMountedFile("/bin/dagger", daggerCliFile(t, c)).
 						WithEnvVariable("_EXPERIMENTAL_DAGGER_CLI_BIN", "/bin/dagger").
 						WithEnvVariable("_EXPERIMENTAL_DAGGER_RUNNER_HOST", "tcp://engine:1234").

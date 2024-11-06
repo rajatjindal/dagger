@@ -1482,6 +1482,32 @@ pub struct Container {
     pub graphql_client: DynGraphQLClient,
 }
 #[derive(Builder, Debug, PartialEq)]
+pub struct ContainerAsServiceOpts<'a> {
+    /// Command to run instead of the container's default command (e.g., ["run", "main.go"]).
+    /// If empty, the container's default command is used.
+    #[builder(setter(into, strip_option), default)]
+    pub args: Option<Vec<&'a str>>,
+    #[builder(setter(into, strip_option), default)]
+    pub expand: Option<bool>,
+    #[builder(setter(into, strip_option), default)]
+    pub expect: Option<ReturnType>,
+    #[builder(setter(into, strip_option), default)]
+    pub experimental_privileged_nesting: Option<bool>,
+    #[builder(setter(into, strip_option), default)]
+    pub insecure_root_capabilities: Option<bool>,
+    #[builder(setter(into, strip_option), default)]
+    pub no_init: Option<bool>,
+    #[builder(setter(into, strip_option), default)]
+    pub redirect_stderr: Option<&'a str>,
+    #[builder(setter(into, strip_option), default)]
+    pub redirect_stdout: Option<&'a str>,
+    #[builder(setter(into, strip_option), default)]
+    pub stdin: Option<&'a str>,
+    /// If the container has an entrypoint, prepend it to the args.
+    #[builder(setter(into, strip_option), default)]
+    pub use_entrypoint: Option<bool>,
+}
+#[derive(Builder, Debug, PartialEq)]
 pub struct ContainerAsTarballOpts {
     /// Force each layer of the image to use the specified compression algorithm.
     /// If this is unset, then if a layer already has a compressed blob in the engine's cache, that will be used (this can result in a mix of compression algorithms for different layers). If this is unset and a layer has no compressed blob in the engine's cache, then it will be compressed using Gzip.
@@ -1838,8 +1864,59 @@ pub struct ContainerWithoutUnixSocketOpts {
 impl Container {
     /// Turn the container into a Service.
     /// Be sure to set any exposed ports before this conversion.
+    ///
+    /// # Arguments
+    ///
+    /// * `opt` - optional argument, see inner type for documentation, use <func>_opts to use
     pub fn as_service(&self) -> Service {
         let query = self.selection.select("asService");
+        Service {
+            proc: self.proc.clone(),
+            selection: query,
+            graphql_client: self.graphql_client.clone(),
+        }
+    }
+    /// Turn the container into a Service.
+    /// Be sure to set any exposed ports before this conversion.
+    ///
+    /// # Arguments
+    ///
+    /// * `opt` - optional argument, see inner type for documentation, use <func>_opts to use
+    pub fn as_service_opts<'a>(&self, opts: ContainerAsServiceOpts<'a>) -> Service {
+        let mut query = self.selection.select("asService");
+        if let Some(args) = opts.args {
+            query = query.arg("args", args);
+        }
+        if let Some(use_entrypoint) = opts.use_entrypoint {
+            query = query.arg("useEntrypoint", use_entrypoint);
+        }
+        if let Some(stdin) = opts.stdin {
+            query = query.arg("stdin", stdin);
+        }
+        if let Some(redirect_stdout) = opts.redirect_stdout {
+            query = query.arg("redirectStdout", redirect_stdout);
+        }
+        if let Some(redirect_stderr) = opts.redirect_stderr {
+            query = query.arg("redirectStderr", redirect_stderr);
+        }
+        if let Some(expect) = opts.expect {
+            query = query.arg("expect", expect);
+        }
+        if let Some(experimental_privileged_nesting) = opts.experimental_privileged_nesting {
+            query = query.arg(
+                "experimentalPrivilegedNesting",
+                experimental_privileged_nesting,
+            );
+        }
+        if let Some(insecure_root_capabilities) = opts.insecure_root_capabilities {
+            query = query.arg("insecureRootCapabilities", insecure_root_capabilities);
+        }
+        if let Some(expand) = opts.expand {
+            query = query.arg("expand", expand);
+        }
+        if let Some(no_init) = opts.no_init {
+            query = query.arg("noInit", no_init);
+        }
         Service {
             proc: self.proc.clone(),
             selection: query,

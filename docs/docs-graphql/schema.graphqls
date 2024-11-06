@@ -60,7 +60,25 @@ type Container {
   
   Be sure to set any exposed ports before this conversion.
   """
-  asService: Service!
+  asService(
+    """
+    Command to run instead of the container's default command (e.g., ["run", "main.go"]).
+    
+    If empty, the container's default command is used.
+    """
+    args: [String!] = []
+    expand: Boolean = false
+    expect: ReturnType = SUCCESS
+    experimentalPrivilegedNesting: Boolean = false
+    insecureRootCapabilities: Boolean = false
+    noInit: Boolean = false
+    redirectStderr: String = ""
+    redirectStdout: String = ""
+    stdin: String = ""
+
+    """If the container has an entrypoint, prepend it to the args."""
+    useEntrypoint: Boolean = false
+  ): Service!
 
   """Returns a File representing the container serialized to a tarball."""
   asTarball(

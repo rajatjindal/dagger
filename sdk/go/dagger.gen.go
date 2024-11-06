@@ -359,11 +359,79 @@ func (r *Container) WithGraphQLQuery(q *querybuilder.Selection) *Container {
 	}
 }
 
+// ContainerAsServiceOpts contains options for Container.AsService
+type ContainerAsServiceOpts struct {
+	// Command to run instead of the container's default command (e.g., ["run", "main.go"]).
+	//
+	// If empty, the container's default command is used.
+	Args []string
+	// If the container has an entrypoint, prepend it to the args.
+	UseEntrypoint bool
+
+	Stdin string
+
+	RedirectStdout string
+
+	RedirectStderr string
+
+	Expect ReturnType
+
+	ExperimentalPrivilegedNesting bool
+
+	InsecureRootCapabilities bool
+
+	Expand bool
+
+	NoInit bool
+}
+
 // Turn the container into a Service.
 //
 // Be sure to set any exposed ports before this conversion.
-func (r *Container) AsService() *Service {
+func (r *Container) AsService(opts ...ContainerAsServiceOpts) *Service {
 	q := r.query.Select("asService")
+	for i := len(opts) - 1; i >= 0; i-- {
+		// `args` optional argument
+		if !querybuilder.IsZeroValue(opts[i].Args) {
+			q = q.Arg("args", opts[i].Args)
+		}
+		// `useEntrypoint` optional argument
+		if !querybuilder.IsZeroValue(opts[i].UseEntrypoint) {
+			q = q.Arg("useEntrypoint", opts[i].UseEntrypoint)
+		}
+		// `stdin` optional argument
+		if !querybuilder.IsZeroValue(opts[i].Stdin) {
+			q = q.Arg("stdin", opts[i].Stdin)
+		}
+		// `redirectStdout` optional argument
+		if !querybuilder.IsZeroValue(opts[i].RedirectStdout) {
+			q = q.Arg("redirectStdout", opts[i].RedirectStdout)
+		}
+		// `redirectStderr` optional argument
+		if !querybuilder.IsZeroValue(opts[i].RedirectStderr) {
+			q = q.Arg("redirectStderr", opts[i].RedirectStderr)
+		}
+		// `expect` optional argument
+		if !querybuilder.IsZeroValue(opts[i].Expect) {
+			q = q.Arg("expect", opts[i].Expect)
+		}
+		// `experimentalPrivilegedNesting` optional argument
+		if !querybuilder.IsZeroValue(opts[i].ExperimentalPrivilegedNesting) {
+			q = q.Arg("experimentalPrivilegedNesting", opts[i].ExperimentalPrivilegedNesting)
+		}
+		// `insecureRootCapabilities` optional argument
+		if !querybuilder.IsZeroValue(opts[i].InsecureRootCapabilities) {
+			q = q.Arg("insecureRootCapabilities", opts[i].InsecureRootCapabilities)
+		}
+		// `expand` optional argument
+		if !querybuilder.IsZeroValue(opts[i].Expand) {
+			q = q.Arg("expand", opts[i].Expand)
+		}
+		// `noInit` optional argument
+		if !querybuilder.IsZeroValue(opts[i].NoInit) {
+			q = q.Arg("noInit", opts[i].NoInit)
+		}
+	}
 
 	return &Service{
 		query: q,

@@ -1627,7 +1627,40 @@ func (container *Container) ImageRefOrErr(ctx context.Context) (string, error) {
 	return "", errors.Errorf("Image reference can only be retrieved immediately after the 'Container.From' call. Error in fetching imageRef as the container image is changed")
 }
 
-func (container *Container) Service(ctx context.Context) (*Service, error) {
+type ContainerAsServiceArgs struct {
+	// Command to run instead of the container's default command
+	Args []string `default:"[]"`
+
+	// If the container has an entrypoint, prepend it to this exec's args
+	UseEntrypoint bool `default:"false"`
+
+	// Content to write to the command's standard input before closing
+	Stdin string `default:""`
+
+	// Redirect the command's standard output to a file in the container
+	RedirectStdout string `default:""`
+
+	// Redirect the command's standard error to a file in the container
+	RedirectStderr string `default:""`
+
+	// Exit codes this exec is allowed to exit with
+	Expect ReturnTypes `default:"SUCCESS"`
+
+	// Provide the executed command access back to the Dagger API
+	ExperimentalPrivilegedNesting bool `default:"false"`
+
+	// Grant the process all root capabilities
+	InsecureRootCapabilities bool `default:"false"`
+
+	// Expand the environment variables in args
+	Expand bool `default:"false"`
+
+	// Skip the init process injected into containers by default so that the
+	// user's process is PID 1
+	NoInit bool `default:"false"`
+}
+
+func (container *Container) ServiceLegacy(ctx context.Context) (*Service, error) {
 	if container.Meta == nil {
 		var err error
 		container, err = container.WithExec(ctx, ContainerExecOpts{
@@ -1637,6 +1670,34 @@ func (container *Container) Service(ctx context.Context) (*Service, error) {
 			return nil, err
 		}
 	}
+	return container.Query.NewContainerService(ctx, container), nil
+}
+
+func (container *Container) Service(ctx context.Context, args ContainerAsServiceArgs) (*Service, error) {
+	var cmdargs = container.Config.Cmd
+	if len(args.Args) > 0 {
+		cmdargs = args.Args
+	}
+
+	// TODO(rajatjindal): probably need a cache buster here?
+	// always add WithExec to ensure we either use default args (when not provided) or
+	// args provided to asService api
+	container, err := container.WithExec(ctx, ContainerExecOpts{
+		Args:                          cmdargs,
+		UseEntrypoint:                 args.UseEntrypoint,
+		Stdin:                         args.Stdin,
+		RedirectStdout:                args.RedirectStdout,
+		RedirectStderr:                args.RedirectStderr,
+		Expect:                        args.Expect,
+		ExperimentalPrivilegedNesting: args.ExperimentalPrivilegedNesting,
+		InsecureRootCapabilities:      args.InsecureRootCapabilities,
+		Expand:                        args.Expand,
+		NoInit:                        args.NoInit,
+	})
+	if err != nil {
+		return nil, err
+	}
+
 	return container.Query.NewContainerService(ctx, container), nil
 }
 

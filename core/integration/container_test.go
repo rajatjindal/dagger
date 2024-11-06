@@ -3677,13 +3677,14 @@ func (ContainerSuite) TestInsecureRootCapabilitesWithService(ctx context.Context
 		}).
 		WithMountedCache("/tmp", c.CacheVolume("share-tmp")).
 		WithExposedPort(2375).
-		WithExec([]string{
-			"dockerd",
-			"--host=tcp://0.0.0.0:2375",
-			"--tls=false",
-		}, dagger.ContainerWithExecOpts{
+		AsService(dagger.ContainerAsServiceOpts{
+			Args: []string{
+				"dockerd",
+				"--host=tcp://0.0.0.0:2375",
+				"--tls=false",
+			},
 			InsecureRootCapabilities: true,
-		}).AsService()
+		})
 
 	dockerHost, err := dockerd.Endpoint(ctx, dagger.ServiceEndpointOpts{
 		Scheme: "tcp",
@@ -4282,14 +4283,14 @@ func (ContainerSuite) TestImageLoadCompatibility(ctx context.Context, t *testctx
 				Sharing: dagger.Private,
 			}).
 			WithExposedPort(port).
-			WithExec([]string{
-				"dockerd",
-				"--host=tcp://0.0.0.0:" + strconv.Itoa(port),
-				"--tls=false",
-			}, dagger.ContainerWithExecOpts{
+			AsService(dagger.ContainerAsServiceOpts{
+				Args: []string{
+					"dockerd",
+					"--host=tcp://0.0.0.0:" + strconv.Itoa(port),
+					"--tls=false",
+				},
 				InsecureRootCapabilities: true,
-			}).
-			AsService()
+			})
 
 		dockerHost, err := dockerd.Endpoint(ctx, dagger.ServiceEndpointOpts{
 			Scheme: "tcp",

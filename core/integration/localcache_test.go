@@ -59,7 +59,7 @@ func (EngineSuite) TestLocalCacheGCKeepBytesConfig(ctx context.Context, t *testc
 				opts = append(opts, engineWithConfig(ctx, t, engineConfigWithGC(tc.reservedSpace, tc.minFreeSpace, tc.maxUsedSpace)))
 			}
 
-			engineSvc, err := c.Host().Tunnel(devEngineContainer(c, opts...).AsService()).Start(ctx)
+			engineSvc, err := c.Host().Tunnel(devEngineContainerAsService(devEngineContainer(c, opts...))).Start(ctx)
 			require.NoError(t, err)
 			t.Cleanup(func() { engineSvc.Stop(ctx) })
 
@@ -142,7 +142,7 @@ func (EngineSuite) TestLocalCacheAutomaticGC(ctx context.Context, t *testctx.T) 
 				opts = append(opts, engineWithConfig(ctx, t, engineConfigWithGC(tc.reservedSpace, tc.minFreeSpace, tc.maxUsedSpace)))
 			}
 
-			engineSvc, err := c.Host().Tunnel(devEngineContainer(c, opts...).AsService()).Start(ctx)
+			engineSvc, err := c.Host().Tunnel(devEngineContainerAsService(devEngineContainer(c, opts...))).Start(ctx)
 			require.NoError(t, err)
 			t.Cleanup(func() { engineSvc.Stop(ctx) })
 

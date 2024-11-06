@@ -18,9 +18,49 @@ class Container extends Client\AbstractObject implements Client\IdAble
      *
      * Be sure to set any exposed ports before this conversion.
      */
-    public function asService(): Service
-    {
+    public function asService(
+        ?array $args = null,
+        ?bool $useEntrypoint = false,
+        ?string $stdin = '',
+        ?string $redirectStdout = '',
+        ?string $redirectStderr = '',
+        ?ReturnType $expect = null,
+        ?bool $experimentalPrivilegedNesting = false,
+        ?bool $insecureRootCapabilities = false,
+        ?bool $expand = false,
+        ?bool $noInit = false,
+    ): Service {
         $innerQueryBuilder = new \Dagger\Client\QueryBuilder('asService');
+        if (null !== $args) {
+        $innerQueryBuilder->setArgument('args', $args);
+        }
+        if (null !== $useEntrypoint) {
+        $innerQueryBuilder->setArgument('useEntrypoint', $useEntrypoint);
+        }
+        if (null !== $stdin) {
+        $innerQueryBuilder->setArgument('stdin', $stdin);
+        }
+        if (null !== $redirectStdout) {
+        $innerQueryBuilder->setArgument('redirectStdout', $redirectStdout);
+        }
+        if (null !== $redirectStderr) {
+        $innerQueryBuilder->setArgument('redirectStderr', $redirectStderr);
+        }
+        if (null !== $expect) {
+        $innerQueryBuilder->setArgument('expect', $expect);
+        }
+        if (null !== $experimentalPrivilegedNesting) {
+        $innerQueryBuilder->setArgument('experimentalPrivilegedNesting', $experimentalPrivilegedNesting);
+        }
+        if (null !== $insecureRootCapabilities) {
+        $innerQueryBuilder->setArgument('insecureRootCapabilities', $insecureRootCapabilities);
+        }
+        if (null !== $expand) {
+        $innerQueryBuilder->setArgument('expand', $expand);
+        }
+        if (null !== $noInit) {
+        $innerQueryBuilder->setArgument('noInit', $noInit);
+        }
         return new \Dagger\Service($this->client, $this->queryBuilderChain->chain($innerQueryBuilder));
     }
 

@@ -18,9 +18,21 @@ var _ SchemaResolvers = &serviceSchema{}
 
 func (s *serviceSchema) Install() {
 	dagql.Fields[*core.Container]{
-		dagql.Func("asService", s.containerAsService).
+		dagql.Func("asService", s.containerAsServiceLegacy).
+			View(BeforeVersion("v0.13.8")).
 			Doc(`Turn the container into a Service.`,
 				`Be sure to set any exposed ports before this conversion.`),
+
+		dagql.Func("asService", s.containerAsService).
+			Doc(`Turn the container into a Service.`,
+				`Be sure to set any exposed ports before this conversion.`).
+			ArgDoc("args",
+				`Command to run instead of the container's default command (e.g., ["run", "main.go"]).`,
+				`If empty, the container's default command is used.`).
+			ArgDoc("useEntrypoint",
+				`If the container has an entrypoint, prepend it to the args.`).
+			View(AfterVersion("v0.13.8")),
+
 		dagql.NodeFunc("up", s.containerUp).
 			Doc(`Starts a Service and creates a tunnel that forwards traffic from the caller's network to that service.`,
 				`Be sure to set any exposed ports before calling this api.`).
@@ -68,8 +80,23 @@ func (s *serviceSchema) Install() {
 	}.Install(s.srv)
 }
 
-func (s *serviceSchema) containerAsService(ctx context.Context, parent *core.Container, args struct{}) (*core.Service, error) {
-	return parent.Service(ctx)
+func (s *serviceSchema) containerAsServiceLegacy(ctx context.Context, parent *core.Container, args struct{}) (*core.Service, error) {
+	return parent.ServiceLegacy(ctx)
+}
+
+func (s *serviceSchema) containerAsService(ctx context.Context, parent *core.Container, args core.ContainerAsServiceArgs) (*core.Service, error) {
+	expandedArgs := make([]string, len(args.Args))
+	for i, arg := range args.Args {
+		expandedArg, err := expandEnvVar(ctx, parent, arg, args.Expand)
+		if err != nil {
+			return nil, err
+		}
+
+		expandedArgs[i] = expandedArg
+	}
+	args.Args = expandedArgs
+
+	return parent.Service(ctx, args)
 }
 
 func (s *serviceSchema) containerUp(ctx context.Context, ctr dagql.Instance[*core.Container], args upArgs) (dagql.Nullable[core.Void], error) {

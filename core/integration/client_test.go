@@ -128,7 +128,7 @@ func (ClientSuite) TestMultiSameTrace(ctx context.Context, t *testctx.T) {
 func (ClientSuite) TestClientStableID(ctx context.Context, t *testctx.T) {
 	c := connect(ctx, t)
 	devEngine := devEngineContainer(c)
-	clientCtr, err := engineClientContainer(ctx, t, c, devEngine.AsService())
+	clientCtr, err := engineClientContainer(ctx, t, c, devEngineContainerAsService(devEngine))
 	require.NoError(t, err)
 
 	// just run any dagger cli command that connects to the engine

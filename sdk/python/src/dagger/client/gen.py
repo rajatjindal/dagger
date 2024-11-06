@@ -409,12 +409,55 @@ class CacheVolume(Type):
 class Container(Type):
     """An OCI-compatible container, also known as a Docker container."""
 
-    def as_service(self) -> "Service":
+    def as_service(
+        self,
+        *,
+        args: list[str] | None = None,
+        use_entrypoint: bool | None = False,
+        stdin: str | None = "",
+        redirect_stdout: str | None = "",
+        redirect_stderr: str | None = "",
+        expect: ReturnType | None = ReturnType.SUCCESS,
+        experimental_privileged_nesting: bool | None = False,
+        insecure_root_capabilities: bool | None = False,
+        expand: bool | None = False,
+        no_init: bool | None = False,
+    ) -> "Service":
         """Turn the container into a Service.
 
         Be sure to set any exposed ports before this conversion.
+
+        Parameters
+        ----------
+        args:
+            Command to run instead of the container's default command (e.g.,
+            ["run", "main.go"]).
+            If empty, the container's default command is used.
+        use_entrypoint:
+            If the container has an entrypoint, prepend it to the args.
+        stdin:
+        redirect_stdout:
+        redirect_stderr:
+        expect:
+        experimental_privileged_nesting:
+        insecure_root_capabilities:
+        expand:
+        no_init:
         """
-        _args: list[Arg] = []
+        _args = [
+            Arg("args", () if args is None else args, ()),
+            Arg("useEntrypoint", use_entrypoint, False),
+            Arg("stdin", stdin, ""),
+            Arg("redirectStdout", redirect_stdout, ""),
+            Arg("redirectStderr", redirect_stderr, ""),
+            Arg("expect", expect, ReturnType.SUCCESS),
+            Arg(
+                "experimentalPrivilegedNesting", experimental_privileged_nesting, False
+            ),
+            Arg("insecureRootCapabilities", insecure_root_capabilities, False),
+            Arg("expand", expand, False),
+            Arg("noInit", no_init, False),
+        ]
         _ctx = self._select("asService", _args)
         return Service(_ctx)
 

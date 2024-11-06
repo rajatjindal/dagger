@@ -83,6 +83,28 @@ export enum CacheSharingMode {
  */
 export type CacheVolumeID = string & { __CacheVolumeID: never }
 
+export type ContainerAsServiceOpts = {
+  /**
+   * Command to run instead of the container's default command (e.g., ["run", "main.go"]).
+   *
+   * If empty, the container's default command is used.
+   */
+  args?: string[]
+
+  /**
+   * If the container has an entrypoint, prepend it to the args.
+   */
+  useEntrypoint?: boolean
+  stdin?: string
+  redirectStdout?: string
+  redirectStderr?: string
+  expect?: ReturnType
+  experimentalPrivilegedNesting?: boolean
+  insecureRootCapabilities?: boolean
+  expand?: boolean
+  noInit?: boolean
+}
+
 export type ContainerAsTarballOpts = {
   /**
    * Identifiers for other platform specific containers.
@@ -1495,13 +1517,22 @@ export class Container extends BaseClient {
    * Turn the container into a Service.
    *
    * Be sure to set any exposed ports before this conversion.
+   * @param opts.args Command to run instead of the container's default command (e.g., ["run", "main.go"]).
+   *
+   * If empty, the container's default command is used.
+   * @param opts.useEntrypoint If the container has an entrypoint, prepend it to the args.
    */
-  asService = (): Service => {
+  asService = (opts?: ContainerAsServiceOpts): Service => {
+    const metadata: Metadata = {
+      expect: { is_enum: true },
+    }
+
     return new Service({
       queryTree: [
         ...this._queryTree,
         {
           operation: "asService",
+          args: { ...opts, __metadata: metadata },
         },
       ],
       ctx: this._ctx,

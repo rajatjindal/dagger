@@ -3715,11 +3715,53 @@
                       </tr>
                     </thead>
                     <tbody>
-                      <tr>
+                      <tr class="row-has-field-arguments">
                         <td data-property-name=""><a class="property-name" id="Container-asService" href="#Container-asService"><code>asService</code></a> - <span class="property-type"><a href="#definition-Service"><code>Service!</code></a></span> </td>
                         <td>
                           <p>Turn the container into a Service.</p>
                           <p>Be sure to set any exposed ports before this conversion.</p>
+                        </td>
+                      </tr>
+                      <tr class="row-field-arguments">
+                        <td colspan="2">
+                          <div class="field-arguments">
+                            <h5 class="field-arguments-heading"> Arguments </h5>
+                            <div class="field-argument-list">
+                              <div class="field-argument">
+                                <h6 class="field-argument-name"><span class="property-name"><code>args</code></span> - <span class="property-type"><a href="#definition-String"><code>[String!]</code></a></span></h6>
+                                <p>Command to run instead of the container&#39;s default command (e.g., [&quot;run&quot;, &quot;main.go&quot;]).</p>
+                                <p>If empty, the container&#39;s default command is used.</p>
+                              </div>
+                              <div class="field-argument">
+                                <h6 class="field-argument-name"><span class="property-name"><code>expand</code></span> - <span class="property-type"><a href="#definition-Boolean"><code>Boolean</code></a></span></h6>
+                              </div>
+                              <div class="field-argument">
+                                <h6 class="field-argument-name"><span class="property-name"><code>expect</code></span> - <span class="property-type"><a href="#definition-ReturnType"><code>ReturnType</code></a></span></h6>
+                              </div>
+                              <div class="field-argument">
+                                <h6 class="field-argument-name"><span class="property-name"><code>experimentalPrivilegedNesting</code></span> - <span class="property-type"><a href="#definition-Boolean"><code>Boolean</code></a></span></h6>
+                              </div>
+                              <div class="field-argument">
+                                <h6 class="field-argument-name"><span class="property-name"><code>insecureRootCapabilities</code></span> - <span class="property-type"><a href="#definition-Boolean"><code>Boolean</code></a></span></h6>
+                              </div>
+                              <div class="field-argument">
+                                <h6 class="field-argument-name"><span class="property-name"><code>noInit</code></span> - <span class="property-type"><a href="#definition-Boolean"><code>Boolean</code></a></span></h6>
+                              </div>
+                              <div class="field-argument">
+                                <h6 class="field-argument-name"><span class="property-name"><code>redirectStderr</code></span> - <span class="property-type"><a href="#definition-String"><code>String</code></a></span></h6>
+                              </div>
+                              <div class="field-argument">
+                                <h6 class="field-argument-name"><span class="property-name"><code>redirectStdout</code></span> - <span class="property-type"><a href="#definition-String"><code>String</code></a></span></h6>
+                              </div>
+                              <div class="field-argument">
+                                <h6 class="field-argument-name"><span class="property-name"><code>stdin</code></span> - <span class="property-type"><a href="#definition-String"><code>String</code></a></span></h6>
+                              </div>
+                              <div class="field-argument">
+                                <h6 class="field-argument-name"><span class="property-name"><code>useEntrypoint</code></span> - <span class="property-type"><a href="#definition-Boolean"><code>Boolean</code></a></span></h6>
+                                <p>If the container has an entrypoint, prepend it to the args.</p>
+                              </div>
+                            </div>
+                          </div>
                         </td>
                       </tr>
                       <tr class="row-has-field-arguments">
