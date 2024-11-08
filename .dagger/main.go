@@ -135,7 +135,7 @@ type GoToolchain struct {
 
 func (gtc *GoToolchain) Env() *dagger.Container {
 	return gtc.Go.Env(dagger.GoEnvOpts{
-		ExtraPackages: []string{"protoc~3.21.12"},
+		ExtraPackages: []string{"protoc~3.21.12", "curl"},
 	})
 }
 

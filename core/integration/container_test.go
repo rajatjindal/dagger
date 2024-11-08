@@ -38,11 +38,21 @@ import (
 
 type ContainerSuite struct{}
 
+type RajatSuite struct{}
+type JindalSuite struct{}
+
 func TestContainer(t *testing.T) {
 	testctx.Run(testCtx, t, ContainerSuite{}, Middleware()...)
 }
 
-func (ContainerSuite) TestScratch(ctx context.Context, t *testctx.T) {
+func TestRajat(t *testing.T) {
+	testctx.Run(testCtx, t, RajatSuite{}, Middleware()...)
+}
+
+func TestJindal(t *testing.T) {
+	testctx.Run(testCtx, t, JindalSuite{}, Middleware()...)
+}
+func (RajatSuite) TestScratch(ctx context.Context, t *testctx.T) {
 	res := struct {
 		Container struct {
 			ID     string
@@ -65,7 +75,7 @@ func (ContainerSuite) TestScratch(ctx context.Context, t *testctx.T) {
 	require.Empty(t, res.Container.Rootfs.Entries)
 }
 
-func (ContainerSuite) TestFrom(ctx context.Context, t *testctx.T) {
+func (JindalSuite) TestFrom(ctx context.Context, t *testctx.T) {
 	res := struct {
 		Container struct {
 			From struct {

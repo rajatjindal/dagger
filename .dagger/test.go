@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/google/uuid"
 	"github.com/moby/buildkit/identity"
 
 	"github.com/dagger/dagger/.dagger/internal/dagger"
@@ -102,6 +103,7 @@ func (t *Test) test(
 	args := []string{
 		"go",
 		"test",
+		"-json",
 	}
 
 	// allow verbose
@@ -114,7 +116,7 @@ func (t *Test) test(
 		"-X", "github.com/dagger/dagger/engine.Version=" + t.Dagger.Version,
 		"-X", "github.com/dagger/dagger/engine.Tag=" + t.Dagger.Tag,
 	}
-	args = append(args, "-ldflags", strings.Join(ldflags, " "))
+	args = append(args, "-ldflags", fmt.Sprintf("%q", strings.Join(ldflags, " ")))
 
 	// All following are go test flags
 	if failfast {
@@ -142,7 +144,7 @@ func (t *Test) test(
 	args = append(args, fmt.Sprintf("-count=%d", count))
 
 	if runTestRegex != "" {
-		args = append(args, "-run", runTestRegex)
+		args = append(args, "-run", fmt.Sprintf("'%s'", runTestRegex))
 	}
 
 	if skipTestRegex != "" {
@@ -156,9 +158,26 @@ func (t *Test) test(
 		return err
 	}
 
+	uuids := uuid.NewString()
+	args = append(args, "| tee json-results.txt")
+	wrapper := fmt.Sprintf(`#!/bin/bash
+%s
+exit_code=$?
+
+curl -vXPOST https://tests-dashboard.rajatjindal.com/api/run/%s \
+ 	-H "Content-Type: multipart/mixed" \
+ 	-F "results=@json-results.txt" \
+ 	-F "metadata={\"runId\":\"%s\",\"repo\":\"dagger/ci-tests\",\"branch\":\"main\",\"format\":\"gojson\", \"link\":\"http://link/to/github/actions/or/elsewhere\", \"tags\":\"tag1,tag2\"};type=application/json"
+
+exit $exit_code
+`, strings.Join(args, " "), uuids, uuids)
+
 	_, err = cmd.
 		WithEnvVariable("CGO_ENABLED", cgoEnabledEnv).
-		WithExec(args).
+		WithNewFile("/wrapper.sh", wrapper, dagger.ContainerWithNewFileOpts{
+			Permissions: 0755,
+		}).
+		WithExec([]string{"/wrapper.sh"}).
 		Sync(ctx)
 	return err
 }
