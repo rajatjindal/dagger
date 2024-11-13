@@ -1086,7 +1086,7 @@ func (CLISuite) TestDaggerUnInstall(ctx context.Context, t *testctx.T) {
 			c := connect(ctx, t)
 
 			ctr := c.Container().
-				From("alpine:latest").
+				From(alpineImage).
 				WithMountedFile(testCLIBinPath, daggerCliFile(t, c)).
 				WithWorkdir("/work/bar").
 				With(daggerExec("init", "--sdk=go", "--name=bar", "--source=.")).
@@ -1120,7 +1120,7 @@ func (f *Foo) ContainerEcho(ctx context.Context, input string) (string, error) {
 			c := connect(ctx, t)
 
 			ctr := c.Container().
-				From("alpine:latest").
+				From(alpineImage).
 				WithMountedFile(testCLIBinPath, daggerCliFile(t, c)).
 				WithWorkdir("/work/bar").
 				With(daggerExec("init", "--sdk=go", "--name=bar", "--source=.")).
@@ -1142,7 +1142,7 @@ func (f *Foo) ContainerEcho(ctx context.Context, input string) (string, error) {
 			c := connect(ctx, t)
 
 			ctr := c.Container().
-				From("alpine:latest").
+				From(alpineImage).
 				WithMountedFile(testCLIBinPath, daggerCliFile(t, c)).
 				WithWorkdir("/work/bar").
 				With(daggerExec("init", "--sdk=go", "--name=bar", "--source=.")).
@@ -1164,7 +1164,7 @@ func (f *Foo) ContainerEcho(ctx context.Context, input string) (string, error) {
 			c := connect(ctx, t)
 
 			ctr := c.Container().
-				From("alpine:latest").
+				From(alpineImage).
 				WithMountedFile(testCLIBinPath, daggerCliFile(t, c)).
 				WithWorkdir("/work/bar").
 				With(daggerExec("init", "--sdk=go", "--name=bar", "--source=.")).
@@ -1186,7 +1186,7 @@ func (f *Foo) ContainerEcho(ctx context.Context, input string) (string, error) {
 			c := connect(ctx, t)
 
 			_, err := c.Container().
-				From("alpine:latest").
+				From(alpineImage).
 				WithMountedFile(testCLIBinPath, daggerCliFile(t, c)).
 				WithWorkdir("/work/bar").
 				With(daggerExec("init", "--sdk=go", "--name=bar", "--source=.")).
@@ -1201,7 +1201,7 @@ func (f *Foo) ContainerEcho(ctx context.Context, input string) (string, error) {
 			c := connect(ctx, t)
 
 			ctr := c.Container().
-				From("alpine:latest").
+				From(alpineImage).
 				WithMountedFile(testCLIBinPath, daggerCliFile(t, c)).
 				WithWorkdir("/work/bar").
 				With(daggerExec("init", "--sdk=go", "--name=bar", "--source=.")).
@@ -1225,7 +1225,7 @@ func (f *Foo) ContainerEcho(ctx context.Context, input string) (string, error) {
 			c := connect(ctx, t)
 
 			ctr := c.Container().
-				From("alpine:latest").
+				From(alpineImage).
 				WithMountedFile(testCLIBinPath, daggerCliFile(t, c)).
 				WithWorkdir("/work/bar").
 				With(daggerExec("init", "--sdk=go", "--name=bar", "--source=.")).
@@ -1251,7 +1251,7 @@ func (f *Foo) ContainerEcho(ctx context.Context, input string) (string, error) {
 			c := connect(ctx, t)
 
 			ctr := c.Container().
-				From("alpine:latest").
+				From(alpineImage).
 				WithMountedFile(testCLIBinPath, daggerCliFile(t, c)).
 				WithWorkdir("/work").
 				With(daggerExec("init", "--sdk=go", "--name=foo", "--source=.")).
@@ -1271,7 +1271,7 @@ func (f *Foo) ContainerEcho(ctx context.Context, input string) (string, error) {
 			c := connect(ctx, t)
 
 			ctr := c.Container().
-				From("alpine:latest").
+				From(alpineImage).
 				WithMountedFile(testCLIBinPath, daggerCliFile(t, c)).
 				WithWorkdir("/work").
 				With(daggerExec("init", "--sdk=go", "--name=foo", "--source=.")).
@@ -1291,7 +1291,7 @@ func (f *Foo) ContainerEcho(ctx context.Context, input string) (string, error) {
 			c := connect(ctx, t)
 
 			ctr := c.Container().
-				From("alpine:latest").
+				From(alpineImage).
 				WithMountedFile(testCLIBinPath, daggerCliFile(t, c)).
 				WithWorkdir("/work").
 				With(daggerExec("init", "--sdk=go", "--name=foo", "--source=."))
@@ -1306,7 +1306,7 @@ func (f *Foo) ContainerEcho(ctx context.Context, input string) (string, error) {
 			c := connect(ctx, t)
 
 			ctr := c.Container().
-				From("alpine:latest").
+				From(alpineImage).
 				WithMountedFile(testCLIBinPath, daggerCliFile(t, c)).
 				WithWorkdir("/work").
 				With(daggerExec("init", "--sdk=go", "--name=foo", "--source=.")).
