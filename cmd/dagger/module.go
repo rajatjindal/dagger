@@ -350,7 +350,7 @@ var moduleUnInstallCmd = &cobra.Command{
 	Use:     "uninstall [options] <module>",
 	Short:   "Uninstall a dependency",
 	Long:    "Uninstall module as a dependency from the current module. The target module must be local.",
-	Example: "dagger uninstall github.com/shykes/daggerverse/hello",
+	Example: "dagger uninstall hello",
 	GroupID: moduleGroup.ID,
 	Args:    cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, extraArgs []string) (rerr error) {
