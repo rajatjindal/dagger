@@ -433,7 +433,7 @@ type %[1]s struct{
 
 type InbuiltName struct {}
 
-func (m *%1s]) GetInbuiltName() *InbuiltName {
+func (m *%[1]s) GetInbuiltName() *InbuiltName {
 	return &m.InbuiltName
 }
 
