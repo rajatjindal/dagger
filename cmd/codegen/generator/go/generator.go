@@ -427,15 +427,23 @@ import (
 	"%[2]s/internal/dagger"
 )
 
-type %[1]s struct{}
+type %[1]s struct{
+	InbuiltName
+}
+
+type InbuiltName struct {}
+
+func (m *%1s]) GetInbuiltName() *InbuiltName {
+	return &m.InbuiltName
+}
 
 // Returns a container that echoes whatever string argument is provided
-func (m *%[1]s) ContainerEcho(stringArg string) *dagger.Container {
+func (m *InbuiltName) ContainerEcho(stringArg string) *dagger.Container {
 	return dag.Container().From("alpine:latest").WithExec([]string{"echo", stringArg})
 }
 
 // Returns lines that match a pattern in the files of the provided Directory
-func (m *%[1]s) GrepDir(ctx context.Context, directoryArg *dagger.Directory, pattern string) (string, error) {
+func (m *InbuiltName) GrepDir(ctx context.Context, directoryArg *dagger.Directory, pattern string) (string, error) {
 	return dag.Container().
 		From("alpine:latest").
 		WithMountedDirectory("/mnt", directoryArg).

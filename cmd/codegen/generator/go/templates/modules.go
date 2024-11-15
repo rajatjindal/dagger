@@ -385,6 +385,10 @@ func invokeSrc(objFunctionCases map[string][]Code, createMod Code) string {
 	// each `case` statement for every object name, which makes up the body of the invoke func
 	objNames := []string{}
 	for objName := range objFunctionCases {
+		if objName == "InbuiltName" {
+			continue
+		}
+
 		objNames = append(objNames, objName)
 	}
 	slices.Sort(objNames)
@@ -621,6 +625,10 @@ func (ps *parseState) fillObjectFunctionCase(
 	paramSpecs []paramSpec,
 	cases map[string][]Code,
 ) error {
+	if caseName == "GetInbuiltName" || caseName == "InbuiltName" {
+		return nil
+	}
+
 	statements := []Code{}
 
 	parentVarName := "parent"
@@ -692,7 +700,7 @@ func (ps *parseState) fillObjectFunctionCase(
 
 	var callStatement *Statement
 	if sig.Recv() != nil {
-		callStatement = Parens(Op("*").Id(objName)).Dot(fnName).Call(fnCallArgs...)
+		callStatement = Parens(Op("*").Id(objName)).Dot("GetInbuiltName").Call(Op("&").Id(parentVarName)).Dot(fnName).Call(fnCallArgs[1:]...)
 	} else {
 		callStatement = Id(fnName).Call(fnCallArgs...)
 	}
