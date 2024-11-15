@@ -179,6 +179,10 @@ func (funcs goTemplateFuncs) moduleMainSrc() (string, error) { //nolint: gocyclo
 					continue
 				}
 
+				if objTypeSpec.name == "InbuiltName" {
+					continue
+				}
+
 				if err := ps.fillObjectFunctionCases(named, objFunctionCases); err != nil {
 					// errors indicate an internal problem rather than something w/ user code, so error instead
 					return "", fmt.Errorf("failed to generate function cases for %s: %w", obj.Name(), err)
@@ -388,7 +392,6 @@ func invokeSrc(objFunctionCases map[string][]Code, createMod Code) string {
 		if objName == "InbuiltName" {
 			continue
 		}
-
 		objNames = append(objNames, objName)
 	}
 	slices.Sort(objNames)

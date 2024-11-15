@@ -186,6 +186,10 @@ func (spec *parsedObjectType) TypeDefCode() (*Statement, error) {
 	typeDefCode := Qual("dag", "TypeDef").Call().Dot("WithObject").Call(withObjectArgsCode...)
 
 	for _, method := range spec.methods {
+		if method.name == "GetInbuiltName" {
+			continue
+		}
+
 		fnTypeDefCode, err := method.TypeDefCode()
 		if err != nil {
 			return nil, fmt.Errorf("failed to convert method %s to function def: %w", method.name, err)
@@ -195,6 +199,10 @@ func (spec *parsedObjectType) TypeDefCode() (*Statement, error) {
 
 	for _, field := range spec.fields {
 		if field.isPrivate {
+			continue
+		}
+
+		if field.name == "InbuiltName" {
 			continue
 		}
 
