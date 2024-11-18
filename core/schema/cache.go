@@ -63,7 +63,6 @@ func (s *cacheSchema) cacheVolume(ctx context.Context, parent dagql.Instance[*co
 
 	// taint it if no namespace is provided
 	dagql.Taint(ctx)
-	// return dagql.NewInstanceForCurrentID(ctx, s.srv, parent, core.NewCache(args.Key))
 
 	err = s.srv.Select(ctx, s.srv.Root(), &inst, dagql.Selector{
 		Field: "cacheVolume",

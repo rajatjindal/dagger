@@ -202,3 +202,61 @@ func (CacheSuite) TestCacheIdSameAcrossSession(ctx context.Context, t *testctx.T
 	require.NoError(t, err)
 	require.Equal(t, fooID, fooID2)
 }
+
+func (CacheSuite) TestCacheVolumePassedAcrossModules(ctx context.Context, t *testctx.T) {
+	session := connect(ctx, t)
+
+	fooTmpl := `package main
+	import (
+		"context"
+	)
+
+	type Foo struct {}
+	func (f *Foo) UseCacheVolume(ctx context.Context) (string, error) {
+		id, err := dag.CacheVolume("cache-name").ID(ctx)
+		return string(id), err
+	}
+
+	func (f *Foo) PassCacheVolume(ctx context.Context) (string, error) {
+		cache := dag.CacheVolume("cache-name")
+		return dag.Bar().UseCacheVolume(ctx, cache)
+	}
+	`
+
+	barTmpl := `package main
+	import (
+		"context"
+		"dagger/bar/internal/dagger"
+	)
+
+	type Bar struct {}
+	func (f *Bar) UseCacheVolume(ctx context.Context, vol *dagger.CacheVolume) (string, error) {
+		id, err := vol.ID(ctx)
+		return string(id), err
+	}
+	`
+
+	ctr := session.Container().
+		From(golangImage).
+		WithMountedFile(testCLIBinPath, daggerCliFile(t, session)).
+		WithWorkdir("/work/bar").
+		With(daggerExec("init", "--name=bar", "--source=.", "--sdk=go")).
+		WithNewFile("main.go", barTmpl).
+		WithWorkdir("/work").
+		With(daggerExec("init", "--name=foo", "--source=.", "--sdk=go")).
+		WithNewFile("main.go", fooTmpl).
+		With(daggerExec("use", "./bar"))
+
+	fooID, err := ctr.
+		WithWorkdir("/work").
+		With(daggerExec("call", "use-cache-volume")).
+		Stdout(ctx)
+	require.NoError(t, err)
+
+	fooIDViaBar, err := ctr.
+		WithWorkdir("/work").
+		With(daggerExec("call", "pass-cache-volume")).
+		Stdout(ctx)
+	require.NoError(t, err)
+	require.Equal(t, fooID, fooIDViaBar)
+}
