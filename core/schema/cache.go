@@ -3,6 +3,7 @@ package schema
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/dagger/dagger/core"
 	"github.com/dagger/dagger/dagql"
@@ -22,7 +23,6 @@ func (s *cacheSchema) Install() {
 	dagql.Fields[*core.Query]{
 		dagql.NodeFunc("cacheVolume", s.cacheVolume).
 			Doc("Constructs a cache volume for a given cache key.").
-			Impure("cacheVolume should be namespaced").
 			ArgDoc("key", `A string identifier to target this cache volume (e.g., "modules-cache").`),
 	}.Install(s.srv)
 
@@ -34,29 +34,53 @@ func (s *cacheSchema) Dependencies() []SchemaResolvers {
 }
 
 type cacheArgs struct {
-	Key string
+	Key       string
+	Namespace string `default:""`
 }
 
 func (s *cacheSchema) cacheVolume(ctx context.Context, parent dagql.Instance[*core.Query], args cacheArgs) (dagql.Instance[*core.CacheVolume], error) {
-	var inst dagql.Instance[*core.CacheVolume]
+	if args.Namespace != "" {
+		return dagql.NewInstanceForCurrentID(ctx, s.srv, parent, core.NewCache(args.Key+args.Namespace))
+	}
 
+	var inst dagql.Instance[*core.CacheVolume]
 	m, err := parent.Self.Server.CurrentModule(ctx)
 	if err != nil && !errors.Is(err, core.ErrNoCurrentModule) {
 		return inst, err
 	}
 
-	key := args.Key
+	id := ""
 	if m != nil {
-		key = m.Source.ID().Digest().String() + "-" + key
+		id = m.Source.ID().Digest().String()
 	}
 
-	return dagql.InstanceWithNewSelector(ctx, s.srv, parent, core.NewCache(key), dagql.Selector{
+	// if no source id digest, just return the NewCache based on key
+	if id == "" {
+		return dagql.NewInstanceForCurrentID(ctx, s.srv, parent, core.NewCache(args.Key))
+	}
+
+	// otherwise append namespace and call again
+
+	// taint it if no namespace is provided
+	dagql.Taint(ctx)
+	// return dagql.NewInstanceForCurrentID(ctx, s.srv, parent, core.NewCache(args.Key))
+
+	err = s.srv.Select(ctx, s.srv.Root(), &inst, dagql.Selector{
 		Field: "cacheVolume",
 		Args: []dagql.NamedInput{
 			{
 				Name:  "key",
-				Value: dagql.NewString(key),
+				Value: dagql.NewString(args.Key),
+			},
+			{
+				Name:  "namespace",
+				Value: dagql.NewString(id),
 			},
 		},
 	})
+	if err != nil {
+		return inst, fmt.Errorf("TODO A GOOD ERROR: %#v", err)
+	}
+
+	return inst, nil
 }
