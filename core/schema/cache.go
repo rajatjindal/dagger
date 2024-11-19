@@ -3,7 +3,6 @@ package schema
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"github.com/dagger/dagger/core"
 	"github.com/dagger/dagger/dagql"
@@ -80,7 +79,7 @@ func (s *cacheSchema) cacheVolume(ctx context.Context, parent dagql.Instance[*co
 		},
 	})
 	if err != nil {
-		return inst, fmt.Errorf("TODO A GOOD ERROR: %#v", err)
+		return inst, err
 	}
 
 	return inst, nil
