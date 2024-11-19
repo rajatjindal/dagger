@@ -260,3 +260,56 @@ func (CacheSuite) TestCacheVolumePassedAcrossModules(ctx context.Context, t *tes
 	require.NoError(t, err)
 	require.Equal(t, fooID, fooIDViaBar)
 }
+
+func (CacheSuite) TestCacheNotImpactedByChangeInModuleSource(ctx context.Context, t *testctx.T) {
+	session := connect(ctx, t)
+
+	fooTmpl := `package main
+	import (
+		"context"
+	)
+
+	type Foo struct {}
+	func (f *Foo) UseCacheVolume(ctx context.Context) (string, error) {
+		id, err := dag.CacheVolume("cache-name").ID(ctx)
+		return string(id), err
+	}
+	`
+
+	barTmpl := `package main
+	import (
+		"context"
+	)
+
+	type Foo struct {}
+	func (f *Foo) UseCacheVolume(ctx context.Context) (string, error) {
+		id, err := dag.CacheVolume("cache-name").ID(ctx)
+		return string(id), err
+	}
+
+	func (f *Foo) PassCacheVolume(ctx context.Context) (string, error) {
+		return f.UseCacheVolume(ctx)
+	}
+	`
+
+	ctr := session.Container().
+		From(golangImage).
+		WithMountedFile(testCLIBinPath, daggerCliFile(t, session)).
+		WithWorkdir("/work").
+		With(daggerExec("init", "--name=foo", "--source=.", "--sdk=go"))
+
+	fooID, err := ctr.
+		WithWorkdir("/work").
+		WithNewFile("main.go", fooTmpl).
+		With(daggerExec("call", "use-cache-volume")).
+		Stdout(ctx)
+	require.NoError(t, err)
+
+	fooID2, err := ctr.WithWorkdir("/work").
+		WithNewFile("main.go", barTmpl).
+		With(daggerExec("call", "use-cache-volume")).
+		Stdout(ctx)
+	require.NoError(t, err)
+
+	require.Equal(t, fooID, fooID2)
+}

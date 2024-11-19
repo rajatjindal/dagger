@@ -739,6 +739,10 @@ export type DirectoryWithNewFileOpts = {
  */
 export type DirectoryID = string & { __DirectoryID: never }
 
+export type EngineCacheEntrySetOpts = {
+  key?: string
+}
+
 /**
  * The `EngineCacheEntryID` scalar type represents an identifier for an object of type EngineCacheEntry.
  */
@@ -1093,6 +1097,10 @@ export type PortForward = {
  * The `PortID` scalar type represents an identifier for an object of type Port.
  */
 export type PortID = string & { __PortID: never }
+
+export type ClientCacheVolumeOpts = {
+  namespace?: string
+}
 
 export type ClientContainerOpts = {
   /**
@@ -3814,12 +3822,13 @@ export class EngineCache extends BaseClient {
   /**
    * The current set of entries in the cache
    */
-  entrySet = (): EngineCacheEntrySet => {
+  entrySet = (opts?: EngineCacheEntrySetOpts): EngineCacheEntrySet => {
     return new EngineCacheEntrySet({
       queryTree: [
         ...this._queryTree,
         {
           operation: "entrySet",
+          args: { ...opts },
         },
       ],
       ctx: this._ctx,
@@ -8677,13 +8686,13 @@ export class Client extends BaseClient {
    * Constructs a cache volume for a given cache key.
    * @param key A string identifier to target this cache volume (e.g., "modules-cache").
    */
-  cacheVolume = (key: string): CacheVolume => {
+  cacheVolume = (key: string, opts?: ClientCacheVolumeOpts): CacheVolume => {
     return new CacheVolume({
       queryTree: [
         ...this._queryTree,
         {
           operation: "cacheVolume",
-          args: { key },
+          args: { key, ...opts },
         },
       ],
       ctx: this._ctx,

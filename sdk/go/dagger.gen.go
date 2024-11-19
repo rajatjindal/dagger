@@ -2632,9 +2632,20 @@ func (r *EngineCache) WithGraphQLQuery(q *querybuilder.Selection) *EngineCache {
 	}
 }
 
+// EngineCacheEntrySetOpts contains options for EngineCache.EntrySet
+type EngineCacheEntrySetOpts struct {
+	Key string
+}
+
 // The current set of entries in the cache
-func (r *EngineCache) EntrySet() *EngineCacheEntrySet {
+func (r *EngineCache) EntrySet(opts ...EngineCacheEntrySetOpts) *EngineCacheEntrySet {
 	q := r.query.Select("entrySet")
+	for i := len(opts) - 1; i >= 0; i-- {
+		// `key` optional argument
+		if !querybuilder.IsZeroValue(opts[i].Key) {
+			q = q.Arg("key", opts[i].Key)
+		}
+	}
 
 	return &EngineCacheEntrySet{
 		query: q,
@@ -6703,9 +6714,20 @@ func (r *Client) BuiltinContainer(digest string) *Container {
 	}
 }
 
+// CacheVolumeOpts contains options for Client.CacheVolume
+type CacheVolumeOpts struct {
+	Namespace string
+}
+
 // Constructs a cache volume for a given cache key.
-func (r *Client) CacheVolume(key string) *CacheVolume {
+func (r *Client) CacheVolume(key string, opts ...CacheVolumeOpts) *CacheVolume {
 	q := r.query.Select("cacheVolume")
+	for i := len(opts) - 1; i >= 0; i-- {
+		// `namespace` optional argument
+		if !querybuilder.IsZeroValue(opts[i].Namespace) {
+			q = q.Arg("namespace", opts[i].Namespace)
+		}
+	}
 	q = q.Arg("key", key)
 
 	return &CacheVolume{

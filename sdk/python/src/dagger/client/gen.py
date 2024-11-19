@@ -2921,9 +2921,11 @@ class Engine(Type):
 class EngineCache(Type):
     """A cache storage for the Dagger engine"""
 
-    def entry_set(self) -> "EngineCacheEntrySet":
+    def entry_set(self, *, key: str | None = "") -> "EngineCacheEntrySet":
         """The current set of entries in the cache"""
-        _args: list[Arg] = []
+        _args = [
+            Arg("key", key, ""),
+        ]
         _ctx = self._select("entrySet", _args)
         return EngineCacheEntrySet(_ctx)
 
@@ -6806,7 +6808,12 @@ class Client(Root):
         _ctx = self._select("builtinContainer", _args)
         return Container(_ctx)
 
-    def cache_volume(self, key: str) -> CacheVolume:
+    def cache_volume(
+        self,
+        key: str,
+        *,
+        namespace: str | None = "",
+    ) -> CacheVolume:
         """Constructs a cache volume for a given cache key.
 
         Parameters
@@ -6814,9 +6821,11 @@ class Client(Root):
         key:
             A string identifier to target this cache volume (e.g., "modules-
             cache").
+        namespace:
         """
         _args = [
             Arg("key", key),
+            Arg("namespace", namespace, ""),
         ]
         _ctx = self._select("cacheVolume", _args)
         return CacheVolume(_ctx)

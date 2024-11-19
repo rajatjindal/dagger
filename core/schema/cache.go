@@ -49,18 +49,20 @@ func (s *cacheSchema) cacheVolume(ctx context.Context, parent dagql.Instance[*co
 		return inst, err
 	}
 
-	id := ""
+	namespaceKey := ""
 	if m != nil {
-		id = m.Source.ID().Digest().String()
+		namespaceKey, err = m.Source.Self.ModuleName(ctx)
+		if err != nil {
+			return inst, err
+		}
 	}
 
-	// if no source id digest, just return the NewCache based on key
-	if id == "" {
+	// if no namespace key, just return the NewCache based on key
+	if namespaceKey == "" {
 		return dagql.NewInstanceForCurrentID(ctx, s.srv, parent, core.NewCache(args.Key))
 	}
 
 	// otherwise append namespace and call again
-
 	// taint it if no namespace is provided
 	dagql.Taint(ctx)
 
@@ -73,7 +75,7 @@ func (s *cacheSchema) cacheVolume(ctx context.Context, parent dagql.Instance[*co
 			},
 			{
 				Name:  "namespace",
-				Value: dagql.NewString(id),
+				Value: dagql.NewString(namespaceKey),
 			},
 		},
 	})
