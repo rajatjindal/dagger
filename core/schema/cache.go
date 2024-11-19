@@ -50,10 +50,26 @@ func (s *cacheSchema) cacheVolume(ctx context.Context, parent dagql.Instance[*co
 
 	namespaceKey := ""
 	if m != nil {
-		namespaceKey, err = m.Source.Self.ModuleName(ctx)
+		name, err := m.Source.Self.ModuleName(ctx)
 		if err != nil {
 			return inst, err
 		}
+
+		bk, err := m.Source.Self.Query.Buildkit(ctx)
+		if err != nil {
+			return inst, err
+		}
+
+		refString, err := m.Source.Self.RefString()
+		if err != nil {
+			return inst, err
+		}
+		parsedRef := parseRefString(ctx, bk, refString)
+
+		// use both name and modPath as namespace key
+		// there is a high chance for namespace key conflict if we only use name
+		// and high chance of cache-miss if we use module source digest for namespace key
+		namespaceKey = name + parsedRef.modPath
 	}
 
 	// if no namespace key, just return the NewCache based on key
