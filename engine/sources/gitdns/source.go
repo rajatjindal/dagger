@@ -449,6 +449,19 @@ func (gs *gitSourceHandler) CacheKey(ctx context.Context, g session.Group, index
 		return "", "", nil, false, errors.Errorf("invalid commit sha %q", sha)
 	}
 
+	if sock != "" {
+		u, err := url.Parse(gs.src.Remote)
+		if err != nil {
+			return "", "", nil, false, err
+		}
+
+		//git config --local url."git@github.com:".insteadOf "https://github.com/"
+		_, err = git.run(ctx, "config", "--global", fmt.Sprintf(`url."ssh://git@%s:".insteadOf`, u.Host), fmt.Sprintf(`"https://%s/"`, u.Host))
+		if err != nil {
+			return "", "", nil, false, err
+		}
+	}
+
 	cacheKey := gs.shaToCacheKey(sha)
 	gs.cacheKey = cacheKey
 	return cacheKey, sha, nil, true, nil
