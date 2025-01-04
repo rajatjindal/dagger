@@ -404,6 +404,16 @@ func (sdk *goSDK) Codegen(
 		return nil, err
 	}
 
+	bk, err := source.Self.Query.Buildkit(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	gitconfig, err := bk.GetGitConfig(ctx)
+	if err != nil {
+		return nil, err
+	}
+
 	var modifiedSrcDir dagql.Instance[*core.Directory]
 	if err := sdk.dag.Select(ctx, ctr, &modifiedSrcDir, dagql.Selector{
 		Field: "directory",
@@ -413,7 +423,20 @@ func (sdk *goSDK) Codegen(
 				Value: dagql.String(goSDKUserModContextDirPath),
 			},
 		},
-	}); err != nil {
+	},
+		dagql.Selector{
+			Field: "withNewFile",
+			Args: []dagql.NamedInput{
+				{
+					Name:  "path",
+					Value: dagql.String(filepath.Join(goSDKUserModContextDirPath, ".gitconfig")),
+				},
+				{
+					Name:  "contents",
+					Value: dagql.String(gitconfig),
+				},
+			},
+		}); err != nil {
 		return nil, fmt.Errorf("failed to get modified source directory for go module sdk codegen: %w", err)
 	}
 

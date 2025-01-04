@@ -102,8 +102,11 @@ func (s GitConfigAttachable) GetGitConfig(ctx context.Context, req *GitCredentia
 	// }
 
 	return &GitConfigResponse{
-		Result: &GitConfigResponse_Content{
-			Content: "",
+		Result: &GitConfigResponse_X{
+			X: &GitConfigX{
+				Content:   "this is content",
+				Goprivate: "this is goprivate",
+			},
 		},
 	}, nil
 }

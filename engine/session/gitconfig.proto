@@ -12,9 +12,14 @@ message GitConfigRequest {
 
 message GitConfigResponse {
   oneof result {
-    string content = 1;
+    GitConfigX x = 1;
     GitConfigErrorInfo error = 2;
   }
+}
+
+message GitConfigX {
+  string content = 1;
+  string goprivate = 2;
 }
 
 message GitConfigErrorInfo {

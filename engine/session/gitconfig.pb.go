@@ -56,7 +56,7 @@ var GitConfigErrorInfo_GitConfigErrorType_value = map[string]int32{
 }
 
 func (GitConfigErrorInfo_GitConfigErrorType) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_16928719a32a618c, []int{2, 0}
+	return fileDescriptor_16928719a32a618c, []int{3, 0}
 }
 
 type GitConfigRequest struct {
@@ -104,7 +104,7 @@ func (m *GitConfigRequest) GetProtocol() string {
 
 type GitConfigResponse struct {
 	// Types that are valid to be assigned to Result:
-	//	*GitConfigResponse_Content
+	//	*GitConfigResponse_X
 	//	*GitConfigResponse_Error
 	Result isGitConfigResponse_Result `protobuf_oneof:"result"`
 }
@@ -148,15 +148,15 @@ type isGitConfigResponse_Result interface {
 	Size() int
 }
 
-type GitConfigResponse_Content struct {
-	Content string `protobuf:"bytes,1,opt,name=content,proto3,oneof" json:"content,omitempty"`
+type GitConfigResponse_X struct {
+	X *GitConfigX `protobuf:"bytes,1,opt,name=x,proto3,oneof" json:"x,omitempty"`
 }
 type GitConfigResponse_Error struct {
 	Error *GitConfigErrorInfo `protobuf:"bytes,2,opt,name=error,proto3,oneof" json:"error,omitempty"`
 }
 
-func (*GitConfigResponse_Content) isGitConfigResponse_Result() {}
-func (*GitConfigResponse_Error) isGitConfigResponse_Result()   {}
+func (*GitConfigResponse_X) isGitConfigResponse_Result()     {}
+func (*GitConfigResponse_Error) isGitConfigResponse_Result() {}
 
 func (m *GitConfigResponse) GetResult() isGitConfigResponse_Result {
 	if m != nil {
@@ -165,11 +165,11 @@ func (m *GitConfigResponse) GetResult() isGitConfigResponse_Result {
 	return nil
 }
 
-func (m *GitConfigResponse) GetContent() string {
-	if x, ok := m.GetResult().(*GitConfigResponse_Content); ok {
-		return x.Content
+func (m *GitConfigResponse) GetX() *GitConfigX {
+	if x, ok := m.GetResult().(*GitConfigResponse_X); ok {
+		return x.X
 	}
-	return ""
+	return nil
 }
 
 func (m *GitConfigResponse) GetError() *GitConfigErrorInfo {
@@ -182,9 +182,60 @@ func (m *GitConfigResponse) GetError() *GitConfigErrorInfo {
 // XXX_OneofWrappers is for the internal use of the proto package.
 func (*GitConfigResponse) XXX_OneofWrappers() []interface{} {
 	return []interface{}{
-		(*GitConfigResponse_Content)(nil),
+		(*GitConfigResponse_X)(nil),
 		(*GitConfigResponse_Error)(nil),
 	}
+}
+
+type GitConfigX struct {
+	Content   string `protobuf:"bytes,1,opt,name=content,proto3" json:"content,omitempty"`
+	Goprivate string `protobuf:"bytes,2,opt,name=goprivate,proto3" json:"goprivate,omitempty"`
+}
+
+func (m *GitConfigX) Reset()      { *m = GitConfigX{} }
+func (*GitConfigX) ProtoMessage() {}
+func (*GitConfigX) Descriptor() ([]byte, []int) {
+	return fileDescriptor_16928719a32a618c, []int{2}
+}
+func (m *GitConfigX) XXX_Unmarshal(b []byte) error {
+	return m.Unmarshal(b)
+}
+func (m *GitConfigX) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	if deterministic {
+		return xxx_messageInfo_GitConfigX.Marshal(b, m, deterministic)
+	} else {
+		b = b[:cap(b)]
+		n, err := m.MarshalToSizedBuffer(b)
+		if err != nil {
+			return nil, err
+		}
+		return b[:n], nil
+	}
+}
+func (m *GitConfigX) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GitConfigX.Merge(m, src)
+}
+func (m *GitConfigX) XXX_Size() int {
+	return m.Size()
+}
+func (m *GitConfigX) XXX_DiscardUnknown() {
+	xxx_messageInfo_GitConfigX.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GitConfigX proto.InternalMessageInfo
+
+func (m *GitConfigX) GetContent() string {
+	if m != nil {
+		return m.Content
+	}
+	return ""
+}
+
+func (m *GitConfigX) GetGoprivate() string {
+	if m != nil {
+		return m.Goprivate
+	}
+	return ""
 }
 
 type GitConfigErrorInfo struct {
@@ -195,7 +246,7 @@ type GitConfigErrorInfo struct {
 func (m *GitConfigErrorInfo) Reset()      { *m = GitConfigErrorInfo{} }
 func (*GitConfigErrorInfo) ProtoMessage() {}
 func (*GitConfigErrorInfo) Descriptor() ([]byte, []int) {
-	return fileDescriptor_16928719a32a618c, []int{2}
+	return fileDescriptor_16928719a32a618c, []int{3}
 }
 func (m *GitConfigErrorInfo) XXX_Unmarshal(b []byte) error {
 	return m.Unmarshal(b)
@@ -242,38 +293,41 @@ func init() {
 	proto.RegisterEnum("GitConfigErrorInfo_GitConfigErrorType", GitConfigErrorInfo_GitConfigErrorType_name, GitConfigErrorInfo_GitConfigErrorType_value)
 	proto.RegisterType((*GitConfigRequest)(nil), "GitConfigRequest")
 	proto.RegisterType((*GitConfigResponse)(nil), "GitConfigResponse")
+	proto.RegisterType((*GitConfigX)(nil), "GitConfigX")
 	proto.RegisterType((*GitConfigErrorInfo)(nil), "GitConfigErrorInfo")
 }
 
 func init() { proto.RegisterFile("gitconfig.proto", fileDescriptor_16928719a32a618c) }
 
 var fileDescriptor_16928719a32a618c = []byte{
-	// 390 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x6c, 0x91, 0x41, 0x8b, 0xd3, 0x40,
-	0x14, 0xc7, 0x67, 0xd6, 0x75, 0xbb, 0x79, 0xe2, 0x9a, 0x1d, 0x41, 0x4a, 0x0f, 0xc3, 0x92, 0x83,
-	0x2c, 0x08, 0x39, 0xc4, 0x9b, 0x20, 0xd2, 0xcd, 0xa6, 0xd3, 0xc1, 0x9a, 0xe0, 0x98, 0x56, 0xf0,
-	0x32, 0x68, 0x99, 0x96, 0x40, 0xcd, 0xc4, 0xcc, 0xf4, 0xd0, 0x93, 0x7e, 0x04, 0x3f, 0x86, 0x1f,
-	0xc5, 0x63, 0x8f, 0x3d, 0xda, 0xf4, 0x22, 0x78, 0xe9, 0x47, 0x90, 0xa6, 0xb6, 0x48, 0xbb, 0xc7,
-	0xff, 0xff, 0xfd, 0x7f, 0xef, 0x3d, 0xf8, 0xc3, 0xa3, 0x71, 0x66, 0x87, 0x3a, 0x1f, 0x65, 0x63,
-	0xbf, 0x28, 0xb5, 0xd5, 0x9e, 0x0f, 0x2e, 0xcb, 0x6c, 0x58, 0x5b, 0x42, 0x7d, 0x99, 0x2a, 0x63,
-	0x49, 0x0b, 0xce, 0xeb, 0xe1, 0x50, 0x4f, 0x9a, 0xf8, 0x0a, 0x5f, 0x3b, 0x62, 0xaf, 0xbd, 0x11,
-	0x5c, 0xfe, 0x97, 0x37, 0x85, 0xce, 0x8d, 0x22, 0x2d, 0x68, 0x0c, 0x75, 0x6e, 0x55, 0x6e, 0xb7,
-	0xf9, 0x2e, 0x12, 0x3b, 0x83, 0x3c, 0x83, 0xfb, 0xaa, 0x2c, 0x75, 0xd9, 0x3c, 0xb9, 0xc2, 0xd7,
-	0x0f, 0x82, 0xc7, 0xfe, 0x1e, 0x8f, 0x36, 0x36, 0xcf, 0x47, 0xba, 0x8b, 0xc4, 0x36, 0x73, 0x73,
-	0x0e, 0x67, 0xa5, 0x32, 0xd3, 0x89, 0xf5, 0xfe, 0x60, 0x20, 0xc7, 0x49, 0xf2, 0x02, 0x4e, 0xed,
-	0xac, 0x50, 0xf5, 0x99, 0x8b, 0xe0, 0xe9, 0x1d, 0xcb, 0x0e, 0xac, 0x74, 0x56, 0x28, 0x51, 0x33,
-	0xa4, 0x09, 0x8d, 0xcf, 0xca, 0x98, 0x8f, 0x63, 0x55, 0xff, 0xe2, 0x88, 0x9d, 0xf4, 0xbe, 0x1e,
-	0xde, 0xda, 0x50, 0xe4, 0x02, 0x80, 0x85, 0xb2, 0x1f, 0xbf, 0x8e, 0x93, 0xf7, 0xb1, 0x8b, 0xc8,
-	0x13, 0x20, 0x2c, 0x94, 0x3c, 0x1e, 0xb4, 0x7b, 0xfc, 0x56, 0x8a, 0xe8, 0x6d, 0x3f, 0x7a, 0x97,
-	0xba, 0x98, 0x3c, 0x04, 0x87, 0x85, 0x32, 0x4e, 0x24, 0xe3, 0xa9, 0x7b, 0xf2, 0x0f, 0x4b, 0xf9,
-	0x9b, 0x28, 0xe9, 0xa7, 0xee, 0x3d, 0xe2, 0x01, 0x65, 0xe1, 0x66, 0x26, 0xc3, 0x24, 0xee, 0x70,
-	0x26, 0x45, 0x94, 0x0a, 0x1e, 0x0d, 0xda, 0x3d, 0xd9, 0x69, 0xf3, 0x5e, 0x74, 0xeb, 0x9e, 0x06,
-	0xaf, 0xc0, 0xd9, 0x3f, 0x40, 0x02, 0x70, 0x98, 0xda, 0x89, 0x4b, 0xff, 0xb0, 0x9e, 0x16, 0xf1,
-	0x8f, 0x1a, 0xb8, 0x79, 0x39, 0x5f, 0x52, 0xb4, 0x58, 0x52, 0xb4, 0x5e, 0x52, 0xfc, 0xad, 0xa2,
-	0xf8, 0x47, 0x45, 0xf1, 0xcf, 0x8a, 0xe2, 0x79, 0x45, 0xf1, 0xaf, 0x8a, 0xe2, 0xdf, 0x15, 0x45,
-	0xeb, 0x8a, 0xe2, 0xef, 0x2b, 0x8a, 0xe6, 0x2b, 0x8a, 0x16, 0x2b, 0x8a, 0x3e, 0x34, 0x8c, 0x32,
-	0x26, 0xd3, 0xf9, 0xa7, 0xb3, 0xba, 0xdf, 0xe7, 0x7f, 0x03, 0x00, 0x00, 0xff, 0xff, 0x4d, 0xea,
-	0xa9, 0x21, 0x1f, 0x02, 0x00, 0x00,
+	// 417 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x6c, 0x52, 0xcf, 0x6a, 0xd4, 0x40,
+	0x1c, 0x9e, 0xa9, 0xb5, 0x6d, 0x7e, 0xc5, 0x9a, 0x8e, 0x20, 0x4b, 0x95, 0x41, 0x72, 0x10, 0x41,
+	0xc8, 0x61, 0xbd, 0x09, 0x22, 0xdb, 0x6c, 0x3a, 0x1d, 0x5c, 0xb3, 0x38, 0x66, 0xab, 0x78, 0x19,
+	0xea, 0x32, 0x0d, 0x81, 0x9a, 0x89, 0x99, 0xa9, 0xb4, 0x27, 0x7d, 0x04, 0x1f, 0xc3, 0x47, 0xf1,
+	0xb8, 0xc7, 0x1e, 0xdd, 0xec, 0x45, 0xf0, 0xd2, 0x47, 0x90, 0x8c, 0xcd, 0xae, 0xec, 0xf6, 0xf8,
+	0xfd, 0x9b, 0xef, 0x83, 0xdf, 0xc0, 0xdd, 0x2c, 0xb7, 0x63, 0x5d, 0x9c, 0xe4, 0x59, 0x58, 0x56,
+	0xda, 0xea, 0x20, 0x04, 0x9f, 0xe5, 0x36, 0x72, 0x94, 0x50, 0x9f, 0xcf, 0x94, 0xb1, 0x64, 0x0f,
+	0xb6, 0x9c, 0x38, 0xd6, 0xa7, 0x1d, 0xfc, 0x08, 0x3f, 0xf1, 0xc4, 0x1c, 0x07, 0x19, 0xec, 0xfe,
+	0xe7, 0x37, 0xa5, 0x2e, 0x8c, 0x22, 0x0f, 0x00, 0x9f, 0x3b, 0xe7, 0x76, 0x77, 0x3b, 0x9c, 0xcb,
+	0xef, 0x0f, 0x91, 0xc0, 0xe7, 0xe4, 0x29, 0xdc, 0x56, 0x55, 0xa5, 0xab, 0xce, 0x9a, 0x33, 0xdc,
+	0x5b, 0x18, 0xe2, 0x86, 0xe6, 0xc5, 0x89, 0x3e, 0x44, 0xe2, 0x9f, 0x67, 0x7f, 0x0b, 0x36, 0x2a,
+	0x65, 0xce, 0x4e, 0x6d, 0xd0, 0x07, 0x58, 0xbc, 0x44, 0x3a, 0xb0, 0x39, 0xd6, 0x85, 0x55, 0x85,
+	0xbd, 0x5e, 0xd4, 0x42, 0xf2, 0x10, 0xbc, 0x4c, 0x97, 0x55, 0xfe, 0xe5, 0xd8, 0x2a, 0x57, 0xe1,
+	0x89, 0x05, 0x11, 0xfc, 0xc1, 0x40, 0x56, 0xfb, 0xc8, 0x73, 0x58, 0xb7, 0x17, 0xa5, 0x72, 0x6f,
+	0xed, 0x74, 0x1f, 0xdf, 0x30, 0x69, 0x89, 0x4a, 0x2f, 0x4a, 0x25, 0x5c, 0xa6, 0x99, 0xf2, 0x49,
+	0x19, 0x73, 0x9c, 0xb5, 0x75, 0x2d, 0x0c, 0xbe, 0x2e, 0x77, 0x35, 0x29, 0xb2, 0x03, 0xc0, 0x22,
+	0x39, 0x4a, 0x5e, 0x25, 0xc3, 0x77, 0x89, 0x8f, 0xc8, 0x7d, 0x20, 0x2c, 0x92, 0x3c, 0x39, 0xea,
+	0x0d, 0x78, 0x5f, 0x8a, 0xf8, 0xcd, 0x28, 0x7e, 0x9b, 0xfa, 0x98, 0xdc, 0x01, 0x8f, 0x45, 0x32,
+	0x19, 0x4a, 0xc6, 0x53, 0x7f, 0xed, 0x3a, 0x96, 0xf2, 0xd7, 0xf1, 0x70, 0x94, 0xfa, 0xb7, 0x48,
+	0x00, 0x94, 0x45, 0x8d, 0x26, 0xa3, 0x61, 0x72, 0xc0, 0x99, 0x14, 0x71, 0x2a, 0x78, 0x7c, 0xd4,
+	0x1b, 0xc8, 0x83, 0x1e, 0x1f, 0xc4, 0x7d, 0x7f, 0xbd, 0xfb, 0x12, 0xbc, 0xf9, 0x00, 0xd2, 0x05,
+	0x8f, 0xa9, 0x16, 0xec, 0x86, 0xcb, 0x57, 0xde, 0x23, 0xe1, 0xca, 0x21, 0xf7, 0x5f, 0x4c, 0xa6,
+	0x14, 0x5d, 0x4e, 0x29, 0xba, 0x9a, 0x52, 0xfc, 0xad, 0xa6, 0xf8, 0x47, 0x4d, 0xf1, 0xcf, 0x9a,
+	0xe2, 0x49, 0x4d, 0xf1, 0xaf, 0x9a, 0xe2, 0xdf, 0x35, 0x45, 0x57, 0x35, 0xc5, 0xdf, 0x67, 0x14,
+	0x4d, 0x66, 0x14, 0x5d, 0xce, 0x28, 0xfa, 0xb0, 0x69, 0x94, 0x31, 0xb9, 0x2e, 0x3e, 0x6e, 0xb8,
+	0x6f, 0xf2, 0xec, 0x6f, 0x00, 0x00, 0x00, 0xff, 0xff, 0x34, 0xdf, 0x54, 0x9a, 0x66, 0x02, 0x00,
+	0x00,
 }
 
 func (x GitConfigErrorInfo_GitConfigErrorType) String() string {
@@ -337,14 +391,14 @@ func (this *GitConfigResponse) Equal(that interface{}) bool {
 	}
 	return true
 }
-func (this *GitConfigResponse_Content) Equal(that interface{}) bool {
+func (this *GitConfigResponse_X) Equal(that interface{}) bool {
 	if that == nil {
 		return this == nil
 	}
 
-	that1, ok := that.(*GitConfigResponse_Content)
+	that1, ok := that.(*GitConfigResponse_X)
 	if !ok {
-		that2, ok := that.(GitConfigResponse_Content)
+		that2, ok := that.(GitConfigResponse_X)
 		if ok {
 			that1 = &that2
 		} else {
@@ -356,7 +410,7 @@ func (this *GitConfigResponse_Content) Equal(that interface{}) bool {
 	} else if this == nil {
 		return false
 	}
-	if this.Content != that1.Content {
+	if !this.X.Equal(that1.X) {
 		return false
 	}
 	return true
@@ -381,6 +435,33 @@ func (this *GitConfigResponse_Error) Equal(that interface{}) bool {
 		return false
 	}
 	if !this.Error.Equal(that1.Error) {
+		return false
+	}
+	return true
+}
+func (this *GitConfigX) Equal(that interface{}) bool {
+	if that == nil {
+		return this == nil
+	}
+
+	that1, ok := that.(*GitConfigX)
+	if !ok {
+		that2, ok := that.(GitConfigX)
+		if ok {
+			that1 = &that2
+		} else {
+			return false
+		}
+	}
+	if that1 == nil {
+		return this == nil
+	} else if this == nil {
+		return false
+	}
+	if this.Content != that1.Content {
+		return false
+	}
+	if this.Goprivate != that1.Goprivate {
 		return false
 	}
 	return true
@@ -434,12 +515,12 @@ func (this *GitConfigResponse) GoString() string {
 	s = append(s, "}")
 	return strings.Join(s, "")
 }
-func (this *GitConfigResponse_Content) GoString() string {
+func (this *GitConfigResponse_X) GoString() string {
 	if this == nil {
 		return "nil"
 	}
-	s := strings.Join([]string{`&session.GitConfigResponse_Content{` +
-		`Content:` + fmt.Sprintf("%#v", this.Content) + `}`}, ", ")
+	s := strings.Join([]string{`&session.GitConfigResponse_X{` +
+		`X:` + fmt.Sprintf("%#v", this.X) + `}`}, ", ")
 	return s
 }
 func (this *GitConfigResponse_Error) GoString() string {
@@ -449,6 +530,17 @@ func (this *GitConfigResponse_Error) GoString() string {
 	s := strings.Join([]string{`&session.GitConfigResponse_Error{` +
 		`Error:` + fmt.Sprintf("%#v", this.Error) + `}`}, ", ")
 	return s
+}
+func (this *GitConfigX) GoString() string {
+	if this == nil {
+		return "nil"
+	}
+	s := make([]string, 0, 6)
+	s = append(s, "&session.GitConfigX{")
+	s = append(s, "Content: "+fmt.Sprintf("%#v", this.Content)+",\n")
+	s = append(s, "Goprivate: "+fmt.Sprintf("%#v", this.Goprivate)+",\n")
+	s = append(s, "}")
+	return strings.Join(s, "")
 }
 func (this *GitConfigErrorInfo) GoString() string {
 	if this == nil {
@@ -612,18 +704,25 @@ func (m *GitConfigResponse) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	return len(dAtA) - i, nil
 }
 
-func (m *GitConfigResponse_Content) MarshalTo(dAtA []byte) (int, error) {
+func (m *GitConfigResponse_X) MarshalTo(dAtA []byte) (int, error) {
 	size := m.Size()
 	return m.MarshalToSizedBuffer(dAtA[:size])
 }
 
-func (m *GitConfigResponse_Content) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+func (m *GitConfigResponse_X) MarshalToSizedBuffer(dAtA []byte) (int, error) {
 	i := len(dAtA)
-	i -= len(m.Content)
-	copy(dAtA[i:], m.Content)
-	i = encodeVarintGitconfig(dAtA, i, uint64(len(m.Content)))
-	i--
-	dAtA[i] = 0xa
+	if m.X != nil {
+		{
+			size, err := m.X.MarshalToSizedBuffer(dAtA[:i])
+			if err != nil {
+				return 0, err
+			}
+			i -= size
+			i = encodeVarintGitconfig(dAtA, i, uint64(size))
+		}
+		i--
+		dAtA[i] = 0xa
+	}
 	return len(dAtA) - i, nil
 }
 func (m *GitConfigResponse_Error) MarshalTo(dAtA []byte) (int, error) {
@@ -647,6 +746,43 @@ func (m *GitConfigResponse_Error) MarshalToSizedBuffer(dAtA []byte) (int, error)
 	}
 	return len(dAtA) - i, nil
 }
+func (m *GitConfigX) Marshal() (dAtA []byte, err error) {
+	size := m.Size()
+	dAtA = make([]byte, size)
+	n, err := m.MarshalToSizedBuffer(dAtA[:size])
+	if err != nil {
+		return nil, err
+	}
+	return dAtA[:n], nil
+}
+
+func (m *GitConfigX) MarshalTo(dAtA []byte) (int, error) {
+	size := m.Size()
+	return m.MarshalToSizedBuffer(dAtA[:size])
+}
+
+func (m *GitConfigX) MarshalToSizedBuffer(dAtA []byte) (int, error) {
+	i := len(dAtA)
+	_ = i
+	var l int
+	_ = l
+	if len(m.Goprivate) > 0 {
+		i -= len(m.Goprivate)
+		copy(dAtA[i:], m.Goprivate)
+		i = encodeVarintGitconfig(dAtA, i, uint64(len(m.Goprivate)))
+		i--
+		dAtA[i] = 0x12
+	}
+	if len(m.Content) > 0 {
+		i -= len(m.Content)
+		copy(dAtA[i:], m.Content)
+		i = encodeVarintGitconfig(dAtA, i, uint64(len(m.Content)))
+		i--
+		dAtA[i] = 0xa
+	}
+	return len(dAtA) - i, nil
+}
+
 func (m *GitConfigErrorInfo) Marshal() (dAtA []byte, err error) {
 	size := m.Size()
 	dAtA = make([]byte, size)
@@ -718,14 +854,16 @@ func (m *GitConfigResponse) Size() (n int) {
 	return n
 }
 
-func (m *GitConfigResponse_Content) Size() (n int) {
+func (m *GitConfigResponse_X) Size() (n int) {
 	if m == nil {
 		return 0
 	}
 	var l int
 	_ = l
-	l = len(m.Content)
-	n += 1 + l + sovGitconfig(uint64(l))
+	if m.X != nil {
+		l = m.X.Size()
+		n += 1 + l + sovGitconfig(uint64(l))
+	}
 	return n
 }
 func (m *GitConfigResponse_Error) Size() (n int) {
@@ -740,6 +878,23 @@ func (m *GitConfigResponse_Error) Size() (n int) {
 	}
 	return n
 }
+func (m *GitConfigX) Size() (n int) {
+	if m == nil {
+		return 0
+	}
+	var l int
+	_ = l
+	l = len(m.Content)
+	if l > 0 {
+		n += 1 + l + sovGitconfig(uint64(l))
+	}
+	l = len(m.Goprivate)
+	if l > 0 {
+		n += 1 + l + sovGitconfig(uint64(l))
+	}
+	return n
+}
+
 func (m *GitConfigErrorInfo) Size() (n int) {
 	if m == nil {
 		return 0
@@ -782,12 +937,12 @@ func (this *GitConfigResponse) String() string {
 	}, "")
 	return s
 }
-func (this *GitConfigResponse_Content) String() string {
+func (this *GitConfigResponse_X) String() string {
 	if this == nil {
 		return "nil"
 	}
-	s := strings.Join([]string{`&GitConfigResponse_Content{`,
-		`Content:` + fmt.Sprintf("%v", this.Content) + `,`,
+	s := strings.Join([]string{`&GitConfigResponse_X{`,
+		`X:` + strings.Replace(fmt.Sprintf("%v", this.X), "GitConfigX", "GitConfigX", 1) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -798,6 +953,17 @@ func (this *GitConfigResponse_Error) String() string {
 	}
 	s := strings.Join([]string{`&GitConfigResponse_Error{`,
 		`Error:` + strings.Replace(fmt.Sprintf("%v", this.Error), "GitConfigErrorInfo", "GitConfigErrorInfo", 1) + `,`,
+		`}`,
+	}, "")
+	return s
+}
+func (this *GitConfigX) String() string {
+	if this == nil {
+		return "nil"
+	}
+	s := strings.Join([]string{`&GitConfigX{`,
+		`Content:` + fmt.Sprintf("%v", this.Content) + `,`,
+		`Goprivate:` + fmt.Sprintf("%v", this.Goprivate) + `,`,
 		`}`,
 	}, "")
 	return s
@@ -934,9 +1100,9 @@ func (m *GitConfigResponse) Unmarshal(dAtA []byte) error {
 		switch fieldNum {
 		case 1:
 			if wireType != 2 {
-				return fmt.Errorf("proto: wrong wireType = %d for field Content", wireType)
+				return fmt.Errorf("proto: wrong wireType = %d for field X", wireType)
 			}
-			var stringLen uint64
+			var msglen int
 			for shift := uint(0); ; shift += 7 {
 				if shift >= 64 {
 					return ErrIntOverflowGitconfig
@@ -946,23 +1112,26 @@ func (m *GitConfigResponse) Unmarshal(dAtA []byte) error {
 				}
 				b := dAtA[iNdEx]
 				iNdEx++
-				stringLen |= uint64(b&0x7F) << shift
+				msglen |= int(b&0x7F) << shift
 				if b < 0x80 {
 					break
 				}
 			}
-			intStringLen := int(stringLen)
-			if intStringLen < 0 {
+			if msglen < 0 {
 				return ErrInvalidLengthGitconfig
 			}
-			postIndex := iNdEx + intStringLen
+			postIndex := iNdEx + msglen
 			if postIndex < 0 {
 				return ErrInvalidLengthGitconfig
 			}
 			if postIndex > l {
 				return io.ErrUnexpectedEOF
 			}
-			m.Result = &GitConfigResponse_Content{string(dAtA[iNdEx:postIndex])}
+			v := &GitConfigX{}
+			if err := v.Unmarshal(dAtA[iNdEx:postIndex]); err != nil {
+				return err
+			}
+			m.Result = &GitConfigResponse_X{v}
 			iNdEx = postIndex
 		case 2:
 			if wireType != 2 {
@@ -998,6 +1167,120 @@ func (m *GitConfigResponse) Unmarshal(dAtA []byte) error {
 				return err
 			}
 			m.Result = &GitConfigResponse_Error{v}
+			iNdEx = postIndex
+		default:
+			iNdEx = preIndex
+			skippy, err := skipGitconfig(dAtA[iNdEx:])
+			if err != nil {
+				return err
+			}
+			if (skippy < 0) || (iNdEx+skippy) < 0 {
+				return ErrInvalidLengthGitconfig
+			}
+			if (iNdEx + skippy) > l {
+				return io.ErrUnexpectedEOF
+			}
+			iNdEx += skippy
+		}
+	}
+
+	if iNdEx > l {
+		return io.ErrUnexpectedEOF
+	}
+	return nil
+}
+func (m *GitConfigX) Unmarshal(dAtA []byte) error {
+	l := len(dAtA)
+	iNdEx := 0
+	for iNdEx < l {
+		preIndex := iNdEx
+		var wire uint64
+		for shift := uint(0); ; shift += 7 {
+			if shift >= 64 {
+				return ErrIntOverflowGitconfig
+			}
+			if iNdEx >= l {
+				return io.ErrUnexpectedEOF
+			}
+			b := dAtA[iNdEx]
+			iNdEx++
+			wire |= uint64(b&0x7F) << shift
+			if b < 0x80 {
+				break
+			}
+		}
+		fieldNum := int32(wire >> 3)
+		wireType := int(wire & 0x7)
+		if wireType == 4 {
+			return fmt.Errorf("proto: GitConfigX: wiretype end group for non-group")
+		}
+		if fieldNum <= 0 {
+			return fmt.Errorf("proto: GitConfigX: illegal tag %d (wire type %d)", fieldNum, wire)
+		}
+		switch fieldNum {
+		case 1:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Content", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGitconfig
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGitconfig
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthGitconfig
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Content = string(dAtA[iNdEx:postIndex])
+			iNdEx = postIndex
+		case 2:
+			if wireType != 2 {
+				return fmt.Errorf("proto: wrong wireType = %d for field Goprivate", wireType)
+			}
+			var stringLen uint64
+			for shift := uint(0); ; shift += 7 {
+				if shift >= 64 {
+					return ErrIntOverflowGitconfig
+				}
+				if iNdEx >= l {
+					return io.ErrUnexpectedEOF
+				}
+				b := dAtA[iNdEx]
+				iNdEx++
+				stringLen |= uint64(b&0x7F) << shift
+				if b < 0x80 {
+					break
+				}
+			}
+			intStringLen := int(stringLen)
+			if intStringLen < 0 {
+				return ErrInvalidLengthGitconfig
+			}
+			postIndex := iNdEx + intStringLen
+			if postIndex < 0 {
+				return ErrInvalidLengthGitconfig
+			}
+			if postIndex > l {
+				return io.ErrUnexpectedEOF
+			}
+			m.Goprivate = string(dAtA[iNdEx:postIndex])
 			iNdEx = postIndex
 		default:
 			iNdEx = preIndex

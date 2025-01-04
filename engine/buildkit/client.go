@@ -651,6 +651,29 @@ func (c *Client) GetCredential(ctx context.Context, protocol, host, path string)
 	}
 }
 
+func (c *Client) GetGitConfig(ctx context.Context) (string, error) {
+	caller, err := c.GetMainClientCaller()
+	if err != nil {
+		return "", fmt.Errorf("failed to get main client caller: %w", err)
+	}
+
+	response, err := session.NewGitConfigClient(caller.Conn()).GetConfig(ctx, &session.GitConfigRequest{
+		Protocol: "",
+	})
+	if err != nil {
+		return "", fmt.Errorf("failed to query git config: %w", err)
+	}
+
+	switch result := response.Result.(type) {
+	case *session.GitConfigResponse_Content:
+		return result.Content, nil
+	case *session.GitConfigResponse_Error:
+		return "", fmt.Errorf("git config error: %s", result.Error.Message)
+	default:
+		return "", fmt.Errorf("unexpected response type")
+	}
+}
+
 type TerminalClient struct {
 	Stdin    io.ReadCloser
 	Stdout   io.WriteCloser
