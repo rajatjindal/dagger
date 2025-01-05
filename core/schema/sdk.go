@@ -821,19 +821,7 @@ func (sdk *goSDK) base(ctx context.Context) (dagql.Instance[*core.Container], er
 				},
 			},
 		},
-		dagql.Selector{
-			Field: "withEnvVariable",
-			Args: []dagql.NamedInput{
-				{
-					Name:  "name",
-					Value: dagql.String("GOPRIVATE"),
-				},
-				{
-					Name:  "value",
-					Value: dagql.String("github.com"),
-				},
-			},
-		},
+
 		dagql.Selector{
 			Field: "withMountedCache",
 			Args: []dagql.NamedInput{

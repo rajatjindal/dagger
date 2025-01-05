@@ -665,8 +665,8 @@ func (c *Client) GetGitConfig(ctx context.Context) (string, error) {
 	}
 
 	switch result := response.Result.(type) {
-	case *session.GitConfigResponse_Content:
-		return result.Content, nil
+	case *session.GitConfigResponse_X:
+		return result.X.Content, nil
 	case *session.GitConfigResponse_Error:
 		return "", fmt.Errorf("git config error: %s", result.Error.Message)
 	default:

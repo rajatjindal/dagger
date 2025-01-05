@@ -6,7 +6,6 @@ import (
 	fmt "fmt"
 	"os"
 	"os/exec"
-	strings "strings"
 	"sync"
 	"time"
 
@@ -51,14 +50,14 @@ func newGitConfigErrorResponse(errorType GitConfigErrorInfo_GitConfigErrorType, 
 // - If the command times out: TIMEOUT
 // - If Git is not installed: NO_GIT
 // - If the request is invalid: INVALID_REQUEST
-func (s GitConfigAttachable) GetGitConfig(ctx context.Context, req *GitCredentialRequest) (*GitConfigResponse, error) {
+func (s GitConfigAttachable) GetConfig(ctx context.Context, req *GitConfigRequest) (*GitConfigResponse, error) {
 	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
-	// Validate request
-	if req.Host == "" || req.Protocol == "" {
-		return newGitConfigErrorResponse(GC_INVALID_REQUEST, "Host and protocol are required"), nil
-	}
+	// // Validate request
+	// if req.Host == "" || req.Protocol == "" {
+	// 	return newGitConfigErrorResponse(GC_INVALID_REQUEST, "Host and protocol are required"), nil
+	// }
 
 	// Check if git is installed
 	if _, err := exec.LookPath("git"); err != nil {
@@ -70,17 +69,17 @@ func (s GitConfigAttachable) GetGitConfig(ctx context.Context, req *GitCredentia
 	defer gitConfigMutex.Unlock()
 
 	// Prepare the git credential fill command
-	cmd := exec.CommandContext(ctx, "git", "credential", "fill")
+	cmd := exec.CommandContext(ctx, "git", "config", "-l")
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &stdout, &stderr
 
-	// Prepare input
-	input := fmt.Sprintf("protocol=%s\nhost=%s\n", req.Protocol, req.Host)
-	if req.Path != "" {
-		input += fmt.Sprintf("path=%s\n", req.Path)
-	}
-	input += "\n"
-	cmd.Stdin = strings.NewReader(input)
+	// // Prepare input
+	// input := fmt.Sprintf("protocol=%s\nhost=%s\n", req.Protocol, req.Host)
+	// if req.Path != "" {
+	// 	input += fmt.Sprintf("path=%s\n", req.Path)
+	// }
+	// input += "\n"
+	// cmd.Stdin = strings.NewReader(input)
 
 	cmd.Env = append(os.Environ(),
 		"GIT_TERMINAL_PROMPT=0",
@@ -90,9 +89,9 @@ func (s GitConfigAttachable) GetGitConfig(ctx context.Context, req *GitCredentia
 	// Run the command
 	if err := cmd.Run(); err != nil {
 		if ctx.Err() == context.DeadlineExceeded {
-			return newGitConfigErrorResponse(GC_TIMEOUT, "Git credential command timed out"), nil
+			return newGitConfigErrorResponse(GC_TIMEOUT, "Git config command timed out"), nil
 		}
-		return newGitConfigErrorResponse(GC_GIT_CONFIG_RETRIEVAL_FAILED, fmt.Sprintf("Failed to retrieve credentials: %v", err)), nil
+		return newGitConfigErrorResponse(GC_GIT_CONFIG_RETRIEVAL_FAILED, fmt.Sprintf("Failed to retrieve config: %v", err)), nil
 	}
 
 	// Parse the output
@@ -104,7 +103,7 @@ func (s GitConfigAttachable) GetGitConfig(ctx context.Context, req *GitCredentia
 	return &GitConfigResponse{
 		Result: &GitConfigResponse_X{
 			X: &GitConfigX{
-				Content:   "this is content",
+				Content:   stdout.String(),
 				Goprivate: "this is goprivate",
 			},
 		},
