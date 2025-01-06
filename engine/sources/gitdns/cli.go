@@ -47,7 +47,6 @@ func newGitCLI(
 		knownHosts:  knownHosts,
 		auth:        auth,
 	}
-
 	if err := cli.initConfig(dnsConf); err != nil {
 		cli.cleanup()
 		return nil, nil, err
@@ -86,7 +85,6 @@ func (cli *gitCLI) run(ctx context.Context, args ...string) (_ *bytes.Buffer, er
 		// Block sneaky repositories from using repos from the filesystem as submodules.
 		cmd.Args = append(cmd.Args, "-c", "protocol.file.allow=user")
 		if cli.gitDir != "" {
-			cmd.Dir = cli.gitDir
 			cmd.Args = append(cmd.Args, "--git-dir", cli.gitDir)
 		}
 		if cli.workTree != "" {
@@ -110,9 +108,8 @@ func (cli *gitCLI) run(ctx context.Context, args ...string) (_ *bytes.Buffer, er
 			//	"GIT_TRACE=1",
 			"GIT_ASKPASS=echo",      // ensure git does not ask for a password (avoids cryptic error message)
 			"GIT_CONFIG_NOSYSTEM=1", // Disable reading from system gitconfig.
-			// "HOME=/dev/null",        // Disable reading from user gitconfig.
-			"HOME=/root",
-			"LC_ALL=C", // Ensure consistent output.
+			"HOME=/dev/null",        // Disable reading from user gitconfig.
+			"LC_ALL=C",              // Ensure consistent output.
 		}
 
 		// propagate proxy settings from the engine container to the git command if
@@ -126,7 +123,6 @@ func (cli *gitCLI) run(ctx context.Context, args ...string) (_ *bytes.Buffer, er
 		if cli.sshAuthSock != "" {
 			cmd.Env = append(cmd.Env, "SSH_AUTH_SOCK="+cli.sshAuthSock)
 		}
-
 		// remote git commands spawn helper processes that inherit FDs and don't
 		// handle parent death signal so exec.CommandContext can't be used
 		err := runWithStandardUmaskAndNetOverride(ctx, cmd, cli.hostsPath, cli.resolvPath)
