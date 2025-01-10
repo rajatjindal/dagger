@@ -284,22 +284,52 @@ func (src *ModuleSource) ModuleEngineVersion(ctx context.Context) (string, error
 	return cfg.EngineVersion, nil
 }
 
-func (src *ModuleSource) SDK(ctx context.Context) (*ModuleDependency, error) {
-	if src.WithSDK.Self != nil {
-		return src.WithSDK.Self, nil
-	}
-	// modCfg, ok, err := src.ModuleConfig(ctx)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("module config: %w", err)
-	// }
-	// if !ok {
-	// 	return nil, nil
-	// }
+// func (src *ModuleSource) SDK(ctx context.Context) (*ModuleConfigDependency, error) {
 
-	//TODO: how to return *ModuleSource here????
-	//THIS WILL FAIL
-	return &ModuleDependency{}, nil
-}
+// 	// var sdkSource dagql.Instance[*ModuleSource]
+// 	// err := s.dag.Select(ctx, s.dag.Root(), &sdkSource,
+// 	// 	dagql.Selector{
+// 	// 		Field: "moduleSource",
+// 	// 		Args: []dagql.NamedInput{
+// 	// 			{Name: "refString", Value: dagql.String(src.WithSDK.Self.Source.String())},
+// 	// 		},
+// 	// 	},
+// 	// )
+// 	// if err != nil {
+// 	// 	return nil, fmt.Errorf("module config: %w", err)
+// 	// }
+
+// 	modCfg, ok, err := src.ModuleConfig(ctx)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("module config: %w", err)
+// 	}
+// 	if !ok {
+// 		return nil, nil
+// 	}
+
+// 	// type ModuleConfigDependency struct {
+// 	// 	// The name to use for this dependency. By default, the same as the dependency module's name,
+// 	// 	// but can also be overridden to use a different name.
+// 	// 	Name string `json:"name"`
+
+// 	// 	// The source ref of the module dependency.
+// 	// 	Source string `json:"source"`
+
+// 	// 	// The pinned version of the module dependency.
+// 	// 	Pin string `json:"pin,omitempty"`
+// 	// }
+
+// 	type ModuleDependency struct {
+// 		Source dagql.Instance[*ModuleSource] `field:"true" name:"source" doc:"The source for the dependency module."`
+// 		Name   string                        `field:"true" name:"name" doc:"The name of the dependency module."`
+// 	}
+
+// 	modCfg.SDK
+
+// 	//TODO: how to return *ModuleSource here????
+// 	//THIS WILL FAIL
+// 	return &ModuleDependency{}, nil
+// }
 
 func (src *ModuleSource) AutomaticGitignore(ctx context.Context) (*bool, error) {
 	modCfg, ok, err := src.ModuleConfig(ctx)

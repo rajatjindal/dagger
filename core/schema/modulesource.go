@@ -753,6 +753,67 @@ func (s *moduleSchema) moduleSourceDependencies(
 	return finalDeps, nil
 }
 
+func (s *moduleSchema) moduleSourceSDK(
+	ctx context.Context,
+	src dagql.Instance[*core.ModuleSource],
+	args struct{},
+) (dagql.Instance[*core.ModuleDependency], error) {
+	//TODO(rajatjindal): is this right?
+	if src.Self.WithSDK.Self != nil {
+		return src.Self.WithSDK, nil
+	}
+
+	var inst dagql.Instance[*core.ModuleDependency]
+	modCfg, ok, err := src.Self.ModuleConfig(ctx)
+	if err != nil {
+		return inst, fmt.Errorf("failed to get module config: %w", err)
+	}
+
+	var existingSDK dagql.Instance[*core.ModuleDependency]
+	if ok {
+		var depSrc dagql.Instance[*core.ModuleSource]
+		err := s.dag.Select(ctx, s.dag.Root(), &depSrc,
+			dagql.Selector{
+				Field: "moduleSource",
+				Args: []dagql.NamedInput{
+					{Name: "refString", Value: dagql.String(modCfg.SDK.Source)},
+					{Name: "refPin", Value: dagql.String(modCfg.SDK.Pin)},
+				},
+			},
+		)
+		if err != nil {
+			return inst, fmt.Errorf("failed to create module source from dependency: %w", err)
+		}
+
+		var resolvedDepSrc dagql.Instance[*core.ModuleSource]
+		err = s.dag.Select(ctx, s.dag.Root(), &existingSDK,
+			dagql.Selector{
+				Field: "moduleDependency",
+				Args: []dagql.NamedInput{
+					{Name: "source", Value: dagql.NewID[*core.ModuleSource](resolvedDepSrc.ID())},
+				},
+			},
+		)
+		if err != nil {
+			return inst, fmt.Errorf("failed to fetch existing sdk: %w", err)
+		}
+
+		err = s.dag.Select(ctx, s.dag.Root(), &inst,
+			dagql.Selector{
+				Field: "moduleDependency",
+				Args: []dagql.NamedInput{
+					{Name: "source", Value: dagql.NewID[*core.ModuleSource](resolvedDepSrc.ID())},
+				},
+			},
+		)
+		if err != nil {
+			return inst, fmt.Errorf("failed to create module dependency: %w", err)
+		}
+	}
+
+	return inst, nil
+}
+
 func (s *moduleSchema) moduleSourceWithUpdateDependencies(
 	ctx context.Context,
 	src *core.ModuleSource,

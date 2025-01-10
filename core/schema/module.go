@@ -131,6 +131,9 @@ func (s *moduleSchema) Install() {
 		dagql.NodeFunc("dependencies", s.moduleSourceDependencies).
 			Doc(`The effective module source dependencies from the configuration, and calls to withDependencies and withoutDependencies.`),
 
+		dagql.NodeFunc("sdk", s.moduleSourceSDK).
+			Doc(`The effective module source dependencies from the configuration, and calls to withDependencies and withoutDependencies.`),
+
 		dagql.Func("withUpdateDependencies", s.moduleSourceWithUpdateDependencies).
 			Doc(`Update one or more module dependencies.`).
 			ArgDoc("dependencies", `The dependencies to update.`),
@@ -872,10 +875,16 @@ func (s *moduleSchema) moduleWithSource(ctx context.Context, mod *core.Module, a
 		return nil, fmt.Errorf("failed to get module original name: %w", err)
 	}
 
-	mod.SDKConfig, err = src.Self.SDK(ctx)
+	// mod.SDKConfig, err = src.Self.SDK(ctx)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("failed to get module SDK: %w", err)
+	// }
+
+	sdkconfig, err := s.moduleSourceSDK(ctx, src, struct{}{})
 	if err != nil {
-		return nil, fmt.Errorf("failed to get module SDK: %w", err)
+		return nil, fmt.Errorf("failed to get sdk something something: %w", err)
 	}
+	mod.SDKConfig = sdkconfig.Self
 
 	modCfg, modCfgPath, err := s.updateDaggerConfig(ctx, string(args.EngineVersion.Value), mod, src)
 	if err != nil {
@@ -927,6 +936,18 @@ func (s *moduleSchema) moduleGeneratedContextDiff(
 	}
 	return diff, nil
 }
+
+// func (s *moduleSchema) updateSDK(ctx context.Context, mod *core.Module, src dagql.Instance[*core.ModuleSource]) (rerr error) {
+// 	ctx, span := core.Tracer(ctx).Start(ctx, "initialize sdk")
+// 	defer telemetry.End(span, func() error { return rerr })
+
+// 	var dep dagql.Instance[*core.ModuleDependency]
+// 	err := s.dag.Select(ctx, src, &deps, dagql.Selector{Field: "dependencies"})
+// 	if err != nil {
+// 		return fmt.Errorf("failed to load module dependencies: %w", err)
+// 	}
+
+// }
 
 func (s *moduleSchema) updateDeps(
 	ctx context.Context,
