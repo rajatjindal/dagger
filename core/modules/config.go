@@ -21,7 +21,7 @@ type ModuleConfig struct {
 	EngineVersion string `json:"engineVersion"`
 
 	// The SDK this module uses
-	SDK string `json:"sdk,omitempty"`
+	SDK *ModuleConfigDependency `json:"sdk,omitempty"`
 
 	// Paths to explicitly include from the module, relative to the configuration file.
 	Include []string `json:"include,omitempty"`
@@ -71,7 +71,7 @@ func (modCfg *ModuleConfig) UnmarshalJSON(data []byte) error {
 
 	// Detect the case where SDK is set but Source isn't, which should only happen when loading an older config.
 	// For those cases, the Source was implicitly ".", so set it to that.
-	if tmp.SDK != "" && tmp.Source == "" {
+	if tmp.SDK != nil && tmp.Source == "" {
 		tmp.Source = "."
 	}
 

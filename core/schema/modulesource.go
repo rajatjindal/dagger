@@ -802,11 +802,15 @@ func (s *moduleSchema) moduleSourceWithSDK(
 	ctx context.Context,
 	src *core.ModuleSource,
 	args struct {
-		SDK string
+		SDK core.ModuleDependencyID
 	},
 ) (*core.ModuleSource, error) {
 	src = src.Clone()
-	src.WithSDK = args.SDK
+	sdk, err := collectIDInstances(ctx, s.dag, []core.ModuleDependencyID{args.SDK})
+	if err != nil {
+		return nil, fmt.Errorf("failed to load module source dependencies from ids: %w", err)
+	}
+	src.WithSDK = sdk[0]
 	return src, nil
 }
 
@@ -1207,12 +1211,12 @@ func (s *moduleSchema) normalizeCallerLoadedSource(
 			return inst, fmt.Errorf("failed to set name: %w", err)
 		}
 	}
-	if src.WithSDK != "" {
+	if src.WithSDK.Self != nil {
 		err = s.dag.Select(ctx, inst, &inst,
 			dagql.Selector{
 				Field: "withSDK",
 				Args: []dagql.NamedInput{
-					{Name: "sdk", Value: dagql.String(src.WithSDK)},
+					{Name: "sdk", Value: dagql.NewID[*core.ModuleDependency](src.WithSDK.ID())},
 				},
 			},
 		)
@@ -1370,7 +1374,7 @@ func (s *moduleSchema) collectCallerLocalDeps(
 			if !topLevel {
 				return nil, fmt.Errorf("missing config file %s", configPath)
 			}
-			if src.WithSDK == "" && len(src.WithDependencies) == 0 {
+			if src.WithSDK.Self == nil && len(src.WithDependencies) == 0 {
 				return &callerLocalDep{sourceRootAbsPath: sourceRootAbsPath}, nil
 			}
 
@@ -1382,8 +1386,20 @@ func (s *moduleSchema) collectCallerLocalDeps(
 			if src.WithName != "" {
 				modCfg.Name = src.WithName
 			}
-			if src.WithSDK != "" {
-				modCfg.SDK = src.WithSDK
+			if src.WithSDK.Self != nil {
+				refString, err := src.WithSDK.Self.Source.Self.RefString()
+				if err != nil {
+					return nil, fmt.Errorf("failed to get ref string for sdk: %w", err)
+				}
+				pin, err := src.WithSDK.Self.Source.Self.Pin()
+				if err != nil {
+					return nil, fmt.Errorf("failed to get ref string for sdk: %w", err)
+				}
+
+				modCfg.SDK = &modules.ModuleConfigDependency{
+					Source: refString,
+					Pin:    pin,
+				}
 			}
 			for _, dep := range src.WithDependencies {
 				refString, err := dep.Self.Source.Self.RefString()
@@ -1439,17 +1455,20 @@ func (s *moduleSchema) collectCallerLocalDeps(
 			}
 		}
 
-		if modCfg.SDK == "" {
+		// REALLY?
+		if modCfg.SDK.Source == "" {
 			return localDep, nil
 		}
 
-		localDep.sdkKey = modCfg.SDK
+		// do we need anything special here for local sdk
+		localDep.sdkKey = modCfg.SDK.Source
 
-		localDep.sdk, err = s.builtinSDK(ctx, query, modCfg.SDK)
+		// (rajatjindal) for sure pass the struct here instead of just source
+		localDep.sdk, err = s.builtinSDK(ctx, query, modCfg.SDK.Source)
 		switch {
 		case err == nil:
 		case errors.Is(err, errUnknownBuiltinSDK):
-			parsed := parseRefString(ctx, bk, modCfg.SDK)
+			parsed := parseRefString(ctx, bk, modCfg.SDK.Source)
 			switch parsed.kind {
 			case core.ModuleSourceKindLocal:
 				// SDK is a local custom one, it needs to be included
@@ -1460,7 +1479,7 @@ func (s *moduleSchema) collectCallerLocalDeps(
 				// nor a valid sdk available on local path.
 				_, err = bk.StatCallerHostPath(ctx, sdkPath, true)
 				if err != nil {
-					return nil, getInvalidBuiltinSDKError(modCfg.SDK)
+					return nil, getInvalidBuiltinSDKError(modCfg.SDK.Source)
 				}
 
 				err = s.collectCallerLocalDeps(ctx, query, contextAbsPath, sdkPath, false, src, collectedDeps)
@@ -1507,7 +1526,8 @@ func (s *moduleSchema) collectCallerLocalDeps(
 				localDep.sdkKey = sdkPath
 
 			case core.ModuleSourceKindGit:
-				localDep.sdk, err = s.sdkForModule(ctx, query, modCfg.SDK, dagql.Instance[*core.ModuleSource]{})
+				//(rajatjindal): pass full struct here instead of just source?
+				localDep.sdk, err = s.sdkForModule(ctx, query, modCfg.SDK.Source, dagql.Instance[*core.ModuleSource]{})
 				if err != nil {
 					return nil, fmt.Errorf("failed to get git module sdk: %w", err)
 				}

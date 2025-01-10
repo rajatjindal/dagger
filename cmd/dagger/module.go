@@ -171,6 +171,8 @@ If --sdk is specified, the given SDK is installed in the module. You can do this
 				moduleName = filepath.Base(modConf.LocalRootSourcePath)
 			}
 
+			// Src := dag.ModuleSource(depRefStr)
+
 			// only bother setting source path if there's an sdk at this time
 			if sdk != "" {
 				// if user didn't specified moduleSourcePath explicitly,
