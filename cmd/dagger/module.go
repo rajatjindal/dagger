@@ -200,7 +200,7 @@ If --sdk is specified, the given SDK is installed in the module. You can do this
 			}
 
 			// THIS IS HACK JUST TO KEEP THINGS GOING
-			depSrc := dag.ModuleSource("github.com/shykes/daggerverse/hello")
+			depSrc := dag.ModuleSource("go")
 			// depSrcKind, err := depSrc.Kind(ctx)
 			// if err != nil {
 			// 	return fmt.Errorf("failed to get module ref kind: %w", err)
@@ -218,9 +218,7 @@ If --sdk is specified, the given SDK is installed in the module. You can do this
 
 			// 	depSrc = dag.ModuleSource(depRelPath)
 			// }
-			dep := dag.ModuleDependency(depSrc, dagger.ModuleDependencyOpts{
-				Name: installName,
-			})
+			dep := dag.ModuleDependency(depSrc)
 
 			_, err = modConf.Source.
 				WithName(moduleName).

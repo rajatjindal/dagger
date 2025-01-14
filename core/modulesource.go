@@ -285,7 +285,7 @@ func (src *ModuleSource) ModuleEngineVersion(ctx context.Context) (string, error
 	return cfg.EngineVersion, nil
 }
 
-func (src *ModuleSource) SDK(ctx context.Context) (string, error) {
+func (src *ModuleSource) SDKstring(ctx context.Context) (string, error) {
 	if src.WithSDKstring != "" {
 		return src.WithSDKstring, nil
 	}
@@ -298,6 +298,23 @@ func (src *ModuleSource) SDK(ctx context.Context) (string, error) {
 	}
 	return modCfg.SDKstring, nil
 }
+
+// IN THIS FUNC, WE NEED TO CALL WITHSDK SELECT OP JUST LIKE WE DO IN DAGGER INIT CLI CALL
+// func (src *ModuleSource) SDK(ctx context.Context) (*ModuleDependency, error) {
+// 	if src.WithSDK.Self != nil {
+// 		return src.WithSDK.Self, nil
+// 	}
+// 	modCfg, ok, err := src.ModuleConfig(ctx)
+// 	if err != nil {
+// 		return nil, fmt.Errorf("module config: %w", err)
+// 	}
+// 	if !ok {
+// 		return nil, nil
+// 	}
+// 	return &ModuleDependency{
+// 		Source: modCfg.SDK.Source,
+// 	}, nil
+// }
 
 func (src *ModuleSource) AutomaticGitignore(ctx context.Context) (*bool, error) {
 	modCfg, ok, err := src.ModuleConfig(ctx)

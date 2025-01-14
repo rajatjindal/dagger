@@ -843,7 +843,7 @@ func (s *moduleSchema) moduleInitialize(
 	inst dagql.Instance[*core.Module],
 	args struct{},
 ) (*core.Module, error) {
-	if inst.Self.NameField == "" || inst.Self.SDKConfig == "" {
+	if inst.Self.NameField == "" || inst.Self.SDKConfigstring == "" {
 		return nil, fmt.Errorf("module name and SDK must be set")
 	}
 	mod, err := inst.Self.Initialize(ctx, inst.ID(), dagql.CurrentID(ctx), s.dag)
@@ -873,7 +873,7 @@ func (s *moduleSchema) moduleWithSource(ctx context.Context, mod *core.Module, a
 		return nil, fmt.Errorf("failed to get module original name: %w", err)
 	}
 
-	mod.SDKConfig, err = src.Self.SDK(ctx)
+	mod.SDKConfigstring, err = src.Self.SDKstring(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get module SDK: %w", err)
 	}
@@ -1054,14 +1054,14 @@ func (s *moduleSchema) updateCodegenAndRuntime(
 	ctx, span := core.Tracer(ctx).Start(ctx, "build module")
 	defer telemetry.End(span, func() error { return rerr })
 
-	if mod.NameField == "" || mod.SDKConfig == "" {
+	if mod.NameField == "" || mod.SDKConfigstring == "" {
 		// can't codegen yet
 		return nil
 	}
 
 	if src.Self.WithInitConfig != nil &&
 		src.Self.WithInitConfig.Merge &&
-		mod.SDKConfig != string(SDKGo) {
+		mod.SDKConfigstring != string(SDKGo) {
 		return fmt.Errorf("merge is only supported for Go SDKs")
 	}
 
@@ -1076,7 +1076,7 @@ func (s *moduleSchema) updateCodegenAndRuntime(
 		return fmt.Errorf("failed to get source root subpath: %w", err)
 	}
 
-	sdk, err := s.sdkForModule(ctx, src.Self.Query, mod.SDKConfig, src)
+	sdk, err := s.sdkForModule(ctx, src.Self.Query, mod.SDKConfigstring, src)
 	if err != nil {
 		return fmt.Errorf("failed to load sdk for module: %w", err)
 	}
@@ -1240,7 +1240,7 @@ func (s *moduleSchema) updateDaggerConfig(
 	modCfg := &modCfgWithUserFields.ModuleConfig
 
 	modCfg.Name = mod.OriginalName
-	modCfg.SDKstring = mod.SDKConfig
+	modCfg.SDKstring = mod.SDKConfigstring
 	switch engineVersion {
 	case "":
 		if modCfg.EngineVersion == "" {
