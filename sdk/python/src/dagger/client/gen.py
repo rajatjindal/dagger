@@ -6486,15 +6486,21 @@ class ModuleSource(Type):
         _ctx = self._select("withName", _args)
         return ModuleSource(_ctx)
 
-    def with_sdk(self, sdk: str) -> Self:
+    def with_sdk(
+        self,
+        sdkstring: str,
+        sdk: ModuleDependency,
+    ) -> Self:
         """Update the module source with a new SDK.
 
         Parameters
         ----------
+        sdkstring:
         sdk:
             The SDK to set.
         """
         _args = [
+            Arg("sdkstring", sdkstring),
             Arg("sdk", sdk),
         ]
         _ctx = self._select("withSDK", _args)

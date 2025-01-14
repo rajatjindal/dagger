@@ -6383,8 +6383,10 @@ func (r *ModuleSource) WithName(name string) *ModuleSource {
 }
 
 // Update the module source with a new SDK.
-func (r *ModuleSource) WithSDK(sdk string) *ModuleSource {
+func (r *ModuleSource) WithSDK(sdkstring string, sdk *ModuleDependency) *ModuleSource {
+	assertNotNil("sdk", sdk)
 	q := r.query.Select("withSDK")
+	q = q.Arg("sdkstring", sdkstring)
 	q = q.Arg("sdk", sdk)
 
 	return &ModuleSource{

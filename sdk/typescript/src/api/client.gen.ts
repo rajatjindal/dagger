@@ -6046,8 +6046,8 @@ export class ModuleSource extends BaseClient {
    * Update the module source with a new SDK.
    * @param sdk The SDK to set.
    */
-  withSDK = (sdk: string): ModuleSource => {
-    const ctx = this._ctx.select("withSDK", { sdk })
+  withSDK = (sdkstring: string, sdk: ModuleDependency): ModuleSource => {
+    const ctx = this._ctx.select("withSDK", { sdkstring, sdk })
     return new ModuleSource(ctx)
   }
 

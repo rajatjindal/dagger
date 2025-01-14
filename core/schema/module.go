@@ -1239,7 +1239,7 @@ func (s *moduleSchema) updateDaggerConfig(
 	modCfg := &modCfgWithUserFields.ModuleConfig
 
 	modCfg.Name = mod.OriginalName
-	modCfg.SDK = mod.SDKConfig
+	modCfg.SDKstring = mod.SDKConfig
 	switch engineVersion {
 	case "":
 		if modCfg.EngineVersion == "" {

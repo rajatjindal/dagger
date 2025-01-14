@@ -70,7 +70,8 @@ type ModuleSource struct {
 	WithoutDependencies       []string
 	WithUpdateDependencies    []string
 	WithUpdateAllDependencies bool
-	WithSDK                   string
+	WithSDKstring             string
+	WithSDK                   dagql.Instance[*ModuleDependency]
 	WithInitConfig            *ModuleInitConfig
 	WithSourceSubpath         string
 	WithViews                 []*ModuleSourceView
@@ -285,8 +286,8 @@ func (src *ModuleSource) ModuleEngineVersion(ctx context.Context) (string, error
 }
 
 func (src *ModuleSource) SDK(ctx context.Context) (string, error) {
-	if src.WithSDK != "" {
-		return src.WithSDK, nil
+	if src.WithSDKstring != "" {
+		return src.WithSDKstring, nil
 	}
 	modCfg, ok, err := src.ModuleConfig(ctx)
 	if err != nil {
@@ -295,7 +296,7 @@ func (src *ModuleSource) SDK(ctx context.Context) (string, error) {
 	if !ok {
 		return "", nil
 	}
-	return modCfg.SDK, nil
+	return modCfg.SDKstring, nil
 }
 
 func (src *ModuleSource) AutomaticGitignore(ctx context.Context) (*bool, error) {

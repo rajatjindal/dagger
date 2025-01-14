@@ -6680,9 +6680,20 @@ impl ModuleSource {
     /// # Arguments
     ///
     /// * `sdk` - The SDK to set.
-    pub fn with_sdk(&self, sdk: impl Into<String>) -> ModuleSource {
+    pub fn with_sdk(
+        &self,
+        sdkstring: impl Into<String>,
+        sdk: impl IntoID<ModuleDependencyId>,
+    ) -> ModuleSource {
         let mut query = self.selection.select("withSDK");
-        query = query.arg("sdk", sdk.into());
+        query = query.arg("sdkstring", sdkstring.into());
+        query = query.arg_lazy(
+            "sdk",
+            Box::new(move || {
+                let sdk = sdk.clone();
+                Box::pin(async move { sdk.into_id().await.unwrap().quote() })
+            }),
+        );
         ModuleSource {
             proc: self.proc.clone(),
             selection: query,
