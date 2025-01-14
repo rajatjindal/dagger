@@ -1385,6 +1385,25 @@ func (s *moduleSchema) collectCallerLocalDeps(
 			if src.WithSDKstring != "" {
 				modCfg.SDKstring = src.WithSDKstring
 			}
+
+			if src.WithSDK.Self != nil {
+				refString, err := src.WithSDK.Self.Source.Self.RefString()
+				if err != nil {
+					return nil, fmt.Errorf("failed to get ref string for sdk: %w", err)
+				}
+
+				pin, err := src.WithSDK.Self.Source.Self.Pin()
+				if err != nil {
+					return nil, fmt.Errorf("failed to get ref string for dependency: %w", err)
+				}
+
+				modCfg.SDK = &modules.ModuleConfigDependency{
+					//Name:   src.WithSDK.Self.Name, NAME IS NOT PROVIDED FOR SDK
+					Source: refString,
+					Pin:    pin,
+				}
+			}
+
 			for _, dep := range src.WithDependencies {
 				refString, err := dep.Self.Source.Self.RefString()
 				if err != nil {
