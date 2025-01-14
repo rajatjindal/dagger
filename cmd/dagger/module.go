@@ -199,9 +199,32 @@ If --sdk is specified, the given SDK is installed in the module. You can do this
 				}
 			}
 
+			// THIS IS HACK JUST TO KEEP THINGS GOING
+			depSrc := dag.ModuleSource("github.com/shykes/daggerverse/hello")
+			// depSrcKind, err := depSrc.Kind(ctx)
+			// if err != nil {
+			// 	return fmt.Errorf("failed to get module ref kind: %w", err)
+			// }
+			// if depSrcKind == dagger.ModuleSourceKindLocalSource {
+			// 	// need to ensure that local dep paths are relative to the parent root source
+			// 	depAbsPath, err := client.Abs(depRefStr)
+			// 	if err != nil {
+			// 		return fmt.Errorf("failed to get dep absolute path for %s: %w", depRefStr, err)
+			// 	}
+			// 	depRelPath, err := filepath.Rel(modConf.LocalRootSourcePath, depAbsPath)
+			// 	if err != nil {
+			// 		return fmt.Errorf("failed to get dep relative path: %w", err)
+			// 	}
+
+			// 	depSrc = dag.ModuleSource(depRelPath)
+			// }
+			dep := dag.ModuleDependency(depSrc, dagger.ModuleDependencyOpts{
+				Name: installName,
+			})
+
 			_, err = modConf.Source.
 				WithName(moduleName).
-				WithSDK(sdk).
+				WithSDK(sdk, dep).
 				WithInit(dagger.ModuleSourceWithInitOpts{Merge: mergeDeps}).
 				WithSourceSubpath(moduleSourcePath).
 				ResolveFromCaller().
@@ -468,7 +491,7 @@ This command is idempotent: you can run it at any time, any number of times. It 
 					return fmt.Errorf("cannot update module SDK that has already been set to %q", modSDK)
 				}
 				modSDK = developSDK
-				src = src.WithSDK(modSDK)
+				src = src.WithSDK(modSDK, nil)
 			}
 
 			modSourcePath, err := modConf.Source.SourceSubpath(ctx)

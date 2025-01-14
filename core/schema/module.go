@@ -145,6 +145,7 @@ func (s *moduleSchema) Install() {
 
 		dagql.Func("withSDK", s.moduleSourceWithSDK).
 			Doc(`Update the module source with a new SDK.`).
+			ArgDoc("sdkstring", `The SDK to set.`).
 			ArgDoc("sdk", `The SDK to set.`),
 
 		dagql.Func("withInit", s.moduleSourceWithInit).

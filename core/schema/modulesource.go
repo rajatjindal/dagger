@@ -797,11 +797,13 @@ func (s *moduleSchema) moduleSourceWithSDK(
 	},
 ) (*core.ModuleSource, error) {
 	src = src.Clone()
-	newDeps, err := collectIDInstances(ctx, s.dag, []core.ModuleDependencyID{args.SDK})
-	if err != nil {
-		return nil, fmt.Errorf("failed to load module source dependencies from ids: %w", err)
+	if args.SDK.ID() != nil {
+		newDeps, err := collectIDInstances(ctx, s.dag, []core.ModuleDependencyID{args.SDK})
+		if err != nil {
+			return nil, fmt.Errorf("failed to load module source dependencies from ids: %w", err)
+		}
+		src.WithSDK = newDeps[0]
 	}
-	src.WithDependencies = append(src.WithDependencies, newDeps...)
 
 	src.WithSDKstring = args.SDKstring
 	return src, nil
@@ -1209,7 +1211,8 @@ func (s *moduleSchema) normalizeCallerLoadedSource(
 			dagql.Selector{
 				Field: "withSDK",
 				Args: []dagql.NamedInput{
-					{Name: "sdk", Value: dagql.String(src.WithSDKstring)},
+					{Name: "sdkstring", Value: dagql.String(src.WithSDKstring)},
+					{Name: "sdk", Value: dagql.NewID[*core.ModuleDependency](src.WithSDK.ID())},
 				},
 			},
 		)
