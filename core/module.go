@@ -35,9 +35,11 @@ type Module struct {
 	Description string `field:"true" doc:"The doc string of the module, if any"`
 
 	// The module's SDKConfig, as set in the module config file
-	SDKConfigstring string `field:"true" name:"sdk" doc:"The SDK used by this module. Either a name of a builtin SDK or a module source ref string pointing to the SDK's implementation."`
+	SDKConfigstring string `field:"true"  doc:"The SDK used by this module. Either a name of a builtin SDK or a module source ref string pointing to the SDK's implementation."`
 
-	SDKConfig *ModuleDependency `field:"true" name:"sdk" doc:"The SDK used by this module. Either a name of a builtin SDK or a module source ref string pointing to the SDK's implementation."`
+	SDKConfig *ModuleDependency `field:"true"  doc:"The SDK used by this module. Either a name of a builtin SDK or a module source ref string pointing to the SDK's implementation."`
+
+	SDKField dagql.Instance[*Module] `field:"true" name:"sdk" doc:"SDK used by this module."`
 
 	GeneratedContextDirectory dagql.Instance[*Directory] `field:"true" name:"generatedContextDirectory" doc:"The module source's context plus any configuration and source files created by codegen."`
 
@@ -79,6 +81,7 @@ func (*Module) TypeDescription() string {
 	return "A Dagger module."
 }
 
+// SHOULD PROBABLY ADD A PIN HERE?
 type ModuleDependency struct {
 	Source dagql.Instance[*ModuleSource] `field:"true" name:"source" doc:"The source for the dependency module."`
 	Name   string                        `field:"true" name:"name" doc:"The name of the dependency module."`

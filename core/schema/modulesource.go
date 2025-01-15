@@ -603,6 +603,66 @@ func (s *moduleSchema) applyDepUpdates(ctx context.Context, bk *buildkit.Client,
 	return updatedDependencies, nil
 }
 
+func (s *moduleSchema) moduleSourceSDK(
+	ctx context.Context,
+	src dagql.Instance[*core.ModuleSource],
+	args struct{},
+) (dagql.Instance[*core.ModuleDependency], error) {
+	var sdk dagql.Instance[*core.ModuleDependency]
+	modCfg, ok, err := src.Self.ModuleConfig(ctx)
+	if err != nil {
+		return sdk, fmt.Errorf("failed to get module config: %w", err)
+	}
+
+	if !ok {
+		return sdk, fmt.Errorf("failed to get module config because ok is false")
+	}
+	if ok {
+		depCfg := modCfg.SDK
+		var depSrc dagql.Instance[*core.ModuleSource]
+		err = s.dag.Select(ctx, s.dag.Root(), &depSrc,
+			dagql.Selector{
+				Field: "moduleSource",
+				Args: []dagql.NamedInput{
+					{Name: "refString", Value: dagql.String(depCfg.Source)},
+					{Name: "refPin", Value: dagql.String(depCfg.Pin)},
+				},
+			},
+		)
+		if err != nil {
+			return sdk, fmt.Errorf("failed to create module source from dependency: %w", err)
+		}
+
+		var resolvedDepSrc dagql.Instance[*core.ModuleSource]
+		err = s.dag.Select(ctx, src, &resolvedDepSrc,
+			dagql.Selector{
+				Field: "resolveDependency",
+				Args: []dagql.NamedInput{
+					{Name: "dep", Value: dagql.NewID[*core.ModuleSource](depSrc.ID())},
+				},
+			},
+		)
+		if err != nil {
+			return sdk, fmt.Errorf("failed to resolve dependency: %w", err)
+		}
+
+		err = s.dag.Select(ctx, s.dag.Root(), &sdk,
+			dagql.Selector{
+				Field: "moduleDependency",
+				Args: []dagql.NamedInput{
+					{Name: "source", Value: dagql.NewID[*core.ModuleSource](resolvedDepSrc.ID())},
+					{Name: "name", Value: dagql.String(depCfg.Name)},
+				},
+			},
+		)
+		if err != nil {
+			return sdk, fmt.Errorf("failed to create module dependency: %w", err)
+		}
+	}
+
+	return sdk, nil
+}
+
 func (s *moduleSchema) moduleSourceDependencies(
 	ctx context.Context,
 	src dagql.Instance[*core.ModuleSource],
@@ -1458,13 +1518,13 @@ func (s *moduleSchema) collectCallerLocalDeps(
 			}
 		}
 
-		if modCfg.SDKstring == "" {
+		if modCfg.SDK.Source == "" {
 			return localDep, nil
 		}
 
-		localDep.sdkKey = modCfg.SDKstring
+		localDep.sdkKey = modCfg.SDK.Source
 
-		localDep.sdk, err = s.builtinSDK(ctx, query, modCfg.SDKstring)
+		localDep.sdk, err = s.builtinSDKNEW(ctx, query, modCfg.SDK)
 		switch {
 		case err == nil:
 		case errors.Is(err, errUnknownBuiltinSDK):
@@ -1479,7 +1539,7 @@ func (s *moduleSchema) collectCallerLocalDeps(
 				// nor a valid sdk available on local path.
 				_, err = bk.StatCallerHostPath(ctx, sdkPath, true)
 				if err != nil {
-					return nil, getInvalidBuiltinSDKError(modCfg.SDKstring)
+					return nil, getInvalidBuiltinSDKError("collectCallerLocalDeps " + modCfg.SDK.Source)
 				}
 
 				err = s.collectCallerLocalDeps(ctx, query, contextAbsPath, sdkPath, false, src, collectedDeps)

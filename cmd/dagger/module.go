@@ -201,23 +201,23 @@ If --sdk is specified, the given SDK is installed in the module. You can do this
 
 			// THIS IS HACK JUST TO KEEP THINGS GOING
 			depSrc := dag.ModuleSource("go")
-			// depSrcKind, err := depSrc.Kind(ctx)
-			// if err != nil {
-			// 	return fmt.Errorf("failed to get module ref kind: %w", err)
-			// }
-			// if depSrcKind == dagger.ModuleSourceKindLocalSource {
-			// 	// need to ensure that local dep paths are relative to the parent root source
-			// 	depAbsPath, err := client.Abs(depRefStr)
-			// 	if err != nil {
-			// 		return fmt.Errorf("failed to get dep absolute path for %s: %w", depRefStr, err)
-			// 	}
-			// 	depRelPath, err := filepath.Rel(modConf.LocalRootSourcePath, depAbsPath)
-			// 	if err != nil {
-			// 		return fmt.Errorf("failed to get dep relative path: %w", err)
-			// 	}
+			depSrcKind, err := depSrc.Kind(ctx)
+			if err != nil {
+				return fmt.Errorf("failed to get module ref kind: %w", err)
+			}
+			if depSrcKind == dagger.ModuleSourceKindLocalSource {
+				// need to ensure that local dep paths are relative to the parent root source
+				depAbsPath, err := client.Abs("go")
+				if err != nil {
+					return fmt.Errorf("failed to get dep absolute path for %s: %w", "go", err)
+				}
+				depRelPath, err := filepath.Rel(modConf.LocalRootSourcePath, depAbsPath)
+				if err != nil {
+					return fmt.Errorf("failed to get dep relative path: %w", err)
+				}
 
-			// 	depSrc = dag.ModuleSource(depRelPath)
-			// }
+				depSrc = dag.ModuleSource(depRelPath)
+			}
 			dep := dag.ModuleDependency(depSrc)
 
 			_, err = modConf.Source.

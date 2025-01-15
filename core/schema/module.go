@@ -128,6 +128,9 @@ func (s *moduleSchema) Install() {
 			Doc(`Update the module source with a new name.`).
 			ArgDoc("name", `The name to set.`),
 
+		dagql.NodeFunc("sdk", s.moduleSourceSDK).
+			Doc(`The effective module source sdk from the configuration`),
+
 		dagql.NodeFunc("dependencies", s.moduleSourceDependencies).
 			Doc(`The effective module source dependencies from the configuration, and calls to withDependencies and withoutDependencies.`),
 
@@ -889,6 +892,10 @@ func (s *moduleSchema) moduleWithSource(ctx context.Context, mod *core.Module, a
 		return nil, fmt.Errorf("module requires dagger %s, but you have %s", modCfg.EngineVersion, engine.Version)
 	}
 
+	if err := s.updateSDK(ctx, mod, modCfg, src); err != nil {
+		return nil, fmt.Errorf("failed to update module dependencies: %w", err)
+	}
+
 	if err := s.updateDeps(ctx, mod, modCfg, src); err != nil {
 		return nil, fmt.Errorf("failed to update module dependencies: %w", err)
 	}
@@ -927,6 +934,24 @@ func (s *moduleSchema) moduleGeneratedContextDiff(
 		return inst, fmt.Errorf("failed to diff generated context: %w", err)
 	}
 	return diff, nil
+}
+
+// this is my func
+func (s *moduleSchema) updateSDK(
+	ctx context.Context,
+	mod *core.Module,
+	modCfg *modules.ModuleConfig,
+	src dagql.Instance[*core.ModuleSource],
+) (rerr error) {
+	ctx, span := core.Tracer(ctx).Start(ctx, "initialize sdk")
+	defer telemetry.End(span, func() error { return rerr })
+
+	modCfg.SDK = &modules.ModuleConfigDependency{
+		Source: "",
+		Pin:    "",
+	}
+
+	return nil
 }
 
 func (s *moduleSchema) updateDeps(

@@ -21,9 +21,9 @@ type ModuleConfig struct {
 	EngineVersion string `json:"engineVersion"`
 
 	// The SDK this module uses
-	SDKstring string `json:"sdk,omitempty"`
+	SDKstring string `json:"sdkstring,omitempty"`
 
-	SDK *ModuleConfigDependency `json:"sdkstruct,omitempty"`
+	SDK *ModuleConfigDependency `json:"sdk"`
 
 	// Paths to explicitly include from the module, relative to the configuration file.
 	Include []string `json:"include,omitempty"`

@@ -13,6 +13,7 @@ import (
 	"github.com/opencontainers/go-digest"
 
 	"github.com/dagger/dagger/core"
+	"github.com/dagger/dagger/core/modules"
 	"github.com/dagger/dagger/dagql"
 	"github.com/dagger/dagger/engine"
 	"github.com/dagger/dagger/engine/distconsts"
@@ -121,7 +122,7 @@ func parseSDKName(sdkName string) (SDK, string, error) {
 	// this validation may seem redundant, but it helps keep the list of
 	// builtin sdk between invalidSDKError message and builtinSDK function in sync.
 	if !slices.Contains(validInbuiltSDKs, SDK(sdkNameParsed)) {
-		return "", "", getInvalidBuiltinSDKError(sdkName)
+		return "", "", getInvalidBuiltinSDKError("parseSDKName" + sdkName)
 	}
 
 	// inbuilt sdk go/python/typescript currently does not support selecting a specific version
@@ -158,6 +159,28 @@ The %q SDK does not exist. The available SDKs are:
 		errUnknownBuiltinSDK, inputSDKName, strings.Join(inbuiltSDKs, "\n"))
 }
 
+func (s *moduleSchema) builtinSDKNEW(ctx context.Context, root *core.Query, sdk *modules.ModuleConfigDependency) (core.SDK, error) {
+	sdkNameParsed, sdkSuffix, err := parseSDKName(sdk.Source)
+	if err != nil {
+		return nil, err
+	}
+
+	switch sdkNameParsed {
+	case SDKGo:
+		return &goSDK{root: root, dag: s.dag}, nil
+	case SDKPython:
+		return s.loadBuiltinSDK(ctx, root, sdk.Source, digest.Digest(os.Getenv(distconsts.PythonSDKManifestDigestEnvName)))
+	case SDKTypescript:
+		return s.loadBuiltinSDK(ctx, root, sdk.Source, digest.Digest(os.Getenv(distconsts.TypescriptSDKManifestDigestEnvName)))
+	case SDKPHP:
+		return s.sdkForModule(ctx, root, "github.com/dagger/dagger/sdk/php"+sdkSuffix, dagql.Instance[*core.ModuleSource]{})
+	case SDKElixir:
+		return s.sdkForModule(ctx, root, "github.com/dagger/dagger/sdk/elixir"+sdkSuffix, dagql.Instance[*core.ModuleSource]{})
+	}
+
+	return nil, getInvalidBuiltinSDKError(fmt.Sprintf("builtinSDKNEW %s -> %s", sdk.Source, sdkNameParsed))
+}
+
 // return a builtin SDK implementation with the given name
 func (s *moduleSchema) builtinSDK(ctx context.Context, root *core.Query, sdkName string) (core.SDK, error) {
 	sdkNameParsed, sdkSuffix, err := parseSDKName(sdkName)
@@ -178,7 +201,7 @@ func (s *moduleSchema) builtinSDK(ctx context.Context, root *core.Query, sdkName
 		return s.sdkForModule(ctx, root, "github.com/dagger/dagger/sdk/elixir"+sdkSuffix, dagql.Instance[*core.ModuleSource]{})
 	}
 
-	return nil, getInvalidBuiltinSDKError(sdkName)
+	return nil, getInvalidBuiltinSDKError(fmt.Sprintf("builtinSDKOLD: %s -> %s", sdkName, sdkNameParsed))
 }
 
 // moduleSDK is an SDK implemented as module; i.e. every module besides the special case go sdk.
@@ -314,6 +337,62 @@ func (sdk *moduleSDK) RequiredPaths(ctx context.Context) ([]string, error) {
 		return nil, fmt.Errorf("failed to call sdk module requiredPaths: %w", err)
 	}
 	return paths, nil
+}
+
+func (s *moduleSchema) loadBuiltinSDKNEW(
+	ctx context.Context,
+	root *core.Query,
+	name string,
+	manifestDigest digest.Digest,
+) (*core.Module, error) {
+	// TODO: currently hardcoding assumption that builtin sdks put *module* source code at
+	// "runtime" subdir right under the *full* sdk source dir. Can be generalized once we support
+	// default-args/scripts in dagger.json
+	var fullSDKDir dagql.Instance[*core.Directory]
+	if err := s.dag.Select(ctx, s.dag.Root(), &fullSDKDir,
+		dagql.Selector{
+			Field: "builtinContainer",
+			Args: []dagql.NamedInput{
+				{
+					Name:  "digest",
+					Value: dagql.String(manifestDigest.String()),
+				},
+			},
+		},
+		dagql.Selector{
+			Field: "rootfs",
+		},
+	); err != nil {
+		return nil, fmt.Errorf("failed to import full sdk source for sdk %s from engine container filesystem: %w", name, err)
+	}
+
+	var sdkModDir dagql.Instance[*core.Directory]
+	err := s.dag.Select(ctx, fullSDKDir, &sdkModDir,
+		dagql.Selector{
+			Field: "directory",
+			Args: []dagql.NamedInput{
+				{Name: "path", Value: dagql.String("runtime")},
+			},
+		},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to import module sdk %s: %w", name, err)
+	}
+
+	var sdkMod dagql.Instance[*core.Module]
+	err = s.dag.Select(ctx, sdkModDir, &sdkMod,
+		dagql.Selector{
+			Field: "asModule",
+		},
+		dagql.Selector{
+			Field: "initialize",
+		},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load embedded sdk module %q: %w", name, err)
+	}
+
+	return sdkMod.Self, nil
 }
 
 // loadBuiltinSDK loads an SDK implemented as a module that is "builtin" to engine, which means its pre-packaged
