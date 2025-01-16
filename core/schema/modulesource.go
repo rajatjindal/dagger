@@ -609,55 +609,41 @@ func (s *moduleSchema) moduleSourceSDK(
 	args struct{},
 ) (dagql.Instance[*core.ModuleDependency], error) {
 	var sdk dagql.Instance[*core.ModuleDependency]
-	modCfg, ok, err := src.Self.ModuleConfig(ctx)
+
+	// following code should be used if module config exist and already has an sdk in it
+	// modCfg, ok, err := src.Self.ModuleConfig(ctx)
+	// if err != nil {
+	// 	return sdk, fmt.Errorf("failed to get module config: %w", err)
+	// }
+
+	// if ok {
+	// 	// load if sdk exists in module config
+	// 	// and return from here
+	// }
+
+	var resolvedDepSrc dagql.Instance[*core.ModuleSource]
+	err := s.dag.Select(ctx, src, &resolvedDepSrc,
+		dagql.Selector{
+			Field: "resolveDependency",
+			Args: []dagql.NamedInput{
+				{Name: "dep", Value: dagql.NewID[*core.ModuleSource](src.Self.WithSDK.Self.Source.ID())},
+			},
+		},
+	)
 	if err != nil {
-		return sdk, fmt.Errorf("failed to get module config: %w", err)
+		return sdk, fmt.Errorf("failed to resolve sdk: %w", err)
 	}
 
-	if !ok {
-		return sdk, fmt.Errorf("failed to get module config because ok is false")
-	}
-	if ok {
-		depCfg := modCfg.SDK
-		var depSrc dagql.Instance[*core.ModuleSource]
-		err = s.dag.Select(ctx, s.dag.Root(), &depSrc,
-			dagql.Selector{
-				Field: "moduleSource",
-				Args: []dagql.NamedInput{
-					{Name: "refString", Value: dagql.String(depCfg.Source)},
-					{Name: "refPin", Value: dagql.String(depCfg.Pin)},
-				},
+	err = s.dag.Select(ctx, s.dag.Root(), &sdk,
+		dagql.Selector{
+			Field: "moduleDependency",
+			Args: []dagql.NamedInput{
+				{Name: "source", Value: dagql.NewID[*core.ModuleSource](resolvedDepSrc.ID())},
 			},
-		)
-		if err != nil {
-			return sdk, fmt.Errorf("failed to create module source from dependency: %w", err)
-		}
-
-		var resolvedDepSrc dagql.Instance[*core.ModuleSource]
-		err = s.dag.Select(ctx, src, &resolvedDepSrc,
-			dagql.Selector{
-				Field: "resolveDependency",
-				Args: []dagql.NamedInput{
-					{Name: "dep", Value: dagql.NewID[*core.ModuleSource](depSrc.ID())},
-				},
-			},
-		)
-		if err != nil {
-			return sdk, fmt.Errorf("failed to resolve dependency: %w", err)
-		}
-
-		err = s.dag.Select(ctx, s.dag.Root(), &sdk,
-			dagql.Selector{
-				Field: "moduleDependency",
-				Args: []dagql.NamedInput{
-					{Name: "source", Value: dagql.NewID[*core.ModuleSource](resolvedDepSrc.ID())},
-					{Name: "name", Value: dagql.String(depCfg.Name)},
-				},
-			},
-		)
-		if err != nil {
-			return sdk, fmt.Errorf("failed to create module dependency: %w", err)
-		}
+		},
+	)
+	if err != nil {
+		return sdk, fmt.Errorf("failed to create module sdk: %w", err)
 	}
 
 	return sdk, nil

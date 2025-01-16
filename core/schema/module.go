@@ -846,7 +846,7 @@ func (s *moduleSchema) moduleInitialize(
 	inst dagql.Instance[*core.Module],
 	args struct{},
 ) (*core.Module, error) {
-	if inst.Self.NameField == "" || inst.Self.SDKConfigstring == "" {
+	if inst.Self.NameField == "" || inst.Self.SDKConfig == nil {
 		return nil, fmt.Errorf("module name and SDK must be set")
 	}
 	mod, err := inst.Self.Initialize(ctx, inst.ID(), dagql.CurrentID(ctx), s.dag)
@@ -876,6 +876,7 @@ func (s *moduleSchema) moduleWithSource(ctx context.Context, mod *core.Module, a
 		return nil, fmt.Errorf("failed to get module original name: %w", err)
 	}
 
+	// this fn call has to go away
 	mod.SDKConfigstring, err = src.Self.SDKstring(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get module SDK: %w", err)
@@ -893,7 +894,7 @@ func (s *moduleSchema) moduleWithSource(ctx context.Context, mod *core.Module, a
 	}
 
 	if err := s.updateSDK(ctx, mod, modCfg, src); err != nil {
-		return nil, fmt.Errorf("failed to update module dependencies: %w", err)
+		return nil, fmt.Errorf("failed to update module sdk: %w", err)
 	}
 
 	if err := s.updateDeps(ctx, mod, modCfg, src); err != nil {
@@ -936,19 +937,89 @@ func (s *moduleSchema) moduleGeneratedContextDiff(
 	return diff, nil
 }
 
-// this is my func
 func (s *moduleSchema) updateSDK(
 	ctx context.Context,
 	mod *core.Module,
 	modCfg *modules.ModuleConfig,
 	src dagql.Instance[*core.ModuleSource],
 ) (rerr error) {
-	ctx, span := core.Tracer(ctx).Start(ctx, "initialize sdk")
+	ctx, span := core.Tracer(ctx).Start(ctx, "initialize dependencies")
 	defer telemetry.End(span, func() error { return rerr })
 
+	var sdk dagql.Instance[*core.ModuleDependency]
+	err := s.dag.Select(ctx, src, &sdk, dagql.Selector{Field: "sdk"})
+	if err != nil {
+		return fmt.Errorf("failed to load module sdk: %w", err)
+	}
+
+	// verify that the dependency config actually exists
+	_, cfgExists, err := sdk.Self.Source.Self.ModuleConfig(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to load module %q dependency %q config: %w", mod.NameField, sdk.Self.Source, err)
+	}
+	if !cfgExists {
+		// best effort for err message, ignore err
+		sourceRootPath, _ := sdk.Self.Source.Self.SourceRootSubpath()
+		return fmt.Errorf("module %q sdk %q with source root path %q does not exist or does not have a configuration file", mod.NameField, sdk.Self.Name, sourceRootPath)
+	}
+	mod.SDKConfig = sdk.Self
+
+	err = s.dag.Select(ctx, sdk.Self.Source, &mod.SDKField,
+		dagql.Selector{
+			Field: "withName",
+			Args: []dagql.NamedInput{
+				{Name: "name", Value: dagql.String(sdk.Self.Name)},
+			},
+		},
+		dagql.Selector{
+			Field: "asModule",
+		},
+		dagql.Selector{
+			Field: "initialize",
+		},
+	)
+	if err != nil {
+		return fmt.Errorf("failed to initialize sdk module: %w", err)
+	}
+
+	sourceRootSubpath, err := src.Self.SourceRootSubpath()
+	if err != nil {
+		return fmt.Errorf("failed to get source root subpath: %w", err)
+	}
+
+	// keep the module config in sync
+	var srcStr, pinStr string
+	switch mod.SDKConfig.Source.Self.Kind {
+	case core.ModuleSourceKindLocal:
+		// make it relative to this module's source root
+		depRootSubpath, err := mod.SDKConfig.Source.Self.SourceRootSubpath()
+		if err != nil {
+			return fmt.Errorf("failed to get source root subpath: %w", err)
+		}
+		depRelPath, err := filepath.Rel(sourceRootSubpath, depRootSubpath)
+		if err != nil {
+			return fmt.Errorf("failed to get relative path to dep: %w", err)
+		}
+		srcStr = depRelPath
+
+	case core.ModuleSourceKindGit:
+		srcStr = mod.SDKConfig.Source.Self.AsGitSource.Value.RefString()
+		pinStr = mod.SDKConfig.Source.Self.AsGitSource.Value.Pin()
+
+	default:
+		return fmt.Errorf("unsupported sdk source kind: %s", mod.SDKConfig.Source.Self.Kind)
+	}
+
+	depName := mod.SDKConfig.Name
+	if mod.SDKConfig.Name == "" {
+		// fill in sdk name if missing with the name of the module
+		depName = mod.SDKField.Self.Name()
+	}
+
 	modCfg.SDK = &modules.ModuleConfigDependency{
-		Source: "",
-		Pin:    "",
+		Name:   depName,
+		Source: srcStr,
+		Pin:    pinStr,
 	}
 
 	return nil
