@@ -1428,9 +1428,9 @@ func (s *moduleSchema) collectCallerLocalDeps(
 			if src.WithName != "" {
 				modCfg.Name = src.WithName
 			}
-			if src.WithSDKstring != "" {
-				modCfg.SDKstring = src.WithSDKstring
-			}
+			// if src.WithSDKstring != "" {
+			// 	modCfg.SDKstring = src.WithSDKstring
+			// }
 
 			if src.WithSDK.Self != nil {
 				refString, err := src.WithSDK.Self.Source.Self.RefString()

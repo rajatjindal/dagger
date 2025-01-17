@@ -952,16 +952,17 @@ func (s *moduleSchema) updateSDK(
 		return fmt.Errorf("failed to load module sdk: %w", err)
 	}
 
+	// FOR GOLANG, THE DAGGER.JSON MAY NOT EXIST
 	// verify that the dependency config actually exists
-	_, cfgExists, err := sdk.Self.Source.Self.ModuleConfig(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to load module %q dependency %q config: %w", mod.NameField, sdk.Self.Source, err)
-	}
-	if !cfgExists {
-		// best effort for err message, ignore err
-		sourceRootPath, _ := sdk.Self.Source.Self.SourceRootSubpath()
-		return fmt.Errorf("module %q sdk %q with source root path %q does not exist or does not have a configuration file", mod.NameField, sdk.Self.Name, sourceRootPath)
-	}
+	// _, cfgExists, err := sdk.Self.Source.Self.ModuleConfig(ctx)
+	// if err != nil {
+	// 	return fmt.Errorf("failed to load module %q dependency %q config: %w", mod.NameField, sdk.Self.Source, err)
+	// }
+	// if !cfgExists {
+	// 	// best effort for err message, ignore err
+	// 	sourceRootPath, _ := sdk.Self.Source.Self.SourceRootSubpath()
+	// 	return fmt.Errorf("module %q sdk %q with source root path %q does not exist or does not have a configuration file", mod.NameField, sdk.Self.Name, sourceRootPath)
+	// }
 	mod.SDKConfig = sdk.Self
 
 	err = s.dag.Select(ctx, sdk.Self.Source, &mod.SDKField,
