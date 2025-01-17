@@ -877,10 +877,10 @@ func (s *moduleSchema) moduleWithSource(ctx context.Context, mod *core.Module, a
 	}
 
 	// this fn call has to go away
-	mod.SDKConfigstring, err = src.Self.SDKstring(ctx)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get module SDK: %w", err)
-	}
+	// mod.SDKConfigstring, err = src.Self.SDKstring(ctx)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("failed to get module SDK: %w", err)
+	// }
 
 	modCfg, modCfgPath, err := s.updateDaggerConfig(ctx, string(args.EngineVersion.Value), mod, src)
 	if err != nil {
@@ -950,6 +950,11 @@ func (s *moduleSchema) updateSDK(
 	err := s.dag.Select(ctx, src, &sdk, dagql.Selector{Field: "sdk"})
 	if err != nil {
 		return fmt.Errorf("failed to load module sdk: %w", err)
+	}
+
+	// THIS COULD BE A TOP LEVEL INIT COMMAND
+	if sdk.Self == nil {
+		return nil
 	}
 
 	// FOR GOLANG, THE DAGGER.JSON MAY NOT EXIST
@@ -1337,7 +1342,7 @@ func (s *moduleSchema) updateDaggerConfig(
 	modCfg := &modCfgWithUserFields.ModuleConfig
 
 	modCfg.Name = mod.OriginalName
-	modCfg.SDKstring = mod.SDKConfigstring
+	// modCfg.SDKstring = mod.SDKConfigstring
 	switch engineVersion {
 	case "":
 		if modCfg.EngineVersion == "" {

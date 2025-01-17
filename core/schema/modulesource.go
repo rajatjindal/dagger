@@ -610,6 +610,11 @@ func (s *moduleSchema) moduleSourceSDK(
 ) (dagql.Instance[*core.ModuleDependency], error) {
 	var sdk dagql.Instance[*core.ModuleDependency]
 
+	// for top level this would be nil
+	if src.Self.WithSDK.Self == nil {
+		return sdk, nil
+	}
+
 	// following code should be used if module config exist and already has an sdk in it
 	// modCfg, ok, err := src.Self.ModuleConfig(ctx)
 	// if err != nil {
@@ -620,6 +625,9 @@ func (s *moduleSchema) moduleSourceSDK(
 	// 	// load if sdk exists in module config
 	// 	// and return from here
 	// }
+
+	// GET MODULE SOURCE FROM HERE BASED ON SDK
+	// QUESTION IS HOW?????
 
 	var resolvedDepSrc dagql.Instance[*core.ModuleSource]
 	err := s.dag.Select(ctx, src, &resolvedDepSrc,
@@ -1508,13 +1516,19 @@ func (s *moduleSchema) collectCallerLocalDeps(
 			return localDep, nil
 		}
 
+		if true {
+			return nil, fmt.Errorf("LETS DO ONLY TOP LEVEL INIT WITHOUT SDK FOR NOW %q", modCfg.SDK.Source)
+		}
+		// LOADING SDK STARTS FROM HERE
+		// FOR BOTH DEPENDENCIES AND CURRENT TOP LEVEL MODULE
+		// AND SDK IS GAURANTEED TO BE NOT NIL HERE
 		localDep.sdkKey = modCfg.SDK.Source
 
 		localDep.sdk, err = s.builtinSDKNEW(ctx, query, modCfg.SDK)
 		switch {
 		case err == nil:
 		case errors.Is(err, errUnknownBuiltinSDK):
-			parsed := parseRefString(ctx, bk, modCfg.SDKstring)
+			parsed := parseRefString(ctx, bk, modCfg.SDK.Source)
 			switch parsed.kind {
 			case core.ModuleSourceKindLocal:
 				// SDK is a local custom one, it needs to be included

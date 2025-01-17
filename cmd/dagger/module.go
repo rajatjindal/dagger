@@ -171,6 +171,7 @@ If --sdk is specified, the given SDK is installed in the module. You can do this
 				moduleName = filepath.Base(modConf.LocalRootSourcePath)
 			}
 
+			var sdkdep *dagger.ModuleDependency
 			// only bother setting source path if there's an sdk at this time
 			if sdk != "" {
 				// if user didn't specified moduleSourcePath explicitly,
@@ -197,32 +198,35 @@ If --sdk is specified, the given SDK is installed in the module. You can do this
 						return fmt.Errorf("failed to get relative source path: %w", err)
 					}
 				}
-			}
 
-			// THIS IS HACK JUST TO KEEP THINGS GOING
-			depSrc := dag.ModuleSource("go")
-			depSrcKind, err := depSrc.Kind(ctx)
-			if err != nil {
-				return fmt.Errorf("failed to get module ref kind: %w", err)
-			}
-			if depSrcKind == dagger.ModuleSourceKindLocalSource {
-				// need to ensure that local dep paths are relative to the parent root source
-				depAbsPath, err := client.Abs("go")
+				// THIS IS HACK JUST TO KEEP THINGS GOING
+				depSrc := dag.ModuleSource("go")
+				depSrcKind, err := depSrc.Kind(ctx)
 				if err != nil {
-					return fmt.Errorf("failed to get dep absolute path for %s: %w", "go", err)
+					return fmt.Errorf("failed to get module ref kind: %w", err)
 				}
-				depRelPath, err := filepath.Rel(modConf.LocalRootSourcePath, depAbsPath)
-				if err != nil {
-					return fmt.Errorf("failed to get dep relative path: %w", err)
-				}
+				if depSrcKind == dagger.ModuleSourceKindLocalSource {
+					// need to ensure that local dep paths are relative to the parent root source
+					depAbsPath, err := client.Abs("go")
+					if err != nil {
+						return fmt.Errorf("failed to get dep absolute path for %s: %w", "go", err)
+					}
+					depRelPath, err := filepath.Rel(modConf.LocalRootSourcePath, depAbsPath)
+					if err != nil {
+						return fmt.Errorf("failed to get dep relative path: %w", err)
+					}
 
-				depSrc = dag.ModuleSource(depRelPath)
+					depSrc = dag.ModuleSource(depRelPath)
+				}
+				sdkdep = dag.ModuleDependency(depSrc)
 			}
-			dep := dag.ModuleDependency(depSrc)
 
-			_, err = modConf.Source.
-				WithName(moduleName).
-				WithSDK(sdk, dep).
+			xsrc := modConf.Source.WithName(moduleName)
+
+			if sdkdep != nil {
+				xsrc = xsrc.WithSDK(sdk, sdkdep)
+			}
+			_, err = xsrc.
 				WithInit(dagger.ModuleSourceWithInitOpts{Merge: mergeDeps}).
 				WithSourceSubpath(moduleSourcePath).
 				ResolveFromCaller().
