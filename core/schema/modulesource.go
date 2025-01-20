@@ -1451,7 +1451,7 @@ func (s *moduleSchema) collectCallerLocalDeps(
 					return nil, fmt.Errorf("failed to get ref string for dependency: %w", err)
 				}
 
-				modCfg.SDK = &modules.ModuleConfigDependency{
+				modCfg.SDK = &modules.RJSDK{
 					//Name:   src.WithSDK.Self.Name, NAME IS NOT PROVIDED FOR SDK
 					Source: refString,
 					Pin:    pin,
@@ -1516,9 +1516,8 @@ func (s *moduleSchema) collectCallerLocalDeps(
 			return localDep, nil
 		}
 
-		if true {
-			return nil, fmt.Errorf("LETS DO ONLY TOP LEVEL INIT WITHOUT SDK FOR NOW %q", modCfg.SDK.Source)
-		}
+		// THIS IS WHAT I WAS LOOKING FOR
+
 		// LOADING SDK STARTS FROM HERE
 		// FOR BOTH DEPENDENCIES AND CURRENT TOP LEVEL MODULE
 		// AND SDK IS GAURANTEED TO BE NOT NIL HERE

@@ -11,6 +11,12 @@ const Filename = "dagger.json"
 // EngineVersionLatest is replaced by the current engine.Version during module init.
 const EngineVersionLatest string = "latest"
 
+type RJSDK struct {
+	Name   string `json:"name"`
+	Source string `json:"source"`
+	Pin    string `json:"pin"`
+}
+
 // ModuleConfig is the config for a single module as loaded from a dagger.json file.
 // Only contains fields that are set/edited by dagger utilities.
 type ModuleConfig struct {
@@ -23,7 +29,9 @@ type ModuleConfig struct {
 	// The SDK this module uses
 	SDKstring string `json:"sdkstring,omitempty"`
 
-	SDK *ModuleConfigDependency `json:"sdk,omitempty"`
+	SDK string `json:"sdk"`
+
+	RJSDK *RJSDK `json:"rjsdk,omitempty"`
 
 	// Paths to explicitly include from the module, relative to the configuration file.
 	Include []string `json:"include,omitempty"`

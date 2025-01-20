@@ -846,7 +846,8 @@ func (s *moduleSchema) moduleInitialize(
 	inst dagql.Instance[*core.Module],
 	args struct{},
 ) (*core.Module, error) {
-	if inst.Self.NameField == "" || inst.Self.SDKConfig == nil {
+	//WHEN INITIALIZING SDK AS MODULE THIS FAILS AS THERE IS NO NAME. DO WE PROVIDE A NAME?
+	if inst.Self.NameField == "" && inst.Self.SDKConfig == nil {
 		return nil, fmt.Errorf("module name and SDK must be set")
 	}
 	mod, err := inst.Self.Initialize(ctx, inst.ID(), dagql.CurrentID(ctx), s.dag)
@@ -970,6 +971,10 @@ func (s *moduleSchema) updateSDK(
 	// }
 	mod.SDKConfig = sdk.Self
 
+	if true {
+		//VALIDATION FOR inbuilt, inbuilt-special-php etc and third party
+		return fmt.Errorf("IN UPDATE SDK, IF WE RETURN JUST FROM HERE, IT SHOULD BE OK. WE JUST NEED TO ENSURE THAT SDK VALIDATION IS DONE %#v", mod.SDKConfig)
+	}
 	err = s.dag.Select(ctx, sdk.Self.Source, &mod.SDKField,
 		dagql.Selector{
 			Field: "withName",
