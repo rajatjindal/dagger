@@ -37,7 +37,7 @@ type Module struct {
 	// The module's SDKConfig, as set in the module config file
 	SDKConfigstring string `field:"true"  doc:"The SDK used by this module. Either a name of a builtin SDK or a module source ref string pointing to the SDK's implementation."`
 
-	SDKConfig *ModuleDependency `field:"true"  doc:"The SDK used by this module. Either a name of a builtin SDK or a module source ref string pointing to the SDK's implementation."`
+	SDKConfig *RJSDK2 `field:"true"  doc:"The SDK used by this module. Either a name of a builtin SDK or a module source ref string pointing to the SDK's implementation."`
 
 	SDKField dagql.Instance[*Module] `field:"true" name:"sdk" doc:"SDK used by this module."`
 
@@ -79,6 +79,12 @@ func (*Module) Type() *ast.Type {
 
 func (*Module) TypeDescription() string {
 	return "A Dagger module."
+}
+
+type RJSDK2 struct {
+	Source string
+	Name   string
+	Pin    string
 }
 
 // SHOULD PROBABLY ADD A PIN HERE?

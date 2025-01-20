@@ -81,7 +81,7 @@ func (modCfg *ModuleConfig) UnmarshalJSON(data []byte) error {
 
 	// Detect the case where SDK is set but Source isn't, which should only happen when loading an older config.
 	// For those cases, the Source was implicitly ".", so set it to that.
-	if tmp.SDK.Source != "" && tmp.Source == "" {
+	if tmp.RJSDK.Source != "" && tmp.Source == "" {
 		tmp.Source = "."
 	}
 

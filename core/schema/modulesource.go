@@ -1451,7 +1451,7 @@ func (s *moduleSchema) collectCallerLocalDeps(
 					return nil, fmt.Errorf("failed to get ref string for dependency: %w", err)
 				}
 
-				modCfg.SDK = &modules.RJSDK{
+				modCfg.RJSDK = &modules.RJSDK{
 					//Name:   src.WithSDK.Self.Name, NAME IS NOT PROVIDED FOR SDK
 					Source: refString,
 					Pin:    pin,
@@ -1512,7 +1512,7 @@ func (s *moduleSchema) collectCallerLocalDeps(
 			}
 		}
 
-		if modCfg.SDK.Source == "" {
+		if modCfg.RJSDK.Source == "" {
 			return localDep, nil
 		}
 
@@ -1521,13 +1521,13 @@ func (s *moduleSchema) collectCallerLocalDeps(
 		// LOADING SDK STARTS FROM HERE
 		// FOR BOTH DEPENDENCIES AND CURRENT TOP LEVEL MODULE
 		// AND SDK IS GAURANTEED TO BE NOT NIL HERE
-		localDep.sdkKey = modCfg.SDK.Source
+		localDep.sdkKey = modCfg.RJSDK.Source
 
-		localDep.sdk, err = s.builtinSDKNEW(ctx, query, modCfg.SDK)
+		localDep.sdk, err = s.builtinSDKNEW(ctx, query, modCfg.RJSDK)
 		switch {
 		case err == nil:
 		case errors.Is(err, errUnknownBuiltinSDK):
-			parsed := parseRefString(ctx, bk, modCfg.SDK.Source)
+			parsed := parseRefString(ctx, bk, modCfg.RJSDK.Source)
 			switch parsed.kind {
 			case core.ModuleSourceKindLocal:
 				// SDK is a local custom one, it needs to be included
@@ -1538,7 +1538,7 @@ func (s *moduleSchema) collectCallerLocalDeps(
 				// nor a valid sdk available on local path.
 				_, err = bk.StatCallerHostPath(ctx, sdkPath, true)
 				if err != nil {
-					return nil, getInvalidBuiltinSDKError("collectCallerLocalDeps " + modCfg.SDK.Source)
+					return nil, getInvalidBuiltinSDKError("collectCallerLocalDeps " + modCfg.RJSDK.Source)
 				}
 
 				err = s.collectCallerLocalDeps(ctx, query, contextAbsPath, sdkPath, false, src, collectedDeps)

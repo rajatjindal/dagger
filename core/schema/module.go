@@ -975,63 +975,6 @@ func (s *moduleSchema) updateSDK(
 		//VALIDATION FOR inbuilt, inbuilt-special-php etc and third party
 		return fmt.Errorf("IN UPDATE SDK, IF WE RETURN JUST FROM HERE, IT SHOULD BE OK. WE JUST NEED TO ENSURE THAT SDK VALIDATION IS DONE %#v", mod.SDKConfig)
 	}
-	err = s.dag.Select(ctx, sdk.Self.Source, &mod.SDKField,
-		dagql.Selector{
-			Field: "withName",
-			Args: []dagql.NamedInput{
-				{Name: "name", Value: dagql.String(sdk.Self.Name)},
-			},
-		},
-		dagql.Selector{
-			Field: "asModule",
-		},
-		dagql.Selector{
-			Field: "initialize",
-		},
-	)
-	if err != nil {
-		return fmt.Errorf("failed to initialize sdk module: %w", err)
-	}
-
-	sourceRootSubpath, err := src.Self.SourceRootSubpath()
-	if err != nil {
-		return fmt.Errorf("failed to get source root subpath: %w", err)
-	}
-
-	// keep the module config in sync
-	var srcStr, pinStr string
-	switch mod.SDKConfig.Source.Self.Kind {
-	case core.ModuleSourceKindLocal:
-		// make it relative to this module's source root
-		depRootSubpath, err := mod.SDKConfig.Source.Self.SourceRootSubpath()
-		if err != nil {
-			return fmt.Errorf("failed to get source root subpath: %w", err)
-		}
-		depRelPath, err := filepath.Rel(sourceRootSubpath, depRootSubpath)
-		if err != nil {
-			return fmt.Errorf("failed to get relative path to dep: %w", err)
-		}
-		srcStr = depRelPath
-
-	case core.ModuleSourceKindGit:
-		srcStr = mod.SDKConfig.Source.Self.AsGitSource.Value.RefString()
-		pinStr = mod.SDKConfig.Source.Self.AsGitSource.Value.Pin()
-
-	default:
-		return fmt.Errorf("unsupported sdk source kind: %s", mod.SDKConfig.Source.Self.Kind)
-	}
-
-	depName := mod.SDKConfig.Name
-	if mod.SDKConfig.Name == "" {
-		// fill in sdk name if missing with the name of the module
-		depName = mod.SDKField.Self.Name()
-	}
-
-	modCfg.SDK = &modules.ModuleConfigDependency{
-		Name:   depName,
-		Source: srcStr,
-		Pin:    pinStr,
-	}
 
 	return nil
 }

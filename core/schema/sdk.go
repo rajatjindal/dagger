@@ -159,7 +159,7 @@ The %q SDK does not exist. The available SDKs are:
 		errUnknownBuiltinSDK, inputSDKName, strings.Join(inbuiltSDKs, "\n"))
 }
 
-func (s *moduleSchema) builtinSDKNEW(ctx context.Context, root *core.Query, sdk *modules.ModuleConfigDependency) (core.SDK, error) {
+func (s *moduleSchema) builtinSDKNEW(ctx context.Context, root *core.Query, sdk *modules.RJSDK) (core.SDK, error) {
 	sdkNameParsed, sdkSuffix, err := parseSDKName(sdk.Source)
 	if err != nil {
 		return nil, err
