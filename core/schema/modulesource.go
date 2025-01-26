@@ -1465,7 +1465,7 @@ func (s *moduleSchema) collectCallerLocalDeps(
 				// nor a valid sdk available on local path.
 				_, err = bk.StatCallerHostPath(ctx, sdkPath, true)
 				if err != nil {
-					return nil, getInvalidBuiltinSDKError(modCfg.SDK)
+					return nil, fmt.Errorf("from after StatCallerHostPath %w", getInvalidBuiltinSDKError(modCfg.SDK))
 				}
 
 				//RJ2: IF IT IS A LOCAL SDK, THEN COLLECT DEPENDENCIES FOR THE SDK AGAIN. THEREFORE THIS FN CALL
@@ -1514,7 +1514,7 @@ func (s *moduleSchema) collectCallerLocalDeps(
 				localDep.sdkKey = sdkPath
 
 			case core.ModuleSourceKindGit:
-				localDep.sdk, err = s.sdkForModule2(ctx, query, &modCfg.SDKStruct, dagql.Instance[*core.ModuleSource]{})
+				localDep.sdk, err = s.sdkForModule(ctx, query, modCfg.SDKStruct.Source, dagql.Instance[*core.ModuleSource]{})
 				if err != nil {
 					return nil, fmt.Errorf("failed to get git module sdk: %w", err)
 				}
@@ -1526,7 +1526,7 @@ func (s *moduleSchema) collectCallerLocalDeps(
 		return localDep, nil
 	})
 	if errors.Is(err, dagql.ErrCacheMapRecursiveCall) {
-		return fmt.Errorf("local module at %q has a circular dependency", sourceRootAbsPath)
+		return fmt.Errorf("local module at %q has a circular dependency %t. err: %#v", sourceRootAbsPath, topLevel, err)
 	}
 	return err
 }

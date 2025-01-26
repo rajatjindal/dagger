@@ -61,6 +61,10 @@ func (s *moduleSchema) sdkForModule(
 		return nil, err
 	}
 
+	if true {
+		return nil, fmt.Errorf("INSIDE THE TWO core.ModuleSourceKindGit case %q. err: %#v", sdk, err)
+	}
+
 	var sdkSource dagql.Instance[*core.ModuleSource]
 	err = s.dag.Select(ctx, s.dag.Root(), &sdkSource,
 		dagql.Selector{
@@ -184,7 +188,7 @@ func parseSDKName(sdkName string) (SDK, string, error) {
 	// this validation may seem redundant, but it helps keep the list of
 	// builtin sdk between invalidSDKError message and builtinSDK function in sync.
 	if !slices.Contains(validInbuiltSDKs, SDK(sdkNameParsed)) {
-		return "", "", getInvalidBuiltinSDKError(sdkName)
+		return "", "", fmt.Errorf("FROM INSIDE PARSESDKNAME %w. valid %#v. contains %q", getInvalidBuiltinSDKError(sdkName), validInbuiltSDKs, SDK(sdkNameParsed))
 	}
 
 	// inbuilt sdk go/python/typescript currently does not support selecting a specific version
@@ -235,13 +239,13 @@ func (s *moduleSchema) builtinSDK2(ctx context.Context, root *core.Query, sdk *m
 		return s.loadBuiltinSDK(ctx, root, sdk.Source, digest.Digest(os.Getenv(distconsts.PythonSDKManifestDigestEnvName)))
 	case SDKTypescript:
 		return s.loadBuiltinSDK(ctx, root, sdk.Source, digest.Digest(os.Getenv(distconsts.TypescriptSDKManifestDigestEnvName)))
-		// case SDKPHP:
-		// 	return s.sdkForModule(ctx, root, "github.com/dagger/dagger/sdk/php"+sdkSuffix, dagql.Instance[*core.ModuleSource]{})
-		// case SDKElixir:
-		// 	return s.sdkForModule2(ctx, root, "github.com/dagger/dagger/sdk/elixir"+sdkSuffix, dagql.Instance[*core.ModuleSource]{})
+	case SDKPHP:
+		return s.sdkForModule2(ctx, root, sdk, dagql.Instance[*core.ModuleSource]{})
+	case SDKElixir:
+		return s.sdkForModule2(ctx, root, sdk, dagql.Instance[*core.ModuleSource]{})
 	}
 
-	return nil, getInvalidBuiltinSDKError(sdk.Source)
+	return nil, fmt.Errorf("FROM INSIDE BUILTINSDK2 %w", getInvalidBuiltinSDKError(sdk.Source))
 }
 
 // return a builtin SDK implementation with the given name
@@ -264,7 +268,7 @@ func (s *moduleSchema) builtinSDK(ctx context.Context, root *core.Query, sdkName
 		return s.sdkForModule(ctx, root, "github.com/dagger/dagger/sdk/elixir"+sdkSuffix, dagql.Instance[*core.ModuleSource]{})
 	}
 
-	return nil, getInvalidBuiltinSDKError(sdkName)
+	return nil, fmt.Errorf("FROM INSIDE BUILTINSDK OLD %w", getInvalidBuiltinSDKError(sdkName))
 }
 
 // moduleSDK is an SDK implemented as module; i.e. every module besides the special case go sdk.

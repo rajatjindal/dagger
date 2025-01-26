@@ -1073,7 +1073,7 @@ func (s *moduleSchema) updateCodegenAndRuntime(
 		return fmt.Errorf("failed to get source root subpath: %w", err)
 	}
 
-	sdk, err := s.sdkForModule2(ctx, src.Self.Query, (*modules.ModuleRJSDKStruct)(mod.SDKConfigStruct), src)
+	sdk, err := s.sdkForModule2(ctx, src.Self.Query, &modules.ModuleRJSDKStruct{Source: mod.SDKConfigStruct.Source}, src)
 	if err != nil {
 		return fmt.Errorf("failed to load sdk for module: %w", err)
 	}
