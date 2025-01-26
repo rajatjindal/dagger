@@ -291,7 +291,7 @@ func (src *ModuleSource) ModuleEngineVersion(ctx context.Context) (string, error
 	return cfg.EngineVersion, nil
 }
 
-func (src *ModuleSource) SDK(ctx context.Context) (string, error) {
+func (src *ModuleSource) SDKString(ctx context.Context) (string, error) {
 	if src.WithSDK != "" {
 		return src.WithSDK, nil
 	}
@@ -302,7 +302,23 @@ func (src *ModuleSource) SDK(ctx context.Context) (string, error) {
 	if !ok {
 		return "", nil
 	}
+	//TODO: THIS SHOULD BE DIFF
 	return modCfg.SDK, nil
+}
+
+func (src *ModuleSource) SDK(ctx context.Context) (*RJSDK, error) {
+	if src.WithSDK != "" {
+		return src.WithSDKStruct, nil
+	}
+	modCfg, ok, err := src.ModuleConfig(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("module config: %w", err)
+	}
+	if !ok {
+		return nil, nil
+	}
+	//TODO: THIS SHOULD BE DIFF
+	return (*RJSDK)(&modCfg.SDKStruct), nil
 }
 
 func (src *ModuleSource) AutomaticGitignore(ctx context.Context) (*bool, error) {

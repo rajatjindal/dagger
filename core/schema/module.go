@@ -865,7 +865,12 @@ func (s *moduleSchema) moduleWithSource(ctx context.Context, mod *core.Module, a
 		return nil, fmt.Errorf("failed to get module original name: %w", err)
 	}
 
-	mod.SDKConfig, err = src.Self.SDK(ctx)
+	mod.SDKConfig, err = src.Self.SDKString(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get module SDK: %w", err)
+	}
+
+	mod.SDKConfigStruct, err = src.Self.SDK(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get module SDK: %w", err)
 	}
@@ -1068,14 +1073,14 @@ func (s *moduleSchema) updateCodegenAndRuntime(
 		return fmt.Errorf("failed to get source root subpath: %w", err)
 	}
 
-	sdk, err := s.sdkForModule(ctx, src.Self.Query, mod.SDKConfig, src)
+	sdk, err := s.sdkForModule2(ctx, src.Self.Query, (*modules.ModuleRJSDKStruct)(mod.SDKConfigStruct), src)
 	if err != nil {
 		return fmt.Errorf("failed to load sdk for module: %w", err)
 	}
 
 	generatedCode, err := sdk.Codegen(ctx, mod.Deps, src)
 	if err != nil {
-		return fmt.Errorf("failed to generate code: %w", err)
+		return fmt.Errorf("failed to generate code 6: %w", err)
 	}
 
 	var diff dagql.Instance[*core.Directory]
@@ -1232,6 +1237,7 @@ func (s *moduleSchema) updateDaggerConfig(
 	modCfg := &modCfgWithUserFields.ModuleConfig
 
 	modCfg.Name = mod.OriginalName
+	modCfg.SDKStruct = modules.ModuleRJSDKStruct(*mod.SDKConfigStruct)
 	modCfg.SDK = mod.SDKConfig
 	switch engineVersion {
 	case "":

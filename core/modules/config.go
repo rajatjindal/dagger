@@ -5,6 +5,12 @@ import (
 	"fmt"
 )
 
+type ModuleRJSDKStruct struct {
+	Name   string `json:"name"`
+	Source string `json:"source"`
+	Pin    string `json:"pin"`
+}
+
 // Filename is the name of the module config file.
 const Filename = "dagger.json"
 
@@ -23,6 +29,8 @@ type ModuleConfig struct {
 	//RJ1: sdk should be struct here
 	// The SDK this module uses
 	SDK string `json:"sdk,omitempty"`
+
+	SDKStruct ModuleRJSDKStruct `json:"sdkStruct,omitempty"`
 
 	// Paths to explicitly include from the module, relative to the configuration file.
 	Include []string `json:"include,omitempty"`

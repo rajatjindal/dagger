@@ -13,6 +13,7 @@ import (
 	"github.com/opencontainers/go-digest"
 
 	"github.com/dagger/dagger/core"
+	"github.com/dagger/dagger/core/modules"
 	"github.com/dagger/dagger/dagql"
 	"github.com/dagger/dagger/engine"
 	"github.com/dagger/dagger/engine/distconsts"
@@ -83,7 +84,7 @@ func (s *moduleSchema) sdkForModule(
 			},
 		)
 		if err != nil {
-			return nil, fmt.Errorf("failed to load sdk module %s: %w", sdk, err)
+			return nil, fmt.Errorf("failed to load sdk module 1 %s: %w", sdk, err)
 		}
 	}
 
@@ -97,7 +98,69 @@ func (s *moduleSchema) sdkForModule(
 		},
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load sdk module %s: %w", sdk, err)
+		return nil, fmt.Errorf("failed to load sdk module 2 %s: %w", sdk, err)
+	}
+
+	// TODO: include sdk source dir from module config dagger.json once we support default-args/scripts
+	return s.newModuleSDK(ctx, query, sdkMod, dagql.Instance[*core.Directory]{})
+}
+
+// load the SDK implementation with the given name for the module at the given source dir + subpath.
+func (s *moduleSchema) sdkForModule2(
+	ctx context.Context,
+	query *core.Query,
+	sdk *modules.ModuleRJSDKStruct,
+	parentSrc dagql.Instance[*core.ModuleSource],
+) (core.SDK, error) {
+	if sdk == nil {
+		return nil, errors.New("sdk ref is required")
+	}
+
+	builtinSDK, err := s.builtinSDK2(ctx, query, sdk)
+	if err == nil {
+		return builtinSDK, nil
+	} else if !errors.Is(err, errUnknownBuiltinSDK) {
+		return nil, err
+	}
+
+	var sdkSource dagql.Instance[*core.ModuleSource]
+	err = s.dag.Select(ctx, s.dag.Root(), &sdkSource,
+		dagql.Selector{
+			Field: "moduleSource",
+			Args: []dagql.NamedInput{
+				{Name: "refString", Value: dagql.String(sdk.Source)},
+			},
+		},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get sdk source for %s: %w", sdk, err)
+	}
+
+	if sdkSource.Self.Kind == core.ModuleSourceKindLocal {
+		err = s.dag.Select(ctx, parentSrc, &sdkSource,
+			dagql.Selector{
+				Field: "resolveDependency",
+				Args: []dagql.NamedInput{
+					{Name: "dep", Value: dagql.NewID[*core.ModuleSource](sdkSource.ID())},
+				},
+			},
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load sdk module 3 %s: %w", sdk, err)
+		}
+	}
+
+	var sdkMod dagql.Instance[*core.Module]
+	err = s.dag.Select(ctx, sdkSource, &sdkMod,
+		dagql.Selector{
+			Field: "asModule",
+		},
+		dagql.Selector{
+			Field: "initialize",
+		},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load sdk module 4 %s: %w", sdk, err)
 	}
 
 	// TODO: include sdk source dir from module config dagger.json once we support default-args/scripts
@@ -156,6 +219,29 @@ The %q SDK does not exist. The available SDKs are:
 %s
 - any non-bundled SDK from its git ref (e.g. github.com/dagger/dagger/sdk/elixir@main)`,
 		errUnknownBuiltinSDK, inputSDKName, strings.Join(inbuiltSDKs, "\n"))
+}
+
+// SOURCE OR NAME
+func (s *moduleSchema) builtinSDK2(ctx context.Context, root *core.Query, sdk *modules.ModuleRJSDKStruct) (core.SDK, error) {
+	sdkNameParsed, _, err := parseSDKName(sdk.Source)
+	if err != nil {
+		return nil, err
+	}
+
+	switch sdkNameParsed {
+	case SDKGo:
+		return &goSDK{root: root, dag: s.dag}, nil
+	case SDKPython:
+		return s.loadBuiltinSDK(ctx, root, sdk.Source, digest.Digest(os.Getenv(distconsts.PythonSDKManifestDigestEnvName)))
+	case SDKTypescript:
+		return s.loadBuiltinSDK(ctx, root, sdk.Source, digest.Digest(os.Getenv(distconsts.TypescriptSDKManifestDigestEnvName)))
+		// case SDKPHP:
+		// 	return s.sdkForModule(ctx, root, "github.com/dagger/dagger/sdk/php"+sdkSuffix, dagql.Instance[*core.ModuleSource]{})
+		// case SDKElixir:
+		// 	return s.sdkForModule2(ctx, root, "github.com/dagger/dagger/sdk/elixir"+sdkSuffix, dagql.Instance[*core.ModuleSource]{})
+	}
+
+	return nil, getInvalidBuiltinSDKError(sdk.Source)
 }
 
 // return a builtin SDK implementation with the given name

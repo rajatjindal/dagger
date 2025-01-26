@@ -209,7 +209,7 @@ If --sdk is specified, the given SDK is installed in the module. You can do this
 				GeneratedContextDiff().
 				Export(ctx, modConf.LocalContextPath)
 			if err != nil {
-				return fmt.Errorf("failed to generate code: %w", err)
+				return fmt.Errorf("failed to generate code 1: %w", err)
 			}
 
 			if sdk != "" {
@@ -283,7 +283,7 @@ var moduleInstallCmd = &cobra.Command{
 				GeneratedContextDiff().
 				Export(ctx, modConf.LocalContextPath)
 			if err != nil {
-				return fmt.Errorf("failed to generate code: %w", err)
+				return fmt.Errorf("failed to generate code 2: %w", err)
 			}
 
 			depSrc = modSrc.ResolveDependency(depSrc)
@@ -371,7 +371,7 @@ var moduleUpdateCmd = &cobra.Command{
 				GeneratedContextDiff().
 				Export(ctx, modConf.LocalContextPath)
 			if err != nil {
-				return fmt.Errorf("failed to generate code: %w", err)
+				return fmt.Errorf("failed to generate code 3: %w", err)
 			}
 
 			return nil
@@ -407,7 +407,7 @@ var moduleUnInstallCmd = &cobra.Command{
 				GeneratedContextDiff().
 				Export(ctx, modConf.LocalContextPath)
 			if err != nil {
-				return fmt.Errorf("failed to generate code: %w", err)
+				return fmt.Errorf("failed to generate code 4: %w", err)
 			}
 
 			return nil
@@ -514,7 +514,7 @@ This command is idempotent: you can run it at any time, any number of times. It 
 				GeneratedContextDiff().
 				Export(ctx, modConf.LocalContextPath)
 			if err != nil {
-				return fmt.Errorf("failed to generate code: %w", err)
+				return fmt.Errorf("failed to generate code 5: %w", err)
 			}
 
 			// If no license has been created yet, and SDK is set, we should create one.
