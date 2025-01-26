@@ -20,6 +20,7 @@ type ModuleConfig struct {
 	// The version of the engine this module was last updated with.
 	EngineVersion string `json:"engineVersion"`
 
+	//RJ1: sdk should be struct here
 	// The SDK this module uses
 	SDK string `json:"sdk,omitempty"`
 

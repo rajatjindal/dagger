@@ -55,6 +55,12 @@ type ModuleInitConfig struct {
 	Merge bool
 }
 
+type RJSDK struct {
+	Name   string `json:"name"`
+	Source string `json:"source"`
+	Pin    string `json:"pin"`
+}
+
 type ModuleSource struct {
 	Query *Query
 
@@ -71,6 +77,7 @@ type ModuleSource struct {
 	WithUpdateDependencies    []string
 	WithUpdateAllDependencies bool
 	WithSDK                   string
+	WithSDKStruct             *RJSDK
 	WithInitConfig            *ModuleInitConfig
 	WithSourceSubpath         string
 	WithViews                 []*ModuleSourceView

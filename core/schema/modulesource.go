@@ -797,6 +797,9 @@ func (s *moduleSchema) moduleSourceWithSDK(
 ) (*core.ModuleSource, error) {
 	src = src.Clone()
 	src.WithSDK = args.SDK
+	src.WithSDKStruct = &core.RJSDK{
+		Source: args.SDK,
+	}
 	return src, nil
 }
 
@@ -1458,6 +1461,7 @@ func (s *moduleSchema) collectCallerLocalDeps(
 					return nil, getInvalidBuiltinSDKError(modCfg.SDK)
 				}
 
+				//RJ2: IF IT IS A LOCAL SDK, THEN COLLECT DEPENDENCIES FOR THE SDK AGAIN. THEREFORE THIS FN CALL
 				err = s.collectCallerLocalDeps(ctx, query, contextAbsPath, sdkPath, false, src, collectedDeps)
 				if err != nil {
 					return nil, fmt.Errorf("failed to collect local sdk: %w", err)
@@ -1475,6 +1479,7 @@ func (s *moduleSchema) collectCallerLocalDeps(
 					return nil, fmt.Errorf("failed to get relative path of local sdk: %w", err)
 				}
 				var sdkMod dagql.Instance[*core.Module]
+				//RJ: this is where we are loading the local non-builtin SDK as module
 				err = s.dag.Select(ctx, s.dag.Root(), &sdkMod,
 					dagql.Selector{
 						Field: "moduleSource",
