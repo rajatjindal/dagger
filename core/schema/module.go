@@ -1075,7 +1075,7 @@ func (s *moduleSchema) updateCodegenAndRuntime(
 
 	sdk, err := s.sdkForModule2(ctx, src.Self.Query, &modules.ModuleRJSDKStruct{Source: mod.SDKConfigStruct.Source}, src)
 	if err != nil {
-		return fmt.Errorf("failed to load sdk for module: %w", err)
+		return fmt.Errorf("failed to load sdk for module IN UPDATE CODEGEN AND RUNTIME: %w. source: %q", err, mod.SDKConfigStruct.Source)
 	}
 
 	generatedCode, err := sdk.Codegen(ctx, mod.Deps, src)

@@ -317,8 +317,10 @@ func (src *ModuleSource) SDK(ctx context.Context) (*RJSDK, error) {
 	if !ok {
 		return nil, nil
 	}
-	//TODO: THIS SHOULD BE DIFF
-	return (*RJSDK)(&modCfg.SDKStruct), nil
+	// TODO: THIS SHOULD BE DIFF
+	return &RJSDK{
+		Source: modCfg.SDKStruct.Source,
+	}, nil
 }
 
 func (src *ModuleSource) AutomaticGitignore(ctx context.Context) (*bool, error) {
@@ -612,6 +614,13 @@ func (src *ModuleSource) ModuleConfigWithUserFields(ctx context.Context) (*modul
 
 	if err := json.Unmarshal(configBytes, &modCfgWithUserFields); err != nil {
 		return nil, false, fmt.Errorf("failed to decode module config: %w", err)
+	}
+
+	// to check what is in config bytes. remove later
+	// this should b fixed when changing sdk json field to b a struct and then asking
+	// it to handle legacy string type by adding  a custom unmarshal fn
+	if modCfgWithUserFields.SDKStruct.Source == "" {
+		modCfgWithUserFields.SDKStruct.Source = modCfgWithUserFields.SDK
 	}
 
 	return &modCfgWithUserFields, true, nil
