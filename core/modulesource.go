@@ -292,7 +292,7 @@ func (src *ModuleSource) SDK(ctx context.Context) (*SDKConfig, error) {
 	if err != nil {
 		return nil, fmt.Errorf("module config: %w", err)
 	}
-	if !ok {
+	if modCfg == nil || modCfg.SDK == nil || !ok {
 		return nil, nil
 	}
 	return &SDKConfig{Source: modCfg.SDK.Source}, nil

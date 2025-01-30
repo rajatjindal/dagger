@@ -1,9 +1,7 @@
 {
   "name": "dagger-dev",
-  "engineVersion": "v0.15.4-010101000000-dev-17fa27e3e493",
-  "sdk": {
-    "source": "go"
-  },
+  "engineVersion": "v0.15.3",
+  "sdk": "go",
   "dependencies": [
     {
       "name": "alpine",

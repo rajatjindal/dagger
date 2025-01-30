@@ -34,8 +34,9 @@ type Module struct {
 	// The doc string of the module, if any
 	Description string `field:"true" doc:"The doc string of the module, if any"`
 
-	// The module's SDKConfig, as set in the module config file
 	SDKConfig *SDKConfig `field:"true" name:"sdk" doc:"The SDK used by this module. Either a name of a builtin SDK or a module source ref string pointing to the SDK's implementation."`
+	// The module's SDKConfig, as set in the module config file
+	// SDKConfigField dagql.Instance[*SDKConfig]
 
 	GeneratedContextDirectory dagql.Instance[*Directory] `field:"true" name:"generatedContextDirectory" doc:"The module source's context plus any configuration and source files created by codegen."`
 
