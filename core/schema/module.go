@@ -869,7 +869,7 @@ func (s *moduleSchema) moduleWithSource(ctx context.Context, mod *core.Module, a
 
 	mod.SDKConfig, err = src.Self.SDK(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get module SDK: %w", err)
+		return nil, fmt.Errorf("failed to get module SDK 3: %w", err)
 	}
 
 	modCfg, modCfgPath, err := s.updateDaggerConfig(ctx, string(args.EngineVersion.Value), mod, src)
@@ -1055,7 +1055,7 @@ func (s *moduleSchema) updateCodegenAndRuntime(
 
 	if src.Self.WithInitConfig != nil &&
 		src.Self.WithInitConfig.Merge &&
-		mod.SDKConfig != nil || mod.SDKConfig.Source != string(SDKGo) {
+		mod.SDKConfig != nil && mod.SDKConfig.Source != string(SDKGo) {
 		return fmt.Errorf("merge is only supported for Go SDKs")
 	}
 
