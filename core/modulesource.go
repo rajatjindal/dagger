@@ -70,7 +70,7 @@ type ModuleSource struct {
 	WithoutDependencies       []string
 	WithUpdateDependencies    []string
 	WithUpdateAllDependencies bool
-	WithSDK                   string
+	WithSDK                   SDKConfig
 	WithInitConfig            *ModuleInitConfig
 	WithSourceSubpath         string
 	WithViews                 []*ModuleSourceView
@@ -285,8 +285,8 @@ func (src *ModuleSource) ModuleEngineVersion(ctx context.Context) (string, error
 }
 
 func (src *ModuleSource) SDK(ctx context.Context) (*SDKConfig, error) {
-	if src.WithSDK != "" {
-		return &SDKConfig{Source: src.WithSDK}, nil
+	if src.WithSDK.Source != "" {
+		return &SDKConfig{Source: src.WithSDK.Source}, nil
 	}
 	modCfg, ok, err := src.ModuleConfig(ctx)
 	if err != nil {
