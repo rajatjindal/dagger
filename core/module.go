@@ -69,7 +69,7 @@ type Module struct {
 type SDKConfig struct {
 	Source string            `field:"true" name:"source" doc:"Source of the sdk"`
 	Pin    string            `field:"true" name:"pin" doc:"Commit sha pinned for the SDK"`
-	Env    map[string]string `field:"true" name:"env" doc:"Environment variables used in codegen and runtime. e.g. GOPRIVATE"`
+	Env    map[string]string `name:"env" doc:"Environment variables used in codegen and runtime. e.g. GOPRIVATE"`
 }
 
 func (*SDKConfig) Type() *ast.Type {

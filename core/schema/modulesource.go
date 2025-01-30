@@ -796,7 +796,9 @@ func (s *moduleSchema) moduleSourceWithSDK(
 	},
 ) (*core.ModuleSource, error) {
 	src = src.Clone()
-	src.WithSDK = args.SDK
+	src.WithSDK = core.SDKConfig{
+		Source: args.SDK,
+	}
 	return src, nil
 }
 
@@ -1202,12 +1204,12 @@ func (s *moduleSchema) normalizeCallerLoadedSource(
 			return inst, fmt.Errorf("failed to set name: %w", err)
 		}
 	}
-	if src.WithSDK != "" {
+	if src.WithSDK.Source != "" {
 		err = s.dag.Select(ctx, inst, &inst,
 			dagql.Selector{
 				Field: "withSDK",
 				Args: []dagql.NamedInput{
-					{Name: "sdk", Value: dagql.String(src.WithSDK)},
+					{Name: "sdk", Value: dagql.String(src.WithSDK.Source)},
 				},
 			},
 		)
@@ -1365,7 +1367,7 @@ func (s *moduleSchema) collectCallerLocalDeps(
 			if !topLevel {
 				return nil, fmt.Errorf("missing config file %s", configPath)
 			}
-			if src.WithSDK == "" && len(src.WithDependencies) == 0 {
+			if src.WithSDK.Source == "" && len(src.WithDependencies) == 0 {
 				return &callerLocalDep{sourceRootAbsPath: sourceRootAbsPath}, nil
 			}
 
@@ -1377,9 +1379,9 @@ func (s *moduleSchema) collectCallerLocalDeps(
 			if src.WithName != "" {
 				modCfg.Name = src.WithName
 			}
-			if src.WithSDK != "" {
+			if src.WithSDK.Source != "" {
 				modCfg.SDK = &modules.SDK{
-					Source: src.WithSDK,
+					Source: src.WithSDK.Source,
 				}
 			}
 			for _, dep := range src.WithDependencies {
