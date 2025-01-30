@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"reflect"
-	"runtime/debug"
 	"sort"
 	"strings"
 	"sync"
@@ -1093,7 +1092,7 @@ func reflectFieldsForType[T any](obj any, optIn bool, init func(any) (T, error))
 func getField(obj any, optIn bool, fieldName string) (res Typed, found bool, rerr error) {
 	defer func() {
 		if err := recover(); err != nil {
-			rerr = fmt.Errorf("get field %q: %s. stacktrace", fieldName, err, string(debug.Stack()))
+			rerr = fmt.Errorf("get field %q: %s", fieldName, err)
 		}
 	}()
 	objT := reflect.TypeOf(obj)
