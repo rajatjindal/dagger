@@ -155,6 +155,10 @@ func (s *gitSchema) git(ctx context.Context, parent dagql.Instance[*core.Query],
 		}
 		authSock = sock.Self
 	} else if clientMetadata != nil && clientMetadata.SSHAuthSocketPath != "" { // I think change is needed so that we can run this from a local module that has private deps
+		// RJ WAS HERE?
+		// if true {
+		// 	return inst, fmt.Errorf("FROM INSIDE IF CONDITION")
+		// }
 		// For SSH refs, try to load client's SSH socket if no explicit socket was provided
 		socketStore, err := parent.Self.Sockets(ctx)
 		if err != nil {

@@ -295,7 +295,11 @@ func (src *ModuleSource) SDK(ctx context.Context) (*SDKConfig, error) {
 	if modCfg == nil || modCfg.SDK == nil || !ok {
 		return nil, nil
 	}
-	return &SDKConfig{Source: modCfg.SDK.Source}, nil
+	return &SDKConfig{
+		Source: modCfg.SDK.Source,
+		Env:    modCfg.SDK.Env,
+		Pin:    modCfg.SDK.Pin,
+	}, nil
 }
 
 func (src *ModuleSource) AutomaticGitignore(ctx context.Context) (*bool, error) {

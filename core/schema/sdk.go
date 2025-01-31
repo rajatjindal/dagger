@@ -553,6 +553,51 @@ func (sdk *goSDK) baseWithCodegen(
 		return ctr, err
 	}
 
+	// RJ WAS HERE
+	// WE SHOULD MOUNT SOCK HERE
+
+	socketStore, err := sdk.root.Sockets(ctx)
+	if err != nil {
+		return ctr, fmt.Errorf("failed to get socket store: %w", err)
+	}
+
+	// 2. Get client metadata
+	clientMetadata, err := engine.ClientMetadataFromContext(ctx)
+	if err != nil {
+		return ctr, fmt.Errorf("failed to get client metadata from context: %w", err)
+	}
+
+	accessor, err := core.GetClientResourceAccessor(ctx, src.Self.Query, clientMetadata.SSHAuthSocketPath)
+	if err != nil {
+		return ctr, fmt.Errorf("failed to get client resource name: %w", err)
+	}
+
+	var sockInst dagql.Instance[*core.Socket]
+	if err := sdk.dag.Select(ctx, sdk.dag.Root(), &sockInst,
+		dagql.Selector{
+			Field: "host",
+		},
+		dagql.Selector{
+			Field: "__internalSocket",
+			Args: []dagql.NamedInput{
+				{
+					Name:  "accessor",
+					Value: dagql.NewString(accessor),
+				},
+			},
+		},
+	); err != nil {
+		return ctr, fmt.Errorf("failed to select internal socket: %w", err)
+	}
+
+	if sockInst.Self == nil {
+		return ctr, fmt.Errorf("sockInst.Self is NIL")
+	}
+
+	if err := socketStore.AddUnixSocket(sockInst.Self, clientMetadata.ClientID, clientMetadata.SSHAuthSocketPath); err != nil {
+		return ctr, fmt.Errorf("failed to add unix socket to store: %w", err)
+	}
+
 	// Make the source subpath if it doesn't exist already.
 	// Also rm dagger.gen.go if it exists, which is going to be overwritten
 	// anyways. If it doesn't exist, we ignore not found in the implementation of
@@ -629,6 +674,32 @@ func (sdk *goSDK) baseWithCodegen(
 
 	selectors := []dagql.Selector{
 		{
+			Field: "withUnixSocket",
+			Args: []dagql.NamedInput{
+				{
+					Name:  "path",
+					Value: dagql.String("/tmp/rj-sock"),
+				},
+				{
+					Name:  "source",
+					Value: dagql.NewID[*core.Socket](sockInst.ID()),
+				},
+			},
+		},
+		{
+			Field: "withEnvVariable",
+			Args: []dagql.NamedInput{
+				{
+					Name:  "name",
+					Value: dagql.String("SSH_AUTH_SOCK"),
+				},
+				{
+					Name:  "value",
+					Value: dagql.String("/tmp/rj-sock"),
+				},
+			},
+		},
+		{
 			Field: "withMountedFile",
 			Args: []dagql.NamedInput{
 				{
@@ -669,7 +740,7 @@ func (sdk *goSDK) baseWithCodegen(
 	// TODO(rajatjindal): do we want to have a safelist here?
 	// e.g. disallow system env variables?
 	cfg, ok, _ := src.Self.ModuleConfig(ctx)
-	if ok {
+	if ok && cfg.SDK != nil {
 		for k, v := range cfg.SDK.Env {
 			selectors = append(selectors, dagql.Selector{
 				Field: "withEnvVariable",
@@ -715,20 +786,18 @@ func (sdk *goSDK) baseWithCodegen(
 			},
 		},
 		dagql.Selector{
-			Field: "withEnvVariable",
-			Args: []dagql.NamedInput{
-				{
-					Name:  "name",
-					Value: dagql.String("GOPRIVATE"),
-				},
-				{
-					Name:  "value",
-					Value: dagql.String("github.com"),
-				},
-			},
+			Field: "withoutDefaultArgs",
 		},
 		dagql.Selector{
-			Field: "withoutDefaultArgs",
+			Field: "withExec",
+			Args: []dagql.NamedInput{
+				{
+					Name: "args",
+					Value: append(dagql.ArrayInput[dagql.String]{
+						"ls",
+					}, "-ltr", "/tmp/"),
+				},
+			},
 		},
 		dagql.Selector{
 			Field: "withExec",
@@ -767,6 +836,35 @@ func (sdk *goSDK) base(ctx context.Context) (dagql.Instance[*core.Container], er
 	); err != nil {
 		return inst, fmt.Errorf("failed to get base container from go module sdk tarball: %w", err)
 	}
+
+	// // RJ WAS HERE
+	// clientMetadata, err := engine.ClientMetadataFromContext(ctx)
+	// if err != nil {
+	// 	return inst, fmt.Errorf("failed to get client metadata from context: %w", err)
+	// }
+
+	// accessor, err := core.GetClientResourceAccessor(ctx, sdk.root, clientMetadata.SSHAuthSocketPath)
+	// if err != nil {
+	// 	return inst, fmt.Errorf("failed to get client resource name: %w", err)
+	// }
+
+	// var sockInst dagql.Instance[*core.Socket]
+	// if err := sdk.dag.Select(ctx, sdk.dag.Root(), &sockInst,
+	// 	dagql.Selector{
+	// 		Field: "host",
+	// 	},
+	// 	dagql.Selector{
+	// 		Field: "__internalSocket",
+	// 		Args: []dagql.NamedInput{
+	// 			{
+	// 				Name:  "accessor",
+	// 				Value: dagql.NewString(accessor),
+	// 			},
+	// 		},
+	// 	},
+	// ); err != nil {
+	// 	return inst, fmt.Errorf("failed to select internal socket: %w", err)
+	// }
 
 	var modCacheBaseDir dagql.Instance[*core.Directory]
 	if err := sdk.dag.Select(ctx, baseCtr, &modCacheBaseDir, dagql.Selector{
@@ -828,62 +926,34 @@ func (sdk *goSDK) base(ctx context.Context) (dagql.Instance[*core.Container], er
 		return inst, fmt.Errorf("failed to get build cache from go module sdk tarball: %w", err)
 	}
 
-	clientMetadata, err := engine.ClientMetadataFromContext(ctx)
-	if err != nil {
-		return inst, fmt.Errorf("failed to get client metadata from context: %w", err)
-	}
-
-	accessor, err := core.GetClientResourceAccessor(ctx, sdk.root, clientMetadata.SSHAuthSocketPath)
-	if err != nil {
-		return inst, fmt.Errorf("failed to get client resource name: %w", err)
-	}
-
-	var sockInst dagql.Instance[*core.Socket]
-	if err := sdk.dag.Select(ctx, sdk.dag.Root(), &sockInst,
-		dagql.Selector{
-			Field: "host",
-		},
-		dagql.Selector{
-			Field: "__internalSocket",
-			Args: []dagql.NamedInput{
-				{
-					Name:  "accessor",
-					Value: dagql.NewString(accessor),
-				},
-			},
-		},
-	); err != nil {
-		return inst, fmt.Errorf("failed to select internal socket: %w", err)
-	}
-
 	var ctr dagql.Instance[*core.Container]
 	if err := sdk.dag.Select(ctx, baseCtr, &ctr,
-		dagql.Selector{
-			Field: "withUnixSocket",
-			Args: []dagql.NamedInput{
-				{
-					Name:  "path",
-					Value: dagql.String("/tmp/dagger-ssh-sock"),
-				},
-				{
-					Name:  "source",
-					Value: dagql.NewID[*core.Socket](sockInst.ID()),
-				},
-			},
-		},
-		dagql.Selector{
-			Field: "withEnvVariable",
-			Args: []dagql.NamedInput{
-				{
-					Name:  "name",
-					Value: dagql.String("SSH_AUTH_SOCK"),
-				},
-				{
-					Name:  "value",
-					Value: dagql.String("/tmp/dagger-ssh-sock"),
-				},
-			},
-		},
+		// dagql.Selector{
+		// 	Field: "withUnixSocket",
+		// 	Args: []dagql.NamedInput{
+		// 		{
+		// 			Name:  "path",
+		// 			Value: dagql.String("/tmp/rj-sock"),
+		// 		},
+		// 		{
+		// 			Name:  "source",
+		// 			Value: dagql.NewID[*core.Socket](sockInst.ID()),
+		// 		},
+		// 	},
+		// },
+		// dagql.Selector{
+		// 	Field: "withEnvVariable",
+		// 	Args: []dagql.NamedInput{
+		// 		{
+		// 			Name:  "name",
+		// 			Value: dagql.String("SSH_AUTH_SOCK"),
+		// 		},
+		// 		{
+		// 			Name:  "value",
+		// 			Value: dagql.String("/tmp/rj-sock"),
+		// 		},
+		// 	},
+		// },
 		dagql.Selector{
 			Field: "withMountedCache",
 			Args: []dagql.NamedInput{
