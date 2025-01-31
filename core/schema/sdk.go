@@ -553,6 +553,42 @@ func (sdk *goSDK) baseWithCodegen(
 		return ctr, err
 	}
 
+	// RJ WAS HERE
+	// WE SHOULD MOUNT SOCK HERE
+
+	// 2. Get client metadata
+	clientMetadata, err := engine.ClientMetadataFromContext(ctx)
+	if err != nil {
+		return ctr, fmt.Errorf("failed to get client metadata from context: %w", err)
+	}
+
+	accessor, err := core.GetClientResourceAccessor(ctx, src.Self.Query, clientMetadata.SSHAuthSocketPath)
+	if err != nil {
+		return ctr, fmt.Errorf("failed to get client resource name: %w", err)
+	}
+
+	var sockInst dagql.Instance[*core.Socket]
+	if err := sdk.dag.Select(ctx, sdk.dag.Root(), &sockInst,
+		dagql.Selector{
+			Field: "host",
+		},
+		dagql.Selector{
+			Field: "__internalSocket",
+			Args: []dagql.NamedInput{
+				{
+					Name:  "accessor",
+					Value: dagql.NewString(accessor),
+				},
+			},
+		},
+	); err != nil {
+		return ctr, fmt.Errorf("failed to select internal socket: %w", err)
+	}
+
+	if sockInst.Self == nil {
+		return ctr, fmt.Errorf("sockInst.Self is NIL")
+	}
+
 	// Make the source subpath if it doesn't exist already.
 	// Also rm dagger.gen.go if it exists, which is going to be overwritten
 	// anyways. If it doesn't exist, we ignore not found in the implementation of
@@ -628,6 +664,32 @@ func (sdk *goSDK) baseWithCodegen(
 	}
 
 	selectors := []dagql.Selector{
+		{
+			Field: "withUnixSocket",
+			Args: []dagql.NamedInput{
+				{
+					Name:  "path",
+					Value: dagql.String("/tmp/rj-sock"),
+				},
+				{
+					Name:  "source",
+					Value: dagql.NewID[*core.Socket](sockInst.ID()),
+				},
+			},
+		},
+		{
+			Field: "withEnvVariable",
+			Args: []dagql.NamedInput{
+				{
+					Name:  "name",
+					Value: dagql.String("SSH_AUTH_SOCK"),
+				},
+				{
+					Name:  "value",
+					Value: dagql.String("/tmp/rj-sock"),
+				},
+			},
+		},
 		{
 			Field: "withMountedFile",
 			Args: []dagql.NamedInput{
