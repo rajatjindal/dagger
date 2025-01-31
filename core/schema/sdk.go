@@ -1,7 +1,6 @@
 package schema
 
 import (
-	"bytes"
 	"context"
 	"errors"
 	"fmt"
@@ -584,15 +583,15 @@ func (sdk *goSDK) baseWithCodegen(
 		return ctr, fmt.Errorf("failed to remove dagger.gen.go from source directory: %w", err)
 	}
 
-	bk, err := src.Self.Query.Buildkit(ctx)
-	if err != nil {
-		return ctr, err
-	}
+	// bk, err := src.Self.Query.Buildkit(ctx)
+	// if err != nil {
+	// 	return ctr, err
+	// }
 
-	gitconfig, err := bk.GetGitConfig(ctx)
-	if err != nil {
-		return ctr, err
-	}
+	// gitconfig, err := bk.GetGitConfig(ctx)
+	// if err != nil {
+	// 	return ctr, err
+	// }
 
 	// unfortunately git does not support export/import of git config
 	// so we basically have to translate the fetched git config into
@@ -601,19 +600,19 @@ func (sdk *goSDK) baseWithCodegen(
 	// that won't be very efficient as, in theory, we can have n number of
 	// config values here.
 	// TODO(rajatjindal): maybe we should do this in the attachable itself?
-	var gitconfigScriptBuffer bytes.Buffer
-	for _, entry := range gitconfig {
-		cmd := []string{"git", "config", "--global", "--add", entry.Key, entry.Value}
-		_, err := gitconfigScriptBuffer.WriteString(strings.Join(cmd, " "))
-		if err != nil {
-			return ctr, err
-		}
+	// var gitconfigScriptBuffer bytes.Buffer
+	// for _, entry := range gitconfig {
+	// 	cmd := []string{"git", "config", "--global", "--add", entry.Key, entry.Value}
+	// 	_, err := gitconfigScriptBuffer.WriteString(strings.Join(cmd, " "))
+	// 	if err != nil {
+	// 		return ctr, err
+	// 	}
 
-		_, err = gitconfigScriptBuffer.WriteString("\n")
-		if err != nil {
-			return ctr, err
-		}
-	}
+	// 	_, err = gitconfigScriptBuffer.WriteString("\n")
+	// 	if err != nil {
+	// 		return ctr, err
+	// 	}
+	// }
 
 	codegenArgs := dagql.ArrayInput[dagql.String]{
 		"--output", dagql.String(goSDKUserModContextDirPath),
@@ -688,45 +687,32 @@ func (sdk *goSDK) baseWithCodegen(
 	}
 
 	selectors = append(selectors,
-		dagql.Selector{
-			Field: "withNewFile",
-			Args: []dagql.NamedInput{
-				{
-					Name:  "path",
-					Value: dagql.String("/tmp/update-git-config.sh"),
-				},
-				{
-					Name:  "contents",
-					Value: dagql.String(gitconfigScriptBuffer.String()),
-				},
-				{
-					Name:  "permissions",
-					Value: dagql.Int(0755),
-				},
-			},
-		},
-		dagql.Selector{
-			Field: "withExec",
-			Args: []dagql.NamedInput{
-				{
-					Name:  "args",
-					Value: dagql.ArrayInput[dagql.String]{"sh", "-c", "/tmp/update-git-config.sh"},
-				},
-			},
-		},
-		dagql.Selector{
-			Field: "withEnvVariable",
-			Args: []dagql.NamedInput{
-				{
-					Name:  "name",
-					Value: dagql.String("GOPRIVATE"),
-				},
-				{
-					Name:  "value",
-					Value: dagql.String("github.com"),
-				},
-			},
-		},
+		// dagql.Selector{
+		// 	Field: "withNewFile",
+		// 	Args: []dagql.NamedInput{
+		// 		{
+		// 			Name:  "path",
+		// 			Value: dagql.String("/tmp/update-git-config.sh"),
+		// 		},
+		// 		{
+		// 			Name:  "contents",
+		// 			Value: dagql.String(gitconfigScriptBuffer.String()),
+		// 		},
+		// 		{
+		// 			Name:  "permissions",
+		// 			Value: dagql.Int(0755),
+		// 		},
+		// 	},
+		// },
+		// dagql.Selector{
+		// 	Field: "withExec",
+		// 	Args: []dagql.NamedInput{
+		// 		{
+		// 			Name:  "args",
+		// 			Value: dagql.ArrayInput[dagql.String]{"sh", "-c", "/tmp/update-git-config.sh"},
+		// 		},
+		// 	},
+		// },
 		dagql.Selector{
 			Field: "withoutDefaultArgs",
 		},
@@ -736,11 +722,22 @@ func (sdk *goSDK) baseWithCodegen(
 				{
 					Name: "args",
 					Value: append(dagql.ArrayInput[dagql.String]{
-						"codegen",
-					}, codegenArgs...),
+						"ls",
+					}, "-ltr", "/tmp/"),
 				},
 			},
 		},
+		// dagql.Selector{
+		// 	Field: "withExec",
+		// 	Args: []dagql.NamedInput{
+		// 		{
+		// 			Name: "args",
+		// 			Value: append(dagql.ArrayInput[dagql.String]{
+		// 				"codegen",
+		// 			}, codegenArgs...),
+		// 		},
+		// 	},
+		// },
 	)
 
 	if err = sdk.dag.Select(ctx, ctr, &ctr, selectors...); err != nil {
@@ -767,6 +764,35 @@ func (sdk *goSDK) base(ctx context.Context) (dagql.Instance[*core.Container], er
 	); err != nil {
 		return inst, fmt.Errorf("failed to get base container from go module sdk tarball: %w", err)
 	}
+
+	// // RJ WAS HERE
+	// clientMetadata, err := engine.ClientMetadataFromContext(ctx)
+	// if err != nil {
+	// 	return inst, fmt.Errorf("failed to get client metadata from context: %w", err)
+	// }
+
+	// accessor, err := core.GetClientResourceAccessor(ctx, sdk.root, clientMetadata.SSHAuthSocketPath)
+	// if err != nil {
+	// 	return inst, fmt.Errorf("failed to get client resource name: %w", err)
+	// }
+	//
+	// var sockInst dagql.Instance[*core.Socket]
+	// if err := sdk.dag.Select(ctx, sdk.dag.Root(), &sockInst,
+	// 	dagql.Selector{
+	// 		Field: "host",
+	// 	},
+	// 	dagql.Selector{
+	// 		Field: "__internalSocket",
+	// 		Args: []dagql.NamedInput{
+	// 			{
+	// 				Name:  "accessor",
+	// 				Value: dagql.NewString(accessor),
+	// 			},
+	// 		},
+	// 	},
+	// ); err != nil {
+	// 	return inst, fmt.Errorf("failed to select internal socket: %w", err)
+	// }
 
 	var modCacheBaseDir dagql.Instance[*core.Directory]
 	if err := sdk.dag.Select(ctx, baseCtr, &modCacheBaseDir, dagql.Selector{
@@ -828,49 +854,21 @@ func (sdk *goSDK) base(ctx context.Context) (dagql.Instance[*core.Container], er
 		return inst, fmt.Errorf("failed to get build cache from go module sdk tarball: %w", err)
 	}
 
-	clientMetadata, err := engine.ClientMetadataFromContext(ctx)
-	if err != nil {
-		return inst, fmt.Errorf("failed to get client metadata from context: %w", err)
-	}
-
-	accessor, err := core.GetClientResourceAccessor(ctx, sdk.root, clientMetadata.SSHAuthSocketPath)
-	if err != nil {
-		return inst, fmt.Errorf("failed to get client resource name: %w", err)
-	}
-
-	var sockInst dagql.Instance[*core.Socket]
-	if err := sdk.dag.Select(ctx, sdk.dag.Root(), &sockInst,
-		dagql.Selector{
-			Field: "host",
-		},
-		dagql.Selector{
-			Field: "__internalSocket",
-			Args: []dagql.NamedInput{
-				{
-					Name:  "accessor",
-					Value: dagql.NewString(accessor),
-				},
-			},
-		},
-	); err != nil {
-		return inst, fmt.Errorf("failed to select internal socket: %w", err)
-	}
-
 	var ctr dagql.Instance[*core.Container]
 	if err := sdk.dag.Select(ctx, baseCtr, &ctr,
-		dagql.Selector{
-			Field: "withUnixSocket",
-			Args: []dagql.NamedInput{
-				{
-					Name:  "path",
-					Value: dagql.String("/tmp/dagger-ssh-sock"),
-				},
-				{
-					Name:  "source",
-					Value: dagql.NewID[*core.Socket](sockInst.ID()),
-				},
-			},
-		},
+		// dagql.Selector{
+		// 	Field: "withUnixSocket",
+		// 	Args: []dagql.NamedInput{
+		// 		{
+		// 			Name:  "path",
+		// 			Value: dagql.String(fmt.Sprintf("/tmp/rj-sock-%s", accessor)),
+		// 		},
+		// 		{
+		// 			Name:  "source",
+		// 			Value: dagql.NewID[*core.Socket](sockInst.ID()),
+		// 		},
+		// 	},
+		// },
 		dagql.Selector{
 			Field: "withEnvVariable",
 			Args: []dagql.NamedInput{
@@ -880,7 +878,7 @@ func (sdk *goSDK) base(ctx context.Context) (dagql.Instance[*core.Container], er
 				},
 				{
 					Name:  "value",
-					Value: dagql.String("/tmp/dagger-ssh-sock"),
+					Value: dagql.String("/tmp/rj-sock"),
 				},
 			},
 		},

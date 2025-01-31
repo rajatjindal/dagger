@@ -240,7 +240,7 @@ func (store *SocketStore) ConnectSocket(ctx context.Context, idDgst digest.Diges
 	sock, ok := store.sockets[idDgst]
 	store.mu.RUnlock()
 	if !ok {
-		return nil, fmt.Errorf("socket %s not found", idDgst)
+		return nil, fmt.Errorf("socket %s not found 2", idDgst)
 	}
 
 	urlEncoded := store.getSocketURLEncoded(sock)
