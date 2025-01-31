@@ -556,6 +556,11 @@ func (sdk *goSDK) baseWithCodegen(
 	// RJ WAS HERE
 	// WE SHOULD MOUNT SOCK HERE
 
+	socketStore, err := sdk.root.Sockets(ctx)
+	if err != nil {
+		return ctr, fmt.Errorf("failed to get socket store: %w", err)
+	}
+
 	// 2. Get client metadata
 	clientMetadata, err := engine.ClientMetadataFromContext(ctx)
 	if err != nil {
@@ -587,6 +592,10 @@ func (sdk *goSDK) baseWithCodegen(
 
 	if sockInst.Self == nil {
 		return ctr, fmt.Errorf("sockInst.Self is NIL")
+	}
+
+	if err := socketStore.AddUnixSocket(sockInst.Self, clientMetadata.ClientID, clientMetadata.SSHAuthSocketPath); err != nil {
+		return ctr, fmt.Errorf("failed to add unix socket to store: %w", err)
 	}
 
 	// Make the source subpath if it doesn't exist already.
@@ -731,7 +740,7 @@ func (sdk *goSDK) baseWithCodegen(
 	// TODO(rajatjindal): do we want to have a safelist here?
 	// e.g. disallow system env variables?
 	cfg, ok, _ := src.Self.ModuleConfig(ctx)
-	if ok {
+	if ok && cfg.SDK != nil {
 		for k, v := range cfg.SDK.Env {
 			selectors = append(selectors, dagql.Selector{
 				Field: "withEnvVariable",
