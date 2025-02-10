@@ -218,11 +218,13 @@ func (s GitAttachable) GetConfig(ctx context.Context, req *GitConfigRequest) (*G
 }
 
 func parseGitConfigOutput(output []byte) (*GitConfig, error) {
+	entries := []*GitConfigEntry{}
 	if len(output) == 0 {
-		return nil, fmt.Errorf("no output from credential helper")
+		return &GitConfig{
+			Entries: []*GitConfigEntry{},
+		}, nil
 	}
 
-	entries := []*GitConfigEntry{}
 	scanner := bufio.NewScanner(bytes.NewReader(output))
 
 	for scanner.Scan() {
