@@ -187,7 +187,6 @@ func (s GitAttachable) GetConfig(ctx context.Context, req *GitConfigRequest) (*G
 	gitMutex.Lock()
 	defer gitMutex.Unlock()
 
-	// Prepare the git credential fill command
 	cmd := exec.CommandContext(ctx, "git", "config", "-l")
 	var stdout, stderr bytes.Buffer
 	cmd.Stdout, cmd.Stderr = &stdout, &stderr
@@ -197,7 +196,6 @@ func (s GitAttachable) GetConfig(ctx context.Context, req *GitConfigRequest) (*G
 		"SSH_ASKPASS=echo",
 	)
 
-	// Run the command
 	if err := cmd.Run(); err != nil {
 		if ctx.Err() == context.DeadlineExceeded {
 			return newGitConfigErrorResponse(TIMEOUT, "Git config command timed out"), nil
