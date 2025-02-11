@@ -204,6 +204,7 @@ http_access allow localhost
 		thisRepo := c.Host().Directory(thisRepoPath)
 
 		_, err = c.Container().From(golangImage).
+			WithExec([]string{"apk", "add", "git", "openssh"}).
 			With(goCache(c)).
 			WithMountedDirectory("/src", thisRepo).
 			WithWorkdir("/src").
@@ -455,6 +456,7 @@ func (ContainerSuite) TestSystemGoProxy(ctx context.Context, t *testctx.T) {
 					thisRepo := c.Host().Directory(thisRepoPath)
 
 					_, err = c.Container().From(golangImage).
+						WithExec([]string{"apk", "add", "git", "openssh"}).
 						With(goCache(c)).
 						WithMountedDirectory("/src", thisRepo).
 						WithWorkdir("/src").
