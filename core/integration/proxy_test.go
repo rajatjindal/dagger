@@ -269,7 +269,7 @@ func (ContainerSuite) TestSystemProxies(ctx context.Context, t *testctx.T) {
 		customProxyTests(ctx, t, c, false,
 			proxyTest{name: "http", run: func(t *testctx.T, c *dagger.Client, f proxyTestFixtures) {
 				out, err := c.Container().From(alpineImage).
-					WithExec([]string{"apk", "add", "curl"}).
+					WithExec([]string{"apk", "add", "curl", "git", "openssh"}).
 					WithExec([]string{"curl", "-v", f.httpServerURL.String()}).
 					Stderr(ctx)
 				require.NoError(t, err)
@@ -279,7 +279,7 @@ func (ContainerSuite) TestSystemProxies(ctx context.Context, t *testctx.T) {
 
 			proxyTest{name: "https", run: func(t *testctx.T, c *dagger.Client, f proxyTestFixtures) {
 				out, err := c.Container().From(alpineImage).
-					WithExec([]string{"apk", "add", "curl", "ca-certificates"}).
+					WithExec([]string{"apk", "add", "curl", "ca-certificates", "git", "openssh"}).
 					WithMountedFile("/etc/ssl/certs/myCA.pem", f.caCert).
 					WithExec([]string{"update-ca-certificates"}).
 					WithExec([]string{"curl", "-v", f.httpsServerURL.String()}).
@@ -291,7 +291,7 @@ func (ContainerSuite) TestSystemProxies(ctx context.Context, t *testctx.T) {
 
 			proxyTest{name: "noproxy http", run: func(t *testctx.T, c *dagger.Client, f proxyTestFixtures) {
 				out, err := c.Container().From(alpineImage).
-					WithExec([]string{"apk", "add", "curl"}).
+					WithExec([]string{"apk", "add", "curl", "git", "openssh"}).
 					WithExec([]string{"curl", "-v", f.noproxyHTTPServerURL.String()}).
 					Stderr(ctx)
 				require.NoError(t, err)
@@ -307,7 +307,7 @@ func (ContainerSuite) TestSystemProxies(ctx context.Context, t *testctx.T) {
 		customProxyTests(ctx, t, c, true,
 			proxyTest{name: "http", run: func(t *testctx.T, c *dagger.Client, f proxyTestFixtures) {
 				base := c.Container().From(alpineImage).
-					WithExec([]string{"apk", "add", "curl"})
+					WithExec([]string{"apk", "add", "curl", "git", "openssh"})
 
 				out, err := base.
 					WithExec([]string{"curl", "-v", f.httpServerURL.String()}).
@@ -330,7 +330,7 @@ func (ContainerSuite) TestSystemProxies(ctx context.Context, t *testctx.T) {
 
 			proxyTest{name: "https", run: func(t *testctx.T, c *dagger.Client, f proxyTestFixtures) {
 				base := c.Container().From(alpineImage).
-					WithExec([]string{"apk", "add", "curl", "ca-certificates"}).
+					WithExec([]string{"apk", "add", "curl", "ca-certificates", "git", "openssh"}).
 					WithMountedFile("/etc/ssl/certs/myCA.pem", f.caCert).
 					WithExec([]string{"update-ca-certificates"})
 
