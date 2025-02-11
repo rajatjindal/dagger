@@ -33,6 +33,8 @@ type gitSchema struct {
 
 func (s *gitSchema) Install() {
 	dagql.Fields[*core.Query]{
+		dagql.NodeFunc("sshAuthSocket", s.sshAuthSocket).
+			ArgDoc("sshAuthSocket", `Set SSH auth socket`),
 		dagql.NodeFunc("git", s.git).
 			View(AllVersion).
 			Doc(`Queries a Git repository.`).
@@ -100,6 +102,53 @@ func (s *gitSchema) Install() {
 	}.Install(s.srv)
 }
 
+type sshAuthSocketArgs struct {
+	SSHAuthSocket dagql.Optional[core.SocketID] `name:"sshAuthSocket"`
+}
+
+func (s *gitSchema) sshAuthSocket(ctx context.Context, parent dagql.Instance[*core.Query], args sshAuthSocketArgs) (dagql.Instance[*core.Socket], error) {
+	var inst dagql.Instance[*core.Socket]
+	clientMetadata, err := engine.ClientMetadataFromContext(ctx)
+	if err != nil {
+		return inst, fmt.Errorf("failed to get client metadata from context: %w", err)
+	}
+
+	if clientMetadata != nil && clientMetadata.SSHAuthSocketPath != "" {
+		socketStore, err := parent.Self.Sockets(ctx)
+		if err != nil {
+			return inst, fmt.Errorf("failed to get socket store: %w", err)
+		}
+
+		accessor, err := core.GetClientResourceAccessor(ctx, parent.Self, clientMetadata.SSHAuthSocketPath)
+		if err != nil {
+			return inst, fmt.Errorf("failed to get client resource name: %w", err)
+		}
+
+		if err := s.srv.Select(ctx, s.srv.Root(), &inst,
+			dagql.Selector{
+				Field: "host",
+			},
+			dagql.Selector{
+				Field: "__internalSocket",
+				Args: []dagql.NamedInput{
+					{
+						Name:  "accessor",
+						Value: dagql.NewString(accessor),
+					},
+				},
+			},
+		); err != nil {
+			return inst, fmt.Errorf("failed to select internal socket: %w", err)
+		}
+
+		if err := socketStore.AddUnixSocket(inst.Self, clientMetadata.ClientID, clientMetadata.SSHAuthSocketPath); err != nil {
+			return inst, fmt.Errorf("failed to add unix socket to store: %w", err)
+		}
+	}
+
+	return inst, nil
+}
+
 type gitArgs struct {
 	URL                     string
 	KeepGitDir              *bool `default:"true"`
@@ -135,7 +184,7 @@ func (s *gitSchema) git(ctx context.Context, parent dagql.Instance[*core.Query],
 	}
 
 	// 3. Setup authentication
-	var authSock *core.Socket = nil
+	var authSock *core.Socket
 	var authToken dagql.Instance[*core.Secret]
 
 	// First parse the ref scheme to determine auth strategy
@@ -147,44 +196,20 @@ func (s *gitSchema) git(ctx context.Context, parent dagql.Instance[*core.Query],
 		return inst, fmt.Errorf("failed to parse Git URL: %w", err)
 	}
 
-	// Handle explicit SSH socket if provided
-	if args.SSHAuthSocket.Valid {
-		sock, err := args.SSHAuthSocket.Value.Load(ctx, s.srv)
-		if err != nil {
-			return inst, err
-		}
-		authSock = sock.Self
-	} else if clientMetadata != nil && clientMetadata.SSHAuthSocketPath != "" {
-		socketStore, err := parent.Self.Sockets(ctx)
-		if err != nil {
-			return inst, fmt.Errorf("failed to get socket store: %w", err)
-		}
-
-		accessor, err := core.GetClientResourceAccessor(ctx, parent.Self, clientMetadata.SSHAuthSocketPath)
-		if err != nil {
-			return inst, fmt.Errorf("failed to get client resource name: %w", err)
-		}
-
+	if remote.Scheme == "ssh" {
 		var sockInst dagql.Instance[*core.Socket]
 		if err := s.srv.Select(ctx, s.srv.Root(), &sockInst,
 			dagql.Selector{
-				Field: "host",
-			},
-			dagql.Selector{
-				Field: "__internalSocket",
+				Field: "sshAuthSocket",
 				Args: []dagql.NamedInput{
 					{
-						Name:  "accessor",
-						Value: dagql.NewString(accessor),
+						Name:  "sshAuthSocket",
+						Value: args.SSHAuthSocket,
 					},
 				},
 			},
 		); err != nil {
 			return inst, fmt.Errorf("failed to select internal socket: %w", err)
-		}
-
-		if err := socketStore.AddUnixSocket(sockInst.Self, clientMetadata.ClientID, clientMetadata.SSHAuthSocketPath); err != nil {
-			return inst, fmt.Errorf("failed to add unix socket to store: %w", err)
 		}
 		authSock = sockInst.Self
 	}
@@ -301,8 +326,9 @@ func (s *gitSchema) gitLegacy(ctx context.Context, parent dagql.Instance[*core.Q
 		URL:                     args.URL,
 		KeepGitDir:              &args.KeepGitDir,
 		ExperimentalServiceHost: args.ExperimentalServiceHost,
-		SSHKnownHosts:           args.SSHKnownHosts,
-		SSHAuthSocket:           args.SSHAuthSocket,
+
+		SSHKnownHosts: args.SSHKnownHosts,
+		SSHAuthSocket: args.SSHAuthSocket,
 	})
 }
 
