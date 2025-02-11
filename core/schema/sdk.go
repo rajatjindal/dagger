@@ -710,46 +710,6 @@ func (sdk *goSDK) baseWithCodegen(
 		)
 	}
 
-	clientMetadata, err := engine.ClientMetadataFromContext(ctx)
-	if err != nil {
-		return ctr, fmt.Errorf("failed to get client metadata from context: %w", err)
-	}
-
-	if clientMetadata != nil && clientMetadata.SSHAuthSocketPath != "" {
-		sockInst, err := sdk.getAuthSocket(ctx, src, clientMetadata)
-		if err != nil {
-			return ctr, fmt.Errorf("failed to get auth socket: %w", err)
-		}
-		selectors = append(selectors,
-			dagql.Selector{
-				Field: "withUnixSocket",
-				Args: []dagql.NamedInput{
-					{
-						Name:  "path",
-						Value: dagql.String("/tmp/dagger-sshauth-sock"),
-					},
-					{
-						Name:  "source",
-						Value: dagql.NewID[*core.Socket](sockInst.ID()),
-					},
-				},
-			},
-			dagql.Selector{
-				Field: "withEnvVariable",
-				Args: []dagql.NamedInput{
-					{
-						Name:  "name",
-						Value: dagql.String("SSH_AUTH_SOCK"),
-					},
-					{
-						Name:  "value",
-						Value: dagql.String("/tmp/dagger-sshauth-sock"),
-					},
-				},
-			},
-		)
-	}
-
 	// now that we are done with gitconfig and injecting env
 	// variables, we can run the codegen command.
 	selectors = append(selectors,
@@ -920,45 +880,4 @@ func (sdk *goSDK) base(ctx context.Context) (dagql.Instance[*core.Container], er
 		return inst, fmt.Errorf("failed to get container from go module sdk tarball: %w", err)
 	}
 	return ctr, nil
-}
-
-func (sdk *goSDK) getAuthSocket(ctx context.Context, src dagql.Instance[*core.ModuleSource], clientMetadata *engine.ClientMetadata) (dagql.Instance[*core.Socket], error) {
-	var inst dagql.Instance[*core.Socket]
-
-	socketStore, err := sdk.root.Sockets(ctx)
-	if err != nil {
-		return inst, fmt.Errorf("failed to get socket store: %w", err)
-	}
-
-	accessor, err := core.GetClientResourceAccessor(ctx, src.Self.Query, clientMetadata.SSHAuthSocketPath)
-	if err != nil {
-		return inst, fmt.Errorf("failed to get client resource name: %w", err)
-	}
-
-	if err := sdk.dag.Select(ctx, sdk.dag.Root(), &inst,
-		dagql.Selector{
-			Field: "host",
-		},
-		dagql.Selector{
-			Field: "__internalSocket",
-			Args: []dagql.NamedInput{
-				{
-					Name:  "accessor",
-					Value: dagql.NewString(accessor),
-				},
-			},
-		},
-	); err != nil {
-		return inst, fmt.Errorf("failed to select internal socket: %w", err)
-	}
-
-	if inst.Self == nil {
-		return inst, fmt.Errorf("sockInst.Self is NIL")
-	}
-
-	if err := socketStore.AddUnixSocket(inst.Self, clientMetadata.ClientID, clientMetadata.SSHAuthSocketPath); err != nil {
-		return inst, fmt.Errorf("failed to add unix socket to store: %w", err)
-	}
-
-	return inst, nil
 }
