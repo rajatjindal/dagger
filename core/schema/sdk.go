@@ -715,7 +715,7 @@ func (sdk *goSDK) baseWithCodegen(
 		return ctr, fmt.Errorf("failed to get client metadata from context: %w", err)
 	}
 
-	if false && clientMetadata != nil && clientMetadata.SSHAuthSocketPath != "" {
+	if clientMetadata != nil && clientMetadata.SSHAuthSocketPath != "" {
 		sockInst, err := sdk.getAuthSocket(ctx, src, clientMetadata)
 		if err != nil {
 			return ctr, fmt.Errorf("failed to get auth socket: %w", err)
