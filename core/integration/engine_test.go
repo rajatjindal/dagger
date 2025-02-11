@@ -128,6 +128,7 @@ func engineClientContainer(ctx context.Context, t *testctx.T, c *dagger.Client, 
 	endpoint, err := devEngine.Endpoint(ctx, dagger.ServiceEndpointOpts{Port: 1234, Scheme: "tcp"})
 	require.NoError(t, err)
 	return c.Container().From(alpineImage).
+		WithExec([]string{"apk", "add", "git", "openssh"}).
 		WithServiceBinding("dev-engine", devEngine).
 		WithMountedFile(cliBinPath, daggerCli).
 		WithEnvVariable("_EXPERIMENTAL_DAGGER_CLI_BIN", cliBinPath).
