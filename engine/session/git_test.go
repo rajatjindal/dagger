@@ -184,9 +184,9 @@ require (
     google.golang.org/grpc v1.59.0
 )
 `).
-		// Mount gitcredential implementation as the session pkg
-		WithMountedFile("/app/session/gitcredential.pb.go", client.Host().File("./gitcredential.pb.go")).
-		WithMountedFile("/app/session/gitcredential.go", client.Host().File("./gitcredential.go")).
+		// Mount git implementation as the session pkg
+		WithMountedFile("/app/session/git.pb.go", client.Host().File("./git.pb.go")).
+		WithMountedFile("/app/session/git.go", client.Host().File("./git.go")).
 		WithNewFile("/app/session/package.go", `package session`).
 
 		// Create test harness that:
@@ -216,7 +216,7 @@ func main() {
         panic(err)
     }
 
-    s := session.NewGitCredentialAttachable(context.Background())
+    s := session.NewGitAttachable(context.Background())
     response, err := s.GetCredential(context.Background(), &request)
     if err != nil {
         panic(err)
