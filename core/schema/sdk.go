@@ -2,6 +2,7 @@ package schema
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -171,7 +172,7 @@ func (s *moduleSchema) builtinSDK(ctx context.Context, root *core.Query, sdk *co
 
 	switch sdkNameParsed {
 	case SDKGo:
-		return &goSDK{root: root, dag: s.dag}, nil
+		return &goSDK{root: root, dag: s.dag, rawConfig: sdk.Config}, nil
 	case SDKPython:
 		return s.loadBuiltinSDK(ctx, root, sdk.Source, digest.Digest(os.Getenv(distconsts.PythonSDKManifestDigestEnvName)))
 	case SDKTypescript:
@@ -195,6 +196,8 @@ type moduleSDK struct {
 	dag *dagql.Server
 	// The SDK object retrieved from the server, for calling functions against.
 	sdk dagql.Object
+	// the raw config for the sdk
+	rawConfig json.RawMessage
 }
 
 func (s *moduleSchema) newModuleSDK(
@@ -242,6 +245,10 @@ func (s *moduleSchema) newModuleSDK(
 	}
 
 	return &moduleSDK{mod: sdkModMeta, dag: dag, sdk: sdk}, nil
+}
+
+func (sdk *moduleSDK) Configure(ctx context.Context, rawConfig []byte) error {
+	return nil
 }
 
 // Codegen calls the Codegen function on the SDK Module
@@ -400,8 +407,13 @@ executing the codegen binary inside it to generate user code and then execute
 it with the resulting /runtime binary.
 */
 type goSDK struct {
-	root *core.Query
-	dag  *dagql.Server
+	root      *core.Query
+	dag       *dagql.Server
+	rawConfig []byte
+}
+
+type gosdkConfig struct {
+	GoPrivate string `json:"goprivate"`
 }
 
 func (sdk *goSDK) Codegen(
@@ -656,6 +668,31 @@ func (sdk *goSDK) baseWithCodegen(
 		return ctr, err
 	}
 	selectors = append(selectors, gitConfigSelectors...)
+
+	// read the sdk specific config here
+	var config gosdkConfig
+	if len(sdk.rawConfig) > 0 {
+		err := json.Unmarshal(sdk.rawConfig, &config)
+		if err != nil {
+			return ctr, err
+		}
+
+		if config.GoPrivate != "" {
+			selectors = append(selectors, dagql.Selector{
+				Field: "withEnvVariable",
+				Args: []dagql.NamedInput{
+					{
+						Name:  "name",
+						Value: dagql.NewString("GOPRIVATE"),
+					},
+					{
+						Name:  "value",
+						Value: dagql.NewString(config.GoPrivate),
+					},
+				},
+			})
+		}
+	}
 
 	// now that we are done with gitconfig and injecting env
 	// variables, we can run the codegen command.
