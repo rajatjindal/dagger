@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"dagger.io/dagger/telemetry"
+	"github.com/mitchellh/mapstructure"
 	"github.com/opencontainers/go-digest"
 
 	"github.com/dagger/dagger/core"
@@ -105,7 +106,7 @@ func (s *moduleSchema) sdkForModule(
 	}
 
 	// TODO: include sdk source dir from module config dagger.json once we support default-args/scripts
-	return s.newModuleSDK(ctx, query, sdkMod, dagql.Instance[*core.Directory]{})
+	return s.newModuleSDK(ctx, query, sdkMod, sdk.Config, dagql.Instance[*core.Directory]{})
 }
 
 // parse and validate the name and version from sdkName
@@ -171,11 +172,11 @@ func (s *moduleSchema) builtinSDK(ctx context.Context, root *core.Query, sdk *co
 
 	switch sdkNameParsed {
 	case SDKGo:
-		return &goSDK{root: root, dag: s.dag}, nil
+		return &goSDK{root: root, dag: s.dag, rawConfig: sdk.Config}, nil
 	case SDKPython:
-		return s.loadBuiltinSDK(ctx, root, sdk.Source, digest.Digest(os.Getenv(distconsts.PythonSDKManifestDigestEnvName)))
+		return s.loadBuiltinSDK(ctx, root, sdk, digest.Digest(os.Getenv(distconsts.PythonSDKManifestDigestEnvName)))
 	case SDKTypescript:
-		return s.loadBuiltinSDK(ctx, root, sdk.Source, digest.Digest(os.Getenv(distconsts.TypescriptSDKManifestDigestEnvName)))
+		return s.loadBuiltinSDK(ctx, root, sdk, digest.Digest(os.Getenv(distconsts.TypescriptSDKManifestDigestEnvName)))
 	case SDKJava:
 		return s.sdkForModule(ctx, root, &core.SDKConfig{Source: "github.com/dagger/dagger/sdk/java" + sdkSuffix}, dagql.Instance[*core.ModuleSource]{})
 	case SDKPHP:
@@ -195,12 +196,49 @@ type moduleSDK struct {
 	dag *dagql.Server
 	// The SDK object retrieved from the server, for calling functions against.
 	sdk dagql.Object
+	// the raw config for the sdk
+	rawConfig map[string]interface{}
+}
+
+var _ SchemaResolvers = &moduleSDK{}
+
+func (s *moduleSDK) Install() {
+	dagql.Fields[*core.SDKConfig]{
+		dagql.Func("withConfig", s.withConfig).
+			Doc(`Creates a scratch container.`,
+				`Optional platform argument initializes new containers to execute and
+				publish as that platform. Platform defaults to that of the builder's
+				host.`).
+			ArgDoc("platform", `Platform to initialize the container with.`),
+	}.Install(s.dag)
+}
+
+func (s *moduleSDK) withConfig(ctx context.Context, parent *core.SDKConfig, args any) (*core.SDKConfig, error) {
+	var altBase dagql.Instance[*core.SDKConfig]
+	err := s.dag.Select(ctx, s.sdk, &altBase, []dagql.Selector{
+		{
+			Field: "withConfig",
+			Args: []dagql.NamedInput{
+				{
+					Name:  "rawConfig",
+					Value: dagql.NewScalar[dagql.String]("string", dagql.String("sdk.rawConfig")),
+				},
+			},
+		},
+	}...)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return altBase.Self, nil
 }
 
 func (s *moduleSchema) newModuleSDK(
 	ctx context.Context,
 	root *core.Query,
 	sdkModMeta dagql.Instance[*core.Module],
+	rawConfig map[string]interface{},
 	optionalFullSDKSourceDir dagql.Instance[*core.Directory],
 ) (*moduleSDK, error) {
 	dag := dagql.NewServer(root)
@@ -232,6 +270,7 @@ func (s *moduleSchema) newModuleSDK(
 			{Name: "sdkSourceDir", Value: dagql.Opt(dagql.NewID[*core.Directory](optionalFullSDKSourceDir.ID()))},
 		}
 	}
+
 	if err := dag.Select(ctx, dag.Root(), &sdk,
 		dagql.Selector{
 			Field: gqlFieldName(sdkModMeta.Self.Name()),
@@ -241,7 +280,99 @@ func (s *moduleSchema) newModuleSDK(
 		return nil, fmt.Errorf("failed to get sdk object for sdk module %s: %w", sdkModMeta.Self.Name(), err)
 	}
 
-	return &moduleSDK{mod: sdkModMeta, dag: dag, sdk: sdk}, nil
+	for _, def := range sdkModMeta.Self.ObjectDefs {
+		if !def.AsObject.Valid {
+			break
+		}
+
+		obj := def.AsObject.Value
+		if gqlFieldName(obj.Name) != gqlFieldName(sdkModMeta.Self.OriginalName) {
+			continue
+		}
+
+		var withConfigFn *core.Function
+		var found bool
+		for _, fn := range obj.Functions {
+			if fn.Name == "withConfig2" {
+				withConfigFn = fn
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			break
+		}
+
+		args := []dagql.NamedInput{}
+		for _, arg := range withConfigFn.Args {
+			val, ok := rawConfig[arg.Name]
+			if !ok {
+				continue
+			}
+
+			input, err := arg.TypeDef.ToInput().Decoder().DecodeInput(val)
+			if err != nil {
+				return nil, err
+			}
+
+			args = append(args, dagql.NamedInput{
+				Name:  arg.Name,
+				Value: input,
+			})
+		}
+		var sdkwithconfig *dagql.Object
+		err = dag.Select(ctx, sdk, &sdkwithconfig, []dagql.Selector{
+			{
+				Field: "withConfig2",
+				Args:  args,
+			},
+		}...)
+		if err != nil {
+			return nil, fmt.Errorf("failed to call sdk module codegen: %w", err)
+		}
+
+	}
+
+	return &moduleSDK{mod: sdkModMeta, dag: dag, sdk: sdk, rawConfig: rawConfig}, nil
+}
+
+func (sdk *moduleSDK) StepOneGetBaseImage(ctx context.Context, source dagql.Instance[*core.ModuleSource]) (dagql.Instance[*core.Container], error) {
+	var altBase dagql.Instance[*core.Container]
+
+	err := sdk.dag.Select(ctx, sdk.sdk, &altBase, []dagql.Selector{
+		{
+
+			Field: "stepOneGetBaseImage",
+			Args: []dagql.NamedInput{
+				{
+					Name:  "modSource",
+					Value: dagql.NewID[*core.ModuleSource](source.ID()),
+				},
+			},
+		},
+	}...,
+	)
+	if err != nil {
+		return altBase, fmt.Errorf("failed to get altBase: %w", err)
+	}
+
+	return altBase, nil
+}
+
+func (sdk *moduleSDK) CustomizedBaseContainerRajat(ctx context.Context) ([]dagql.Selector, error) {
+	// fetch gitconfig selectors
+	bk, err := sdk.mod.Self.Query.Buildkit(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	gitConfigSelectors, err := gitConfigSelectors(ctx, bk)
+	if err != nil {
+		return nil, err
+	}
+
+	return gitConfigSelectors, nil
 }
 
 // Codegen calls the Codegen function on the SDK Module
@@ -253,20 +384,53 @@ func (sdk *moduleSDK) Codegen(ctx context.Context, deps *core.ModDeps, source da
 		return nil, fmt.Errorf("failed to get schema introspection json during %s module sdk codegen: %w", sdk.mod.Self.Name(), err)
 	}
 
-	var inst dagql.Instance[*core.GeneratedCode]
-	err = sdk.dag.Select(ctx, sdk.sdk, &inst, dagql.Selector{
-		Field: "codegen",
-		Args: []dagql.NamedInput{
-			{
-				Name:  "modSource",
-				Value: dagql.NewID[*core.ModuleSource](source.ID()),
-			},
-			{
-				Name:  "introspectionJson",
-				Value: dagql.NewID[*core.File](schemaJSONFile.ID()),
+	// This is the image we get as base from sdk to start with
+	baseCtr, err := sdk.StepOneGetBaseImage(ctx, source)
+	if err != nil {
+		return nil, err
+	}
+
+	// now we get the selectors we need for customizing this base image
+	aselectors, err := sdk.CustomizedBaseContainerRajat(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// now we apply these customization selectors and get a updated altBase container
+	var altBase dagql.Instance[*core.Container]
+	err = sdk.dag.Select(ctx, baseCtr, &altBase, aselectors...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get altBase: %w", err)
+	}
+
+	// now we use this altBasecontainer
+	bselectors := []dagql.Selector{
+		{
+			Field: "withAltBaseImage",
+			Args: []dagql.NamedInput{
+				{
+					Name:  "altBaseImage",
+					Value: dagql.NewID[*core.Container](altBase.ID()),
+				},
 			},
 		},
-	})
+		{
+			Field: "codegen",
+			Args: []dagql.NamedInput{
+				{
+					Name:  "modSource",
+					Value: dagql.NewID[*core.ModuleSource](source.ID()),
+				},
+				{
+					Name:  "introspectionJson",
+					Value: dagql.NewID[*core.File](schemaJSONFile.ID()),
+				},
+			},
+		},
+	}
+
+	var inst dagql.Instance[*core.GeneratedCode]
+	err = sdk.dag.Select(ctx, sdk.sdk, &inst, bselectors...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to call sdk module codegen: %w", err)
 	}
@@ -282,9 +446,37 @@ func (sdk *moduleSDK) Runtime(ctx context.Context, deps *core.ModDeps, source da
 		return nil, fmt.Errorf("failed to get schema introspection json during %s module sdk runtime: %w", sdk.mod.Self.Name(), err)
 	}
 
-	var inst dagql.Instance[*core.Container]
-	err = sdk.dag.Select(ctx, sdk.sdk, &inst,
-		dagql.Selector{
+	// This is the image we get as base from sdk to start with
+	baseCtr, err := sdk.StepOneGetBaseImage(ctx, source)
+	if err != nil {
+		return nil, err
+	}
+
+	// now we get the selectors we need for customizing this base image
+	aselectors, err := sdk.CustomizedBaseContainerRajat(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// now we apply these customization selectors and get a updated altBase container
+	var altBase dagql.Instance[*core.Container]
+	err = sdk.dag.Select(ctx, baseCtr, &altBase, aselectors...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get altBase: %w", err)
+	}
+
+	// now we use this altBasecontainer
+	bselectors := []dagql.Selector{
+		{
+			Field: "withAltBaseImage",
+			Args: []dagql.NamedInput{
+				{
+					Name:  "altBaseImage",
+					Value: dagql.NewID[*core.Container](altBase.ID()),
+				},
+			},
+		},
+		{
 			Field: "moduleRuntime",
 			Args: []dagql.NamedInput{
 				{
@@ -297,7 +489,7 @@ func (sdk *moduleSDK) Runtime(ctx context.Context, deps *core.ModDeps, source da
 				},
 			},
 		},
-		dagql.Selector{
+		{
 			Field: "withWorkdir",
 			Args: []dagql.NamedInput{
 				{
@@ -306,7 +498,10 @@ func (sdk *moduleSDK) Runtime(ctx context.Context, deps *core.ModDeps, source da
 				},
 			},
 		},
-	)
+	}
+
+	var inst dagql.Instance[*core.Container]
+	err = sdk.dag.Select(ctx, sdk.sdk, &inst, bselectors...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to call sdk module moduleRuntime: %w", err)
 	}
@@ -331,7 +526,7 @@ func (sdk *moduleSDK) RequiredPaths(ctx context.Context) ([]string, error) {
 func (s *moduleSchema) loadBuiltinSDK(
 	ctx context.Context,
 	root *core.Query,
-	name string,
+	sdk *core.SDKConfig,
 	manifestDigest digest.Digest,
 ) (*moduleSDK, error) {
 	// TODO: currently hardcoding assumption that builtin sdks put *module* source code at
@@ -352,7 +547,7 @@ func (s *moduleSchema) loadBuiltinSDK(
 			Field: "rootfs",
 		},
 	); err != nil {
-		return nil, fmt.Errorf("failed to import full sdk source for sdk %s from engine container filesystem: %w", name, err)
+		return nil, fmt.Errorf("failed to import full sdk source for sdk %s from engine container filesystem: %w", sdk.Source, err)
 	}
 
 	var sdkModDir dagql.Instance[*core.Directory]
@@ -365,7 +560,7 @@ func (s *moduleSchema) loadBuiltinSDK(
 		},
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to import module sdk %s: %w", name, err)
+		return nil, fmt.Errorf("failed to import module sdk %s: %w", sdk.Source, err)
 	}
 
 	var sdkMod dagql.Instance[*core.Module]
@@ -378,10 +573,10 @@ func (s *moduleSchema) loadBuiltinSDK(
 		},
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load embedded sdk module %q: %w", name, err)
+		return nil, fmt.Errorf("failed to load embedded sdk module %q: %w", sdk.Source, err)
 	}
 
-	return s.newModuleSDK(ctx, root, sdkMod, fullSDKDir)
+	return s.newModuleSDK(ctx, root, sdkMod, sdk.Config, fullSDKDir)
 }
 
 const (
@@ -400,8 +595,13 @@ executing the codegen binary inside it to generate user code and then execute
 it with the resulting /runtime binary.
 */
 type goSDK struct {
-	root *core.Query
-	dag  *dagql.Server
+	root      *core.Query
+	dag       *dagql.Server
+	rawConfig map[string]interface{}
+}
+
+type gosdkConfig struct {
+	GoPrivate string `json:"goprivate"`
 }
 
 func (sdk *goSDK) Codegen(
@@ -657,6 +857,31 @@ func (sdk *goSDK) baseWithCodegen(
 	}
 	selectors = append(selectors, gitConfigSelectors...)
 
+	// read the sdk specific config here
+	var config gosdkConfig
+	if len(sdk.rawConfig) > 0 {
+		err = mapstructure.Decode(sdk.rawConfig, &config)
+		if err != nil {
+			return ctr, err
+		}
+
+		if config.GoPrivate != "" {
+			selectors = append(selectors, dagql.Selector{
+				Field: "withEnvVariable",
+				Args: []dagql.NamedInput{
+					{
+						Name:  "name",
+						Value: dagql.NewString("GOPRIVATE"),
+					},
+					{
+						Name:  "value",
+						Value: dagql.NewString(config.GoPrivate),
+					},
+				},
+			})
+		}
+	}
+
 	// now that we are done with gitconfig and injecting env
 	// variables, we can run the codegen command.
 	selectors = append(selectors,
@@ -873,8 +1098,19 @@ func gitConfigSelectors(ctx context.Context, bk *buildkit.Client) ([]dagql.Selec
 		dagql.Selector{
 			Field: "withNewFile",
 			Args: []dagql.NamedInput{
-				{Name: "path", Value: dagql.String("${HOME}/.gitconfig")},
-				{Name: "contents", Value: dagql.String(sb.String())},
+				//TODO(rajatjindal): for some reason expand env var is not working correctly here?
+				//{Name: "path", Value: dagql.String("$HOME/.gitconfig")},
+				{Name: "path", Value: dagql.String("/root/.gitconfig")},
+				{Name: "contents", Value: dagql.String(fmt.Sprintf("#atleast i am here\n%s", sb.String()))},
+				{Name: "permissions", Value: dagql.Int(0o600)},
+				{Name: "expand", Value: dagql.NewBoolean(true)},
+			},
+		},
+		dagql.Selector{
+			Field: "withNewFile",
+			Args: []dagql.NamedInput{
+				{Name: "path", Value: dagql.String("/tmp/.gitconfig")},
+				{Name: "contents", Value: dagql.String(fmt.Sprintf("#atleast i am here\n%s", sb.String()))},
 				{Name: "permissions", Value: dagql.Int(0o600)},
 				{Name: "expand", Value: dagql.NewBoolean(true)},
 			},
