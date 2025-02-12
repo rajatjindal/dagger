@@ -16,6 +16,7 @@ import (
 	"github.com/dagger/dagger/core"
 	"github.com/dagger/dagger/dagql"
 	"github.com/dagger/dagger/engine"
+	"github.com/dagger/dagger/engine/buildkit"
 	"github.com/dagger/dagger/engine/distconsts"
 )
 
@@ -644,55 +645,17 @@ func (sdk *goSDK) baseWithCodegen(
 		},
 	}
 
-	// codegen runs `go mod tidy` and for private deps
-	// we allow users to configure GOPRIVATE env variable.
-	// But for it to work, we need to ensure we don't run into
-	// host checking prompt. So customizing GIT_SSH_COMMAND to
-	// allow skipping the prompt.
-	selectors = append(selectors, dagql.Selector{
-		Field: "withEnvVariable",
-		Args: []dagql.NamedInput{
-			{
-				Name:  "name",
-				Value: dagql.NewString("GIT_SSH_COMMAND"),
-			},
-			{
-				Name:  "value",
-				Value: dagql.NewString("ssh -o StrictHostKeyChecking=no"),
-			},
-		},
-	})
-
-	// bkclient to fetch git config
+	// fetch gitconfig selectors
 	bk, err := src.Self.Query.Buildkit(ctx)
 	if err != nil {
 		return ctr, err
 	}
 
-	gitconfig, err := bk.GetGitConfig(ctx)
+	gitConfigSelectors, err := gitConfigSelectors(ctx, bk)
 	if err != nil {
 		return ctr, err
 	}
-
-	// unfortunately git does not support export/import of git config
-	// so we basically have to translate the fetched git config into
-	// git config command for each fetched config.
-	// TODO(rajatjindal): maybe we should do this in the attachable itself?
-	for _, entry := range gitconfig {
-		selectors = append(selectors,
-			dagql.Selector{
-				Field: "withExec",
-				Args: []dagql.NamedInput{
-					{
-						Name: "args",
-						Value: dagql.ArrayInput[dagql.String]{
-							"git", "config", "--global", "--add", dagql.NewString(entry.Key), dagql.NewString(entry.Value),
-						},
-					},
-				},
-			},
-		)
-	}
+	selectors = append(selectors, gitConfigSelectors...)
 
 	// now that we are done with gitconfig and injecting env
 	// variables, we can run the codegen command.
@@ -864,4 +827,59 @@ func (sdk *goSDK) base(ctx context.Context) (dagql.Instance[*core.Container], er
 		return inst, fmt.Errorf("failed to get container from go module sdk tarball: %w", err)
 	}
 	return ctr, nil
+}
+
+func gitConfigSelectors(ctx context.Context, bk *buildkit.Client) ([]dagql.Selector, error) {
+	// codegen runs `go mod tidy` and for private deps
+	// we allow users to configure GOPRIVATE env variable.
+	// But for it to work, we need to ensure we don't run into
+	// host checking prompt. So customizing GIT_SSH_COMMAND to
+	// allow skipping the prompt.
+	selectors := []dagql.Selector{
+		{
+			Field: "withEnvVariable",
+			Args: []dagql.NamedInput{
+				{
+					Name:  "name",
+					Value: dagql.NewString("GIT_SSH_COMMAND"),
+				},
+				{
+					Name:  "value",
+					Value: dagql.NewString("ssh -o StrictHostKeyChecking=no"),
+				},
+			},
+		},
+	}
+
+	gitconfig, err := bk.GetGitConfig(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// unfortunately git does not support export/import of git config
+	// so we basically have to translate the fetched git config into
+	// the format manually here
+	// TODO(rajatjindal): maybe we can get this formatted version from
+	// attachable itself?
+	var sb strings.Builder
+	for _, entry := range gitconfig {
+		_, err := sb.WriteString(fmt.Sprintf("%s=%s\n", entry.Key, entry.Value))
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	selectors = append(selectors,
+		dagql.Selector{
+			Field: "withNewFile",
+			Args: []dagql.NamedInput{
+				{Name: "path", Value: dagql.String("${HOME}/.gitconfig")},
+				{Name: "contents", Value: dagql.String(sb.String())},
+				{Name: "permissions", Value: dagql.Int(0o600)},
+				{Name: "expand", Value: dagql.NewBoolean(true)},
+			},
+		},
+	)
+
+	return selectors, nil
 }

@@ -666,6 +666,11 @@ func (c *Client) GetGitConfig(ctx context.Context) ([]*session.GitConfigEntry, e
 	case *session.GitConfigResponse_Config:
 		return result.Config.Entries, nil
 	case *session.GitConfigResponse_Error:
+		// if git is not found, ignore that error
+		if result.Error.Type == session.NO_GIT {
+			return []*session.GitConfigEntry{}, nil
+		}
+
 		return nil, fmt.Errorf("git config error: %s", result.Error.Message)
 	default:
 		return nil, fmt.Errorf("unexpected response type")
