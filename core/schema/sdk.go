@@ -234,9 +234,13 @@ func (s *moduleSchema) newModuleSDK(
 	if optionalFullSDKSourceDir.Self != nil {
 		constructorArgs = []dagql.NamedInput{
 			{Name: "sdkSourceDir", Value: dagql.Opt(dagql.NewID[*core.Directory](optionalFullSDKSourceDir.ID()))},
-			{Name: "rawConfig", Value: dagql.Opt(dagql.NewScalar[dagql.String]("string", ""))},
+		}
+
+		if len(rawConfig) > 0 {
+			constructorArgs = append(constructorArgs, dagql.NamedInput{Name: "rawConfig", Value: dagql.Opt(dagql.NewScalar[dagql.String]("string", dagql.String(rawConfig)))})
 		}
 	}
+
 	if err := dag.Select(ctx, dag.Root(), &sdk,
 		dagql.Selector{
 			Field: gqlFieldName(sdkModMeta.Self.Name()),

@@ -56,18 +56,23 @@ func New(
 	sdkSourceDir *dagger.Directory,
 	// +optional
 	rawConfig dagger.JSON,
-) *TypescriptSdk {
+) (*TypescriptSdk, error) {
 	var c Config
-	err := json.Unmarshal([]byte(rawConfig), &c)
-	if err != nil {
-		panic(fmt.Sprintf("marshalling config failed in typescript sdk %s", rawConfig))
+	if len(rawConfig) > 0 {
+		decoder := json.NewDecoder(strings.NewReader(string(rawConfig)))
+		decoder.DisallowUnknownFields()
+
+		err := decoder.Decode(&c)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal typescript config %s. error: %w", rawConfig, err)
+		}
 	}
 
 	return &TypescriptSdk{
 		SDKSourceDir: sdkSourceDir,
 		moduleConfig: &moduleConfig{},
 		config:       &c,
-	}
+	}, nil
 }
 
 type packageJSONConfig struct {
