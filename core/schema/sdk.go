@@ -106,7 +106,7 @@ func (s *moduleSchema) sdkForModule(
 	}
 
 	// TODO: include sdk source dir from module config dagger.json once we support default-args/scripts
-	return s.newModuleSDK(ctx, query, sdkMod, dagql.Instance[*core.Directory]{})
+	return s.newModuleSDK(ctx, query, sdkMod, sdk.Config, dagql.Instance[*core.Directory]{})
 }
 
 // parse and validate the name and version from sdkName
@@ -174,9 +174,9 @@ func (s *moduleSchema) builtinSDK(ctx context.Context, root *core.Query, sdk *co
 	case SDKGo:
 		return &goSDK{root: root, dag: s.dag, rawConfig: sdk.Config}, nil
 	case SDKPython:
-		return s.loadBuiltinSDK(ctx, root, sdk.Source, digest.Digest(os.Getenv(distconsts.PythonSDKManifestDigestEnvName)))
+		return s.loadBuiltinSDK(ctx, root, sdk, digest.Digest(os.Getenv(distconsts.PythonSDKManifestDigestEnvName)))
 	case SDKTypescript:
-		return s.loadBuiltinSDK(ctx, root, sdk.Source, digest.Digest(os.Getenv(distconsts.TypescriptSDKManifestDigestEnvName)))
+		return s.loadBuiltinSDK(ctx, root, sdk, digest.Digest(os.Getenv(distconsts.TypescriptSDKManifestDigestEnvName)))
 	case SDKJava:
 		return s.sdkForModule(ctx, root, &core.SDKConfig{Source: "github.com/dagger/dagger/sdk/java" + sdkSuffix}, dagql.Instance[*core.ModuleSource]{})
 	case SDKPHP:
@@ -204,6 +204,7 @@ func (s *moduleSchema) newModuleSDK(
 	ctx context.Context,
 	root *core.Query,
 	sdkModMeta dagql.Instance[*core.Module],
+	rawConfig json.RawMessage,
 	optionalFullSDKSourceDir dagql.Instance[*core.Directory],
 ) (*moduleSDK, error) {
 	dag := dagql.NewServer(root)
@@ -233,6 +234,7 @@ func (s *moduleSchema) newModuleSDK(
 	if optionalFullSDKSourceDir.Self != nil {
 		constructorArgs = []dagql.NamedInput{
 			{Name: "sdkSourceDir", Value: dagql.Opt(dagql.NewID[*core.Directory](optionalFullSDKSourceDir.ID()))},
+			{Name: "rawConfig", Value: dagql.Opt(dagql.NewScalar[dagql.String]("string", ""))},
 		}
 	}
 	if err := dag.Select(ctx, dag.Root(), &sdk,
@@ -244,11 +246,7 @@ func (s *moduleSchema) newModuleSDK(
 		return nil, fmt.Errorf("failed to get sdk object for sdk module %s: %w", sdkModMeta.Self.Name(), err)
 	}
 
-	return &moduleSDK{mod: sdkModMeta, dag: dag, sdk: sdk}, nil
-}
-
-func (sdk *moduleSDK) Configure(ctx context.Context, rawConfig []byte) error {
-	return nil
+	return &moduleSDK{mod: sdkModMeta, dag: dag, sdk: sdk, rawConfig: rawConfig}, nil
 }
 
 // Codegen calls the Codegen function on the SDK Module
@@ -270,6 +268,10 @@ func (sdk *moduleSDK) Codegen(ctx context.Context, deps *core.ModDeps, source da
 			},
 			{
 				Name:  "introspectionJson",
+				Value: dagql.NewID[*core.File](schemaJSONFile.ID()),
+			},
+			{
+				Name:  "configJson",
 				Value: dagql.NewID[*core.File](schemaJSONFile.ID()),
 			},
 		},
@@ -338,7 +340,7 @@ func (sdk *moduleSDK) RequiredPaths(ctx context.Context) ([]string, error) {
 func (s *moduleSchema) loadBuiltinSDK(
 	ctx context.Context,
 	root *core.Query,
-	name string,
+	sdk *core.SDKConfig,
 	manifestDigest digest.Digest,
 ) (*moduleSDK, error) {
 	// TODO: currently hardcoding assumption that builtin sdks put *module* source code at
@@ -359,7 +361,7 @@ func (s *moduleSchema) loadBuiltinSDK(
 			Field: "rootfs",
 		},
 	); err != nil {
-		return nil, fmt.Errorf("failed to import full sdk source for sdk %s from engine container filesystem: %w", name, err)
+		return nil, fmt.Errorf("failed to import full sdk source for sdk %s from engine container filesystem: %w", sdk.Config, err)
 	}
 
 	var sdkModDir dagql.Instance[*core.Directory]
@@ -372,7 +374,7 @@ func (s *moduleSchema) loadBuiltinSDK(
 		},
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to import module sdk %s: %w", name, err)
+		return nil, fmt.Errorf("failed to import module sdk %s: %w", sdk.Config, err)
 	}
 
 	var sdkMod dagql.Instance[*core.Module]
@@ -385,10 +387,10 @@ func (s *moduleSchema) loadBuiltinSDK(
 		},
 	)
 	if err != nil {
-		return nil, fmt.Errorf("failed to load embedded sdk module %q: %w", name, err)
+		return nil, fmt.Errorf("failed to load embedded sdk module %q: %w", sdk.Config, err)
 	}
 
-	return s.newModuleSDK(ctx, root, sdkMod, fullSDKDir)
+	return s.newModuleSDK(ctx, root, sdkMod, sdk.Config, fullSDKDir)
 }
 
 const (

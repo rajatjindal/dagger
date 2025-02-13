@@ -1503,7 +1503,7 @@ func (s *moduleSchema) collectCallerLocalDeps(
 				if err != nil {
 					return nil, fmt.Errorf("failed to load local sdk module source: %w", err)
 				}
-				localDep.sdk, err = s.newModuleSDK(ctx, query, sdkMod, dagql.Instance[*core.Directory]{})
+				localDep.sdk, err = s.newModuleSDK(ctx, query, sdkMod, modCfg.SDK.Config, dagql.Instance[*core.Directory]{})
 				if err != nil {
 					return nil, fmt.Errorf("failed to get local sdk: %w", err)
 				}
