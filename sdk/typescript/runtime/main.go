@@ -47,17 +47,13 @@ const (
 	NpmDefaultVersion  = "10.7.0"
 )
 
-type Config struct {
-	Foo string `json:"foo"`
-}
-
 func New(
 	// +optional
 	sdkSourceDir *dagger.Directory,
 	// +optional
 	rawConfig dagger.JSON,
 ) (*TypescriptSdk, error) {
-	var c Config
+	var c packageJSONConfig
 	if len(rawConfig) > 0 {
 		decoder := json.NewDecoder(strings.NewReader(string(rawConfig)))
 		decoder.DisallowUnknownFields()
@@ -69,9 +65,9 @@ func New(
 	}
 
 	return &TypescriptSdk{
-		SDKSourceDir: sdkSourceDir,
-		moduleConfig: &moduleConfig{},
-		config:       &c,
+		SDKSourceDir:      sdkSourceDir,
+		packageJSONConfig: &c,
+		moduleConfig:      &moduleConfig{},
 	}, nil
 }
 
@@ -87,7 +83,6 @@ type moduleConfig struct {
 	runtime        SupportedTSRuntime
 	runtimeVersion string
 
-	// Custom base image
 	image             string
 	packageJSONConfig *packageJSONConfig
 
@@ -105,7 +100,15 @@ type TypescriptSdk struct {
 	SDKSourceDir  *dagger.Directory
 	RequiredPaths []string
 
-	config       *Config
+	packageJSONConfig *packageJSONConfig
+	// This image is baseImage (per sdk config or runtime) AND
+	// some files/configs/secrets mounted by engine
+	// codegen and moduleRuntime should use this image as their base
+	// and if they need to install some additional stuff, it should
+	// be done on top of this altBaseImage.
+	// We pass this image as input (using withAltImage fn) to codegen
+	// and moduleRuntime.
+	AltBaseImage *dagger.Container
 	moduleConfig *moduleConfig
 }
 
@@ -192,10 +195,7 @@ func (t *TypescriptSdk) Codegen(ctx context.Context, modSource *dagger.ModuleSou
 // CodegenBase returns a Container containing the SDK from the engine container
 // and the user's code with a generated API based on what he did.
 func (t *TypescriptSdk) CodegenBase(ctx context.Context, modSource *dagger.ModuleSource, introspectionJSON *dagger.File, installDep bool) (*dagger.Container, error) {
-	base, err := t.Base()
-	if err != nil {
-		return nil, fmt.Errorf("failed to create codegen base: %w", err)
-	}
+	base := t.AltBaseImage
 
 	// Get a directory with the SDK sources installed and the generated client.
 	sdk := t.
@@ -216,7 +216,7 @@ func (t *TypescriptSdk) CodegenBase(ctx context.Context, modSource *dagger.Modul
 	base = t.configureModule(base)
 
 	// Generate the appropriate lock file
-	base, err = t.generateLockFile(base)
+	base, err := t.generateLockFile(base)
 	if err != nil {
 		return nil, fmt.Errorf("failed to generate lock file: %w", err)
 	}
@@ -349,7 +349,7 @@ func (t *TypescriptSdk) configureModule(ctr *dagger.Container) *dagger.Container
 
 	// If there's a package.json, run the tsconfig updator script and install the genDir.
 	// else, copy the template config files.
-	if t.moduleConfig.packageJSONConfig != nil {
+	if t.packageJSONConfig != nil {
 		if runtime == Bun {
 			ctr = ctr.
 				WithExec([]string{"bun", "/opt/module/bin/__tsconfig.updator.ts"}).
@@ -409,8 +409,8 @@ func (t *TypescriptSdk) detectBaseImageRef() (string, error) {
 	runtime := t.moduleConfig.runtime
 	version := t.moduleConfig.runtimeVersion
 
-	if t.moduleConfig.packageJSONConfig != nil && t.moduleConfig.packageJSONConfig.Dagger != nil {
-		value := t.moduleConfig.packageJSONConfig.Dagger.BaseImage
+	if t.packageJSONConfig != nil && t.packageJSONConfig.Dagger != nil {
+		value := t.packageJSONConfig.Dagger.BaseImage
 		if value != "" {
 			return value, nil
 		}
@@ -443,8 +443,8 @@ func (t *TypescriptSdk) detectBaseImageRef() (string, error) {
 // If the runtime is detected and pinned to a specific version, it will also return the pinned version.
 func (t *TypescriptSdk) detectRuntime() error {
 	// If we find a package.json, we check if the runtime is specified in `dagger.runtime` field.
-	if t.moduleConfig.packageJSONConfig != nil && t.moduleConfig.packageJSONConfig.Dagger != nil {
-		value := t.moduleConfig.packageJSONConfig.Dagger.Runtime
+	if t.packageJSONConfig != nil && t.packageJSONConfig.Dagger != nil {
+		value := t.packageJSONConfig.Dagger.Runtime
 		if value != "" {
 			// Retrieve the runtime and version from the value (e.g., node@lts, bun@1)
 			// If version isn't specified, version will be an empty string and only the runtime will be used in Base.
@@ -496,8 +496,8 @@ func (t *TypescriptSdk) detectPackageManager() (SupportedPackageManager, string,
 	}
 
 	// If we find a package.json, we check if the packageManager is specified in `packageManager` field.
-	if t.moduleConfig.packageJSONConfig != nil {
-		value := t.moduleConfig.packageJSONConfig.PackageManager
+	if t.packageJSONConfig != nil {
+		value := t.packageJSONConfig.PackageManager
 		if value != "" {
 			// Retrieve the package manager and version from the value (e.g., yarn@4.2.0, pnpm@8.5.1)
 			packageManager, version, _ := strings.Cut(value, "@")
@@ -696,4 +696,18 @@ func (c *moduleConfig) entrypointPath() string {
 
 func (c *moduleConfig) tsConfigPath() string {
 	return filepath.Join(ModSourceDirPath, c.subPath, "tsconfig.json")
+}
+
+func (t *TypescriptSdk) StepOneGetBaseImage(ctx context.Context, modSource *dagger.ModuleSource) (*dagger.Container, error) {
+	err := t.analyzeModuleConfig(ctx, modSource)
+	if err != nil {
+		return nil, err
+	}
+
+	return t.Base()
+}
+
+func (t *TypescriptSdk) WithAltBaseImage(ctx context.Context, altBaseImage *dagger.Container) (*TypescriptSdk, error) {
+	t.AltBaseImage = altBaseImage
+	return t, nil
 }

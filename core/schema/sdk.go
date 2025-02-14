@@ -253,6 +253,39 @@ func (s *moduleSchema) newModuleSDK(
 	return &moduleSDK{mod: sdkModMeta, dag: dag, sdk: sdk, rawConfig: rawConfig}, nil
 }
 
+func (sdk *moduleSDK) StepOneGetBaseImage(ctx context.Context, source dagql.Instance[*core.ModuleSource]) (dagql.Instance[*core.Container], error) {
+	var altBase dagql.Instance[*core.Container]
+	err := sdk.dag.Select(ctx, sdk.sdk, &altBase, dagql.Selector{
+		Field: "stepOneGetBaseImage",
+		Args: []dagql.NamedInput{
+			{
+				Name:  "modSource",
+				Value: dagql.NewID[*core.ModuleSource](source.ID()),
+			},
+		},
+	})
+	if err != nil {
+		return altBase, fmt.Errorf("failed to get altBase: %w", err)
+	}
+
+	return altBase, nil
+}
+
+func (sdk *moduleSDK) CustomizedBaseContainerRajat(ctx context.Context) ([]dagql.Selector, error) {
+	// fetch gitconfig selectors
+	bk, err := sdk.mod.Self.Query.Buildkit(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	gitConfigSelectors, err := gitConfigSelectors(ctx, bk)
+	if err != nil {
+		return nil, err
+	}
+
+	return gitConfigSelectors, nil
+}
+
 // Codegen calls the Codegen function on the SDK Module
 func (sdk *moduleSDK) Codegen(ctx context.Context, deps *core.ModDeps, source dagql.Instance[*core.ModuleSource]) (_ *core.GeneratedCode, rerr error) {
 	ctx, span := core.Tracer(ctx).Start(ctx, "module SDK: run codegen")
@@ -262,24 +295,53 @@ func (sdk *moduleSDK) Codegen(ctx context.Context, deps *core.ModDeps, source da
 		return nil, fmt.Errorf("failed to get schema introspection json during %s module sdk codegen: %w", sdk.mod.Self.Name(), err)
 	}
 
-	var inst dagql.Instance[*core.GeneratedCode]
-	err = sdk.dag.Select(ctx, sdk.sdk, &inst, dagql.Selector{
-		Field: "codegen",
-		Args: []dagql.NamedInput{
-			{
-				Name:  "modSource",
-				Value: dagql.NewID[*core.ModuleSource](source.ID()),
-			},
-			{
-				Name:  "introspectionJson",
-				Value: dagql.NewID[*core.File](schemaJSONFile.ID()),
-			},
-			{
-				Name:  "configJson",
-				Value: dagql.NewID[*core.File](schemaJSONFile.ID()),
+	// This is the image we get as base from sdk to start with
+	baseCtr, err := sdk.StepOneGetBaseImage(ctx, source)
+	if err != nil {
+		return nil, err
+	}
+
+	// now we get the selectors we need for customizing this base image
+	aselectors, err := sdk.CustomizedBaseContainerRajat(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// now we apply these customization selectors and get a updated altBase container
+	var altBase dagql.Instance[*core.Container]
+	err = sdk.dag.Select(ctx, baseCtr, &altBase, aselectors...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get altBase: %w", err)
+	}
+
+	// now we use this altBasecontainer
+	bselectors := []dagql.Selector{
+		{
+			Field: "withAltBaseImage",
+			Args: []dagql.NamedInput{
+				{
+					Name:  "altBaseImage",
+					Value: dagql.NewID[*core.Container](altBase.ID()),
+				},
 			},
 		},
-	})
+		{
+			Field: "codegen",
+			Args: []dagql.NamedInput{
+				{
+					Name:  "modSource",
+					Value: dagql.NewID[*core.ModuleSource](source.ID()),
+				},
+				{
+					Name:  "introspectionJson",
+					Value: dagql.NewID[*core.File](schemaJSONFile.ID()),
+				},
+			},
+		},
+	}
+
+	var inst dagql.Instance[*core.GeneratedCode]
+	err = sdk.dag.Select(ctx, sdk.sdk, &inst, bselectors...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to call sdk module codegen: %w", err)
 	}
@@ -295,9 +357,41 @@ func (sdk *moduleSDK) Runtime(ctx context.Context, deps *core.ModDeps, source da
 		return nil, fmt.Errorf("failed to get schema introspection json during %s module sdk runtime: %w", sdk.mod.Self.Name(), err)
 	}
 
-	var inst dagql.Instance[*core.Container]
-	err = sdk.dag.Select(ctx, sdk.sdk, &inst,
-		dagql.Selector{
+	// This is the image we get as base from sdk to start with
+	baseCtr, err := sdk.StepOneGetBaseImage(ctx, source)
+	if err != nil {
+		return nil, err
+	}
+
+	if true {
+		return nil, fmt.Errorf("something is wrong with steponegetbaseimage")
+	}
+
+	// now we get the selectors we need for customizing this base image
+	aselectors, err := sdk.CustomizedBaseContainerRajat(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	// now we apply these customization selectors and get a updated altBase container
+	var altBase dagql.Instance[*core.Container]
+	err = sdk.dag.Select(ctx, baseCtr, &altBase, aselectors...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get altBase: %w", err)
+	}
+
+	// now we use this altBasecontainer
+	bselectors := []dagql.Selector{
+		{
+			Field: "withAltBaseImage",
+			Args: []dagql.NamedInput{
+				{
+					Name:  "altBaseImage",
+					Value: dagql.NewID[*core.Container](altBase.ID()),
+				},
+			},
+		},
+		{
 			Field: "moduleRuntime",
 			Args: []dagql.NamedInput{
 				{
@@ -310,7 +404,7 @@ func (sdk *moduleSDK) Runtime(ctx context.Context, deps *core.ModDeps, source da
 				},
 			},
 		},
-		dagql.Selector{
+		{
 			Field: "withWorkdir",
 			Args: []dagql.NamedInput{
 				{
@@ -319,7 +413,10 @@ func (sdk *moduleSDK) Runtime(ctx context.Context, deps *core.ModDeps, source da
 				},
 			},
 		},
-	)
+	}
+
+	var inst dagql.Instance[*core.Container]
+	err = sdk.dag.Select(ctx, sdk.sdk, &inst, bselectors...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to call sdk module moduleRuntime: %w", err)
 	}
