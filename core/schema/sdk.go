@@ -363,10 +363,6 @@ func (sdk *moduleSDK) Runtime(ctx context.Context, deps *core.ModDeps, source da
 		return nil, err
 	}
 
-	if true {
-		return nil, fmt.Errorf("something is wrong with steponegetbaseimage")
-	}
-
 	// now we get the selectors we need for customizing this base image
 	aselectors, err := sdk.CustomizedBaseContainerRajat(ctx)
 	if err != nil {
@@ -1013,8 +1009,19 @@ func gitConfigSelectors(ctx context.Context, bk *buildkit.Client) ([]dagql.Selec
 		dagql.Selector{
 			Field: "withNewFile",
 			Args: []dagql.NamedInput{
-				{Name: "path", Value: dagql.String("${HOME}/.gitconfig")},
-				{Name: "contents", Value: dagql.String(sb.String())},
+				//TODO(rajatjindal): for some reason expand env var is not working correctly here?
+				//{Name: "path", Value: dagql.String("$HOME/.gitconfig")},
+				{Name: "path", Value: dagql.String("/root/.gitconfig")},
+				{Name: "contents", Value: dagql.String(fmt.Sprintf("#atleast i am here\n%s", sb.String()))},
+				{Name: "permissions", Value: dagql.Int(0o600)},
+				{Name: "expand", Value: dagql.NewBoolean(true)},
+			},
+		},
+		dagql.Selector{
+			Field: "withNewFile",
+			Args: []dagql.NamedInput{
+				{Name: "path", Value: dagql.String("/tmp/.gitconfig")},
+				{Name: "contents", Value: dagql.String(fmt.Sprintf("#atleast i am here\n%s", sb.String()))},
 				{Name: "permissions", Value: dagql.Int(0o600)},
 				{Name: "expand", Value: dagql.NewBoolean(true)},
 			},

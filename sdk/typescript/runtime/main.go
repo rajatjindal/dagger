@@ -135,6 +135,11 @@ func (t *TypescriptSdk) ModuleRuntime(ctx context.Context, modSource *dagger.Mod
 		return nil, fmt.Errorf("failed to create codegen base: %w", err)
 	}
 
+	output, err := ctr.WithExec([]string{"sh", "-c", "echo", "${GIT_SSH_COMMAND}"}).Stdout(ctx)
+	if true {
+		return nil, fmt.Errorf("ALTIMAGE IS %#v. \nOUTPUT IS %#v, err: %#v", t.AltBaseImage, output, err)
+	}
+
 	// Mount the entrypoint file
 	ctr = ctr.WithMountedFile(
 		t.moduleConfig.entrypointPath(),
@@ -151,7 +156,7 @@ func (t *TypescriptSdk) ModuleRuntime(ctx context.Context, modSource *dagger.Mod
 			// dir, without this the paths mapped in the tsconfig.json will not be used and js module loading will fail
 			// need to specify --no-deprecation because the default package.json has no main field which triggers a warning
 			// not useful to display to the user.
-			WithEntrypoint([]string{"tsx", "--no-deprecation", "--tsconfig", t.moduleConfig.tsConfigPath(), t.moduleConfig.entrypointPath()}), nil
+			WithEntrypoint([]string{"ts", "--no-deprecation", "--tsconfig", t.moduleConfig.tsConfigPath(), t.moduleConfig.entrypointPath()}), nil
 	default:
 		return nil, fmt.Errorf("unknown runtime: %s", t.moduleConfig.runtime)
 	}
@@ -227,6 +232,10 @@ func (t *TypescriptSdk) CodegenBase(ctx context.Context, modSource *dagger.Modul
 		if err != nil {
 			return nil, fmt.Errorf("failed to install dependencies: %w", err)
 		}
+		// TODO(rajatjindal): remove when done testing
+		// if true {
+		// 	return base.Terminal(), nil
+		// }
 	}
 
 	// Add user's source files
