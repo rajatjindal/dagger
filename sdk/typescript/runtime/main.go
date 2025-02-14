@@ -50,24 +50,10 @@ const (
 func New(
 	// +optional
 	sdkSourceDir *dagger.Directory,
-	// +optional
-	rawConfig dagger.JSON,
 ) (*TypescriptSdk, error) {
-	var c packageJSONConfig
-	if len(rawConfig) > 0 {
-		decoder := json.NewDecoder(strings.NewReader(string(rawConfig)))
-		decoder.DisallowUnknownFields()
-
-		err := decoder.Decode(&c)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal typescript config %s. error: %w", rawConfig, err)
-		}
-	}
-
 	return &TypescriptSdk{
-		SDKSourceDir:      sdkSourceDir,
-		packageJSONConfig: &c,
-		moduleConfig:      &moduleConfig{},
+		SDKSourceDir: sdkSourceDir,
+		moduleConfig: &moduleConfig{},
 	}, nil
 }
 
@@ -135,11 +121,6 @@ func (t *TypescriptSdk) ModuleRuntime(ctx context.Context, modSource *dagger.Mod
 		return nil, fmt.Errorf("failed to create codegen base: %w", err)
 	}
 
-	output, err := ctr.WithExec([]string{"sh", "-c", "echo", "${GIT_SSH_COMMAND}"}).Stdout(ctx)
-	if true {
-		return nil, fmt.Errorf("ALTIMAGE IS %#v. \nOUTPUT IS %#v, err: %#v", t.AltBaseImage, output, err)
-	}
-
 	// Mount the entrypoint file
 	ctr = ctr.WithMountedFile(
 		t.moduleConfig.entrypointPath(),
@@ -156,7 +137,7 @@ func (t *TypescriptSdk) ModuleRuntime(ctx context.Context, modSource *dagger.Mod
 			// dir, without this the paths mapped in the tsconfig.json will not be used and js module loading will fail
 			// need to specify --no-deprecation because the default package.json has no main field which triggers a warning
 			// not useful to display to the user.
-			WithEntrypoint([]string{"ts", "--no-deprecation", "--tsconfig", t.moduleConfig.tsConfigPath(), t.moduleConfig.entrypointPath()}), nil
+			WithEntrypoint([]string{"tsx", "--no-deprecation", "--tsconfig", t.moduleConfig.tsConfigPath(), t.moduleConfig.entrypointPath()}), nil
 	default:
 		return nil, fmt.Errorf("unknown runtime: %s", t.moduleConfig.runtime)
 	}
@@ -718,5 +699,21 @@ func (t *TypescriptSdk) StepOneGetBaseImage(ctx context.Context, modSource *dagg
 
 func (t *TypescriptSdk) WithAltBaseImage(ctx context.Context, altBaseImage *dagger.Container) (*TypescriptSdk, error) {
 	t.AltBaseImage = altBaseImage
+	return t, nil
+}
+
+func (t *TypescriptSdk) WithConfig(ctx context.Context, rawConfig dagger.JSON) (*TypescriptSdk, error) {
+	var c packageJSONConfig
+	if len(rawConfig) > 0 {
+		decoder := json.NewDecoder(strings.NewReader(string(rawConfig)))
+		decoder.DisallowUnknownFields()
+
+		err := decoder.Decode(&c)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal typescript config %s. error: %w", rawConfig, err)
+		}
+	}
+
+	t.packageJSONConfig = &c
 	return t, nil
 }
