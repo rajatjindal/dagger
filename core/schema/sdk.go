@@ -235,10 +235,6 @@ func (s *moduleSchema) newModuleSDK(
 		constructorArgs = []dagql.NamedInput{
 			{Name: "sdkSourceDir", Value: dagql.Opt(dagql.NewID[*core.Directory](optionalFullSDKSourceDir.ID()))},
 		}
-
-		if len(rawConfig) > 0 {
-			constructorArgs = append(constructorArgs, dagql.NamedInput{Name: "rawConfig", Value: dagql.Opt(dagql.NewScalar[dagql.String]("string", dagql.String(rawConfig)))})
-		}
 	}
 
 	if err := dag.Select(ctx, dag.Root(), &sdk,
@@ -255,15 +251,28 @@ func (s *moduleSchema) newModuleSDK(
 
 func (sdk *moduleSDK) StepOneGetBaseImage(ctx context.Context, source dagql.Instance[*core.ModuleSource]) (dagql.Instance[*core.Container], error) {
 	var altBase dagql.Instance[*core.Container]
-	err := sdk.dag.Select(ctx, sdk.sdk, &altBase, dagql.Selector{
-		Field: "stepOneGetBaseImage",
-		Args: []dagql.NamedInput{
-			{
-				Name:  "modSource",
-				Value: dagql.NewID[*core.ModuleSource](source.ID()),
+	err := sdk.dag.Select(ctx, sdk.sdk, &altBase, []dagql.Selector{
+		{
+			Field: "withConfig",
+			Args: []dagql.NamedInput{
+				{
+					Name:  "rawConfig",
+					Value: dagql.NewScalar[dagql.String]("string", dagql.String(sdk.rawConfig)),
+				},
 			},
 		},
-	})
+		{
+
+			Field: "stepOneGetBaseImage",
+			Args: []dagql.NamedInput{
+				{
+					Name:  "modSource",
+					Value: dagql.NewID[*core.ModuleSource](source.ID()),
+				},
+			},
+		},
+	}...,
+	)
 	if err != nil {
 		return altBase, fmt.Errorf("failed to get altBase: %w", err)
 	}
