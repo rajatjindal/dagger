@@ -200,6 +200,40 @@ type moduleSDK struct {
 	rawConfig json.RawMessage
 }
 
+var _ SchemaResolvers = &moduleSDK{}
+
+func (s *moduleSDK) Install() {
+	dagql.Fields[*core.SDKConfig]{
+		dagql.Func("withConfig", s.withConfig).
+			Doc(`Creates a scratch container.`,
+				`Optional platform argument initializes new containers to execute and
+				publish as that platform. Platform defaults to that of the builder's
+				host.`).
+			ArgDoc("platform", `Platform to initialize the container with.`),
+	}.Install(s.dag)
+}
+
+func (s *moduleSDK) withConfig(ctx context.Context, parent *core.SDKConfig, args any) (*core.SDKConfig, error) {
+	var altBase dagql.Instance[*core.SDKConfig]
+	err := s.dag.Select(ctx, s.sdk, &altBase, []dagql.Selector{
+		{
+			Field: "withConfig",
+			Args: []dagql.NamedInput{
+				{
+					Name:  "rawConfig",
+					Value: dagql.NewScalar[dagql.String]("string", dagql.String("sdk.rawConfig")),
+				},
+			},
+		},
+	}...)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return altBase.Self, nil
+}
+
 func (s *moduleSchema) newModuleSDK(
 	ctx context.Context,
 	root *core.Query,
