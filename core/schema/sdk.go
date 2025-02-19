@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"dagger.io/dagger/telemetry"
+	"github.com/mitchellh/mapstructure"
 	"github.com/opencontainers/go-digest"
 
 	"github.com/dagger/dagger/core"
@@ -859,10 +860,10 @@ func (sdk *goSDK) baseWithCodegen(
 	// read the sdk specific config here
 	var config gosdkConfig
 	if len(sdk.rawConfig) > 0 {
-		// err := json.Unmarshal(sdk.rawConfig, &config)
-		// if err != nil {
-		// 	return ctr, err
-		// }
+		err = mapstructure.Decode(sdk.rawConfig, &config)
+		if err != nil {
+			return ctr, err
+		}
 
 		if config.GoPrivate != "" {
 			selectors = append(selectors, dagql.Selector{
