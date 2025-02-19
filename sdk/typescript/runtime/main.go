@@ -96,6 +96,7 @@ type TypescriptSdk struct {
 	// and moduleRuntime.
 	AltBaseImage *dagger.Container
 	moduleConfig *moduleConfig
+	SecondConfig SecondConfig
 }
 
 const (
@@ -715,5 +716,18 @@ func (t *TypescriptSdk) WithConfig(ctx context.Context, rawConfig dagger.JSON) (
 	}
 
 	t.packageJSONConfig = &c
+	return t, nil
+}
+
+type SecondConfig struct {
+	Foo string `json:"foo"`
+}
+
+func (t *TypescriptSdk) WithConfig2(ctx context.Context, foo string) (*TypescriptSdk, error) {
+	t.SecondConfig = SecondConfig{
+		Foo: foo,
+	}
+
+	return t, fmt.Errorf("got called withconfig2 with config %#v", t.SecondConfig)
 	return t, nil
 }

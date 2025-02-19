@@ -2,7 +2,6 @@ package schema
 
 import (
 	"context"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -197,7 +196,7 @@ type moduleSDK struct {
 	// The SDK object retrieved from the server, for calling functions against.
 	sdk dagql.Object
 	// the raw config for the sdk
-	rawConfig json.RawMessage
+	rawConfig map[string]interface{}
 }
 
 var _ SchemaResolvers = &moduleSDK{}
@@ -238,7 +237,7 @@ func (s *moduleSchema) newModuleSDK(
 	ctx context.Context,
 	root *core.Query,
 	sdkModMeta dagql.Instance[*core.Module],
-	rawConfig json.RawMessage,
+	rawConfig map[string]interface{},
 	optionalFullSDKSourceDir dagql.Instance[*core.Directory],
 ) (*moduleSDK, error) {
 	dag := dagql.NewServer(root)
@@ -280,21 +279,67 @@ func (s *moduleSchema) newModuleSDK(
 		return nil, fmt.Errorf("failed to get sdk object for sdk module %s: %w", sdkModMeta.Self.Name(), err)
 	}
 
+	for _, def := range sdkModMeta.Self.ObjectDefs {
+		if !def.AsObject.Valid {
+			break
+		}
+
+		obj := def.AsObject.Value
+		if gqlFieldName(obj.Name) != gqlFieldName(sdkModMeta.Self.OriginalName) {
+			continue
+		}
+
+		var withConfigFn *core.Function
+		var found bool
+		for _, fn := range obj.Functions {
+			if fn.Name == "withConfig2" {
+				withConfigFn = fn
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			break
+		}
+
+		args := []dagql.NamedInput{}
+		for _, arg := range withConfigFn.Args {
+			val, ok := rawConfig[arg.Name]
+			if !ok {
+				continue
+			}
+
+			input, err := arg.TypeDef.ToInput().Decoder().DecodeInput(val)
+			if err != nil {
+				return nil, err
+			}
+
+			args = append(args, dagql.NamedInput{
+				Name:  arg.Name,
+				Value: input,
+			})
+		}
+		var sdkwithconfig *dagql.Object
+		err = dag.Select(ctx, sdk, &sdkwithconfig, []dagql.Selector{
+			{
+				Field: "withConfig2",
+				Args:  args,
+			},
+		}...)
+		if err != nil {
+			return nil, fmt.Errorf("failed to call sdk module codegen: %w", err)
+		}
+
+	}
+
 	return &moduleSDK{mod: sdkModMeta, dag: dag, sdk: sdk, rawConfig: rawConfig}, nil
 }
 
 func (sdk *moduleSDK) StepOneGetBaseImage(ctx context.Context, source dagql.Instance[*core.ModuleSource]) (dagql.Instance[*core.Container], error) {
 	var altBase dagql.Instance[*core.Container]
+
 	err := sdk.dag.Select(ctx, sdk.sdk, &altBase, []dagql.Selector{
-		{
-			Field: "withConfig",
-			Args: []dagql.NamedInput{
-				{
-					Name:  "rawConfig",
-					Value: dagql.NewScalar[dagql.String]("string", dagql.String(sdk.rawConfig)),
-				},
-			},
-		},
 		{
 
 			Field: "stepOneGetBaseImage",
@@ -551,7 +596,7 @@ it with the resulting /runtime binary.
 type goSDK struct {
 	root      *core.Query
 	dag       *dagql.Server
-	rawConfig []byte
+	rawConfig map[string]interface{}
 }
 
 type gosdkConfig struct {
@@ -814,10 +859,10 @@ func (sdk *goSDK) baseWithCodegen(
 	// read the sdk specific config here
 	var config gosdkConfig
 	if len(sdk.rawConfig) > 0 {
-		err := json.Unmarshal(sdk.rawConfig, &config)
-		if err != nil {
-			return ctr, err
-		}
+		// err := json.Unmarshal(sdk.rawConfig, &config)
+		// if err != nil {
+		// 	return ctr, err
+		// }
 
 		if config.GoPrivate != "" {
 			selectors = append(selectors, dagql.Selector{
