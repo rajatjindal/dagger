@@ -509,17 +509,17 @@ func (sdk *goSDK) Runtime(
 		return nil, err
 	}
 	if err := sdk.dag.Select(ctx, ctr, &ctr,
-		// Remove the socket mount first as otherwise it
-		// triggers socket not found error when running go build
-		dagql.Selector{
-			Field: "withoutUnixSocket",
-			Args: []dagql.NamedInput{
-				{
-					Name:  "path",
-					Value: dagql.String("/tmp/dagger-ssh-sock"),
-				},
-			},
-		},
+		// // Remove the socket mount first as otherwise it
+		// // triggers socket not found error when running go build
+		// dagql.Selector{
+		// 	Field: "withoutUnixSocket",
+		// 	Args: []dagql.NamedInput{
+		// 		{
+		// 			Name:  "path",
+		// 			Value: dagql.String("/tmp/dagger-ssh-sock"),
+		// 		},
+		// 	},
+		// },
 		dagql.Selector{
 			Field: "withExec",
 			Args: []dagql.NamedInput{
