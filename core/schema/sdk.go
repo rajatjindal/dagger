@@ -931,6 +931,10 @@ func (sdk *goSDK) getUnixSocketSelector(ctx context.Context) ([]dagql.Selector, 
 		return nil, fmt.Errorf("failed to get client metadata from context: %w", err)
 	}
 
+	if clientMetadata.SSHAuthSocketPath == "" {
+		return nil, nil
+	}
+
 	// mainClientCallerID, err := sdk.root.MainClientCallerID(ctx)
 	// if err != nil {
 	// 	return nil, fmt.Errorf("failed to retrieve mainClientCallerID: %w", err)
