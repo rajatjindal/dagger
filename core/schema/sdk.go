@@ -698,6 +698,15 @@ func (sdk *goSDK) Runtime(
 	}
 	if err := sdk.dag.Select(ctx, ctr, &ctr,
 		dagql.Selector{
+			Field: "withoutUnixSocket",
+			Args: []dagql.NamedInput{
+				{
+					Name:  "path",
+					Value: dagql.NewString("/tmp/dagger-ssh-sock"),
+				},
+			},
+		},
+		dagql.Selector{
 			Field: "withExec",
 			Args: []dagql.NamedInput{
 				{
@@ -1114,17 +1123,22 @@ func (sdk *goSDK) getUnixSocketSelector(ctx context.Context) ([]dagql.Selector, 
 		return nil, nil
 	}
 
+	accessor, err := core.GetClientResourceAccessor(ctx, sdk.root, clientMetadata.SSHAuthSocketPath)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get client resource name: %w", err)
+	}
+
 	var sockInst dagql.Instance[*core.Socket]
 	if err := sdk.dag.Select(ctx, sdk.dag.Root(), &sockInst,
 		dagql.Selector{
 			Field: "host",
 		},
 		dagql.Selector{
-			Field: "unixSocket",
+			Field: "__internalSocket",
 			Args: []dagql.NamedInput{
 				{
-					Name:  "path",
-					Value: dagql.NewString(clientMetadata.SSHAuthSocketPath),
+					Name:  "accessor",
+					Value: dagql.NewString(accessor),
 				},
 			},
 		},
