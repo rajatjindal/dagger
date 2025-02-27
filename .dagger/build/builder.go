@@ -168,7 +168,7 @@ func (build *Builder) Engine(ctx context.Context) (*dagger.Container, error) {
 				Branch: consts.AlpineVersion,
 				Packages: []string{
 					// for Buildkit
-					"git", "openssh-client", "pigz", "xz",
+					"git", "openssh-client", "pigz", "xz", "containerd-ctr", "less", "util-linux",
 					// for CNI
 					"dnsmasq", "iptables", "ip6tables", "iptables-legacy",
 				},
