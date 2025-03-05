@@ -280,14 +280,14 @@ func (sdk *moduleSDK) withConfig(ctx context.Context, rawConfig map[string]inter
 		// TODO(rajatjindal): should we error out here if the user specifies a config in sdk.config object, but
 		// withConfig function does not support that argument.
 		for _, arg := range fieldspec.Args {
-			var valInput dagql.Input = arg.Default
+			var valInput = arg.Default
 
 			// override if the argument with same name exists in dagger.json -> sdk.config
 			val, ok := rawConfig[arg.Name]
 			if ok {
 				valInput, err = arg.Type.Decoder().DecodeInput(val)
 				if err != nil {
-					return nil, err
+					return nil, fmt.Errorf("parsing value for arg %q: %w", arg.Name, err)
 				}
 			}
 
