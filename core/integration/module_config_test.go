@@ -543,7 +543,7 @@ func (ConfigSuite) TestSDKConfig(ctx context.Context, t *testctx.T) {
     }
   }
 }`,
-				expectedValue: "github.com/barfoo",
+				expectedValue: "github.com/foobar",
 			},
 		}
 
@@ -563,13 +563,12 @@ import (
 
 type Foo struct{}
 
-// Returns a container that echoes whatever string argument is provided
-func (m *Foo) CheckEnv(stringArg string) string {
+func (m *Foo) CheckEnv() string {
 	return os.Getenv("GOPRIVATE")
 }
 `)
 
-				output, err := ctr.With(daggerCall("check-eng")).Stdout(ctx)
+				output, err := ctr.With(daggerCall("check-env")).Stdout(ctx)
 				require.Nil(t, err)
 				require.Equal(t, tc.expectedValue, output)
 			})
