@@ -530,7 +530,22 @@ func (ConfigSuite) TestSDKConfig(ctx context.Context, t *testctx.T) {
 			name          string
 			daggerjson    string
 			expectedValue string
+			expectedError string
 		}{
+			{
+				name: "invalid type for goprivate is configured",
+				daggerjson: `{
+  "name": "foo",
+  "engineVersion": "v0.16.2",
+  "sdk": {
+    "source": "go",
+    "config": {
+      "goprivate": 1234
+    }
+  }
+}`,
+				expectedError: "'GoPrivate' expected type 'string', got unconvertible type 'float64', value: '1234'",
+			},
 			{
 				name: "goprivate is configured",
 				daggerjson: `{
@@ -569,8 +584,14 @@ func (m *Foo) CheckEnv() string {
 `)
 
 				output, err := ctr.With(daggerCall("check-env")).Stdout(ctx)
-				require.Nil(t, err)
-				require.Equal(t, tc.expectedValue, output)
+				if tc.expectedError != "" {
+					require.NotNil(t, err)
+					execerror := err.(*dagger.ExecError)
+					require.Contains(t, execerror.Stderr, tc.expectedError)
+				} else {
+					require.Nil(t, err)
+					require.Equal(t, tc.expectedValue, output)
+				}
 			})
 		}
 	})
