@@ -72,7 +72,7 @@ func (s *sdkLoader) sdkForModule(
 	if err == nil {
 		return builtinSDK, nil
 	} else if !errors.Is(err, errUnknownBuiltinSDK) {
-		return nil, err
+		return nil, fmt.Errorf("builtinsdk error %w", err)
 	}
 
 	bk, err := query.Buildkit(ctx)
@@ -257,7 +257,7 @@ func (sdk *moduleSDK) withConfig(ctx context.Context, rawConfig map[string]inter
 
 		var withConfigFn *core.Function
 		for _, fn := range obj.Functions {
-			if fn.Name == "withConfig" {
+			if gqlFieldName(fn.Name) == gqlFieldName("withConfig") {
 				withConfigFn = fn
 				break
 			}
@@ -271,29 +271,34 @@ func (sdk *moduleSDK) withConfig(ctx context.Context, rawConfig map[string]inter
 			return sdk, nil
 		}
 
+		fieldspec, err := withConfigFn.FieldSpec()
+		if err != nil {
+			return nil, err
+		}
+
 		args := []dagql.NamedInput{}
 		// TODO(rajatjindal): should we error out here if the user specifies a config in sdk.config object, but
 		// withConfig function does not support that argument.
-		for _, arg := range withConfigFn.Args {
-			// check if the argument with same name exists in dagger.json -> sdk.config
-			val, ok := rawConfig[arg.Name]
-			if !ok {
-				val = arg.DefaultValue
-			}
+		for _, arg := range fieldspec.Args {
+			var valInput dagql.Input = arg.Default
 
-			input, err := arg.TypeDef.ToInput().Decoder().DecodeInput(val)
-			if err != nil {
-				return nil, err
+			// override if the argument with same name exists in dagger.json -> sdk.config
+			val, ok := rawConfig[arg.Name]
+			if ok {
+				valInput, err = arg.Type.Decoder().DecodeInput(val)
+				if err != nil {
+					return nil, err
+				}
 			}
 
 			args = append(args, dagql.NamedInput{
 				Name:  arg.Name,
-				Value: input,
+				Value: valInput,
 			})
 		}
 
 		var sdkwithconfig dagql.Object
-		err := sdk.dag.Select(ctx, sdk.sdk, &sdkwithconfig, []dagql.Selector{
+		err = sdk.dag.Select(ctx, sdk.sdk, &sdkwithconfig, []dagql.Selector{
 			{
 				Field: "withConfig",
 				Args:  args,
