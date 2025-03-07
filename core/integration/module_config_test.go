@@ -533,20 +533,6 @@ func (ConfigSuite) TestSDKConfig(ctx context.Context, t *testctx.T) {
 			expectedError string
 		}{
 			{
-				name: "invalid type for goprivate is configured",
-				daggerjson: `{
-  "name": "foo",
-  "engineVersion": "v0.16.2",
-  "sdk": {
-    "source": "go",
-    "config": {
-      "goprivate": 1234
-    }
-  }
-}`,
-				expectedError: "'GoPrivate' expected type 'string', got unconvertible type 'float64', value: '1234'",
-			},
-			{
 				name: "goprivate is configured",
 				daggerjson: `{
   "name": "foo",
@@ -559,6 +545,20 @@ func (ConfigSuite) TestSDKConfig(ctx context.Context, t *testctx.T) {
   }
 }`,
 				expectedValue: "github.com/foobar",
+			},
+			{
+				name: "invalid type for goprivate is configured",
+				daggerjson: `{
+  "name": "foo",
+  "engineVersion": "v0.16.2",
+  "sdk": {
+    "source": "go",
+    "config": {
+      "goprivate": 1234
+    }
+  }
+}`,
+				expectedError: "'GoPrivate' expected type 'string', got unconvertible type 'float64', value: '1234'",
 			},
 		}
 
