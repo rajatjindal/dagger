@@ -14,12 +14,24 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+var (
+	secretCache = make(map[string]dataWithTTL)
+)
+
+func cachedSecretResolver(resolver SecretResolver) SecretResolver {
+	return func(ctx context.Context, uri string) ([]byte, error) {
+		if existing, exists := secretCache[uri]; exists && !hasExpired(existing) {
+			return
+		}
+	}
+}
+
 type dataWithTTL struct {
 	expiresAt time.Time
 	data      map[string]any
 }
 
-type SecretResolver func(context.Context, string) ([]byte, error)
+type SecretResolver func(ctx context.Context, uri string) ([]byte, error)
 
 var resolvers = map[string]SecretResolver{
 	"env":       envProvider,
