@@ -7,7 +7,9 @@ import (
 	"runtime"
 )
 
-func cmdProvider(ctx context.Context, cmd string) ([]byte, error) {
+type cmdProvider struct{}
+
+func (c cmdProvider) GetSecret(ctx context.Context, cmd string) ([]byte, error) {
 	var stdoutBytes []byte
 	var err error
 	if runtime.GOOS == "windows" {

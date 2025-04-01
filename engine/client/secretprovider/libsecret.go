@@ -10,6 +10,8 @@ import (
 	"github.com/jedevc/go-libsecret"
 )
 
+type libsecretProvider struct{}
+
 // libsecretProvider looks up secrets using libsecret, which connects to
 // gnome-keyring and other similar providers.
 // https://specifications.freedesktop.org/secret-service-spec/latest/ref-dbus-api.html.
@@ -18,7 +20,7 @@ import (
 // - libsecret://<collection>/<id>
 // - libsecret://<collection>/<label>
 // - libsecret://<collection>?<key>=<value>
-func libsecretProvider(_ context.Context, key string) ([]byte, error) {
+func (l libsecretProvider) GetSecret(_ context.Context, key string) ([]byte, error) {
 	uri, err := url.Parse("libsecret://" + key)
 	if err != nil {
 		return nil, fmt.Errorf("key in bad format: %w", err)

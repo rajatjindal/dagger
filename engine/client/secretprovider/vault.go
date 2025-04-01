@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"strings"
 
 	vault "github.com/hashicorp/vault/api"
 	auth "github.com/hashicorp/vault/api/auth/approle"
@@ -15,42 +14,53 @@ var (
 	vaultCache  = make(map[string]map[string]any)
 )
 
+type vaultProvider struct{}
+
+func (v vaultProvider) CacheProvider() CacheProvider {
+	return ObjectCacheProvider{}
+}
+
 // HashiCorp Vault provider for SecretProvider
-func vaultProvider(ctx context.Context, key string) ([]byte, error) {
+func (v vaultProvider) GetSecret(ctx context.Context, uri string) ([]byte, error) {
+	cached, err := v.CacheProvider().Get(uri)
+	if err != nil {
+		return nil, err
+	}
+
+	if cached != "" {
+		return []byte(cached), nil
+	}
+
+	opts, err := v.CacheProvider().GetOpts(uri)
+	if err != nil {
+		return nil, err
+	}
+
 	// KVv2 mount path. Default "secret"
 	mount := os.Getenv("VAULT_PATH_PREFIX")
 	if mount == "" {
 		mount = "secret"
 	}
 
-	// split key into path and field, e.g. "path/to/secret.field"
-	keyParts := strings.Split(key, ".")
-	if len(keyParts) != 2 {
-		return nil, fmt.Errorf("invalid key format: %s", key)
-	}
-	secretPath := keyParts[0]
-	secretField := keyParts[1]
-
-	// check if client is initialized
-	if vaultClient == nil {
-		err := vaultConfigureClient(ctx)
-		if err != nil {
-			return nil, err
-		}
+	// read the secret
+	s, err := vaultClient.KVv2(mount).Get(ctx, opts.secretPath)
+	if err != nil {
+		return nil, err
 	}
 
-	// check if path is in key cache
-	if _, ok := vaultCache[key]; !ok {
-		// read the secret
-		s, err := vaultClient.KVv2(mount).Get(ctx, secretPath)
-		if err != nil {
-			return nil, err
-		}
-		// cache response
-		vaultCache[key] = s.Data
+	// store in cache
+	err = v.CacheProvider().Put(uri, s.Data)
+	if err != nil {
+		return nil, err
 	}
 
-	return []byte(vaultCache[key][secretField].(string)), nil
+	// now lets just get from cache itself
+	data, err := v.CacheProvider().Get(uri)
+	if err != nil {
+		return nil, err
+	}
+
+	return []byte(data), nil
 }
 
 // Load configuration from environment and create a new vault client

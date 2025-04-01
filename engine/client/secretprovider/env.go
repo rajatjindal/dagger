@@ -6,7 +6,9 @@ import (
 	"os"
 )
 
-func envProvider(_ context.Context, name string) ([]byte, error) {
+type envProvider struct{}
+
+func (e envProvider) GetSecret(_ context.Context, name string) ([]byte, error) {
 	v, ok := os.LookupEnv(name)
 	if !ok {
 		// Don't show the entire env var name, in case the user accidentally passed the value instead...

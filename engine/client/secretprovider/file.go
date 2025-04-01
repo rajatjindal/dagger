@@ -8,7 +8,9 @@ import (
 	"github.com/dagger/dagger/engine/client/pathutil"
 )
 
-func fileProvider(_ context.Context, path string) ([]byte, error) {
+type fileProvider struct{}
+
+func (f fileProvider) GetSecret(_ context.Context, path string) ([]byte, error) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
 		return nil, err

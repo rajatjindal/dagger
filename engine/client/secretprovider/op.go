@@ -10,7 +10,9 @@ import (
 	"github.com/dagger/dagger/engine"
 )
 
-func opProvider(ctx context.Context, key string) ([]byte, error) {
+type opProvider struct{}
+
+func (o opProvider) GetSecret(ctx context.Context, key string) ([]byte, error) {
 	key = "op://" + key
 
 	// Attempt to use the `OP_SERVICE_ACCOUNT_TOKEN`
