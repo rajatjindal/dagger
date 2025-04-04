@@ -388,7 +388,7 @@ func (container *Container) Build(
 	dockerfile string,
 	buildArgs []BuildArg,
 	target string,
-	secrets []*Secret,
+	secrets []SecretArgInternal,
 	secretStore *SecretStore,
 ) (*Container, error) {
 	container = container.Clone()
@@ -398,15 +398,11 @@ func (container *Container) Build(
 
 	secretNameToLLBID := make(map[string]string)
 	for _, secret := range secrets {
-		secretName, ok := secretStore.GetSecretName(secret.IDDigest)
-		if !ok {
-			return nil, fmt.Errorf("secret not found: %s", secret.IDDigest)
-		}
 		container.Secrets = append(container.Secrets, ContainerSecret{
-			Secret:    secret,
-			MountPath: fmt.Sprintf("/run/secrets/%s", secretName),
+			Secret:    secret.Secret,
+			MountPath: fmt.Sprintf("/run/secrets/%s", secret.Name),
 		})
-		secretNameToLLBID[secretName] = secret.IDDigest.String()
+		secretNameToLLBID[secret.Name] = secret.SecretID.String()
 	}
 
 	// set image ref to empty string
@@ -458,7 +454,7 @@ func (container *Container) Build(
 	solveCtx := context.WithValue(ctx, "secret-translator", func(name string) (string, error) {
 		llbID, ok := secretNameToLLBID[name]
 		if !ok {
-			return "", fmt.Errorf("secret not found: %s", name)
+			return "", fmt.Errorf("secret not found 1: %s", name)
 		}
 		return llbID, nil
 	})
@@ -1677,6 +1673,25 @@ func (container *Container) command(opts ContainerExecOpts) ([]string, error) {
 	}
 
 	return args, nil
+}
+
+// need bikeshedding for the name. this is basicaly SecretArg + actual secret
+type SecretArgInternal struct {
+	Name     string
+	SecretID SecretID
+	Secret   *Secret
+}
+type SecretArg struct {
+	Name  string   `field:"true" doc:"The build argument name."`
+	Value SecretID `field:"true" doc:"The build argument value."`
+}
+
+func (SecretArg) TypeName() string {
+	return "SecretArg"
+}
+
+func (SecretArg) TypeDescription() string {
+	return "Key value object that represents a build argument."
 }
 
 type BuildArg struct {

@@ -1582,6 +1582,11 @@ pub struct PortForward {
     pub frontend: isize,
     pub protocol: NetworkProtocol,
 }
+#[derive(Serialize, Deserialize, Debug, PartialEq, Clone)]
+pub struct SecretArg {
+    pub name: String,
+    pub value: SecretId,
+}
 #[derive(Clone)]
 pub struct Binding {
     pub proc: Option<Arc<DaggerSessionProc>>,
@@ -1802,6 +1807,8 @@ pub struct ContainerBuildOpts<'a> {
     /// Path to the Dockerfile to use.
     #[builder(setter(into, strip_option), default)]
     pub dockerfile: Option<&'a str>,
+    #[builder(setter(into, strip_option), default)]
+    pub secret_args: Option<Vec<SecretArg>>,
     /// Secrets to pass to the build.
     /// They will be mounted at /run/secrets/[secret-name] in the build container
     /// They can be accessed in the Dockerfile using the "secret" mount type and mount path /run/secrets/[secret-name], e.g. RUN --mount=type=secret,id=my-secret curl [http://example.com?token=$(cat /run/secrets/my-secret)](http://example.com?token=$(cat /run/secrets/my-secret))
@@ -2290,6 +2297,9 @@ impl Container {
         }
         if let Some(secrets) = opts.secrets {
             query = query.arg("secrets", secrets);
+        }
+        if let Some(secret_args) = opts.secret_args {
+            query = query.arg("secretArgs", secret_args);
         }
         Container {
             proc: self.proc.clone(),
@@ -4286,6 +4296,8 @@ pub struct DirectoryDockerBuildOpts<'a> {
     /// The platform to build.
     #[builder(setter(into, strip_option), default)]
     pub platform: Option<Platform>,
+    #[builder(setter(into, strip_option), default)]
+    pub secret_args: Option<Vec<SecretArg>>,
     /// Secrets to pass to the build.
     /// They will be mounted at /run/secrets/[secret-name].
     #[builder(setter(into, strip_option), default)]
@@ -4505,6 +4517,9 @@ impl Directory {
         }
         if let Some(secrets) = opts.secrets {
             query = query.arg("secrets", secrets);
+        }
+        if let Some(secret_args) = opts.secret_args {
+            query = query.arg("secretArgs", secret_args);
         }
         Container {
             proc: self.proc.clone(),

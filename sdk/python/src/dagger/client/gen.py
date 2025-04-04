@@ -402,6 +402,18 @@ class PortForward(Input):
 
 
 @typecheck
+@dataclass(slots=True)
+class SecretArg(Input):
+    """Key value object that represents a build argument."""
+
+    name: str
+    """The build argument name."""
+
+    value: "Secret"
+    """The build argument value."""
+
+
+@typecheck
 class Binding(Type):
     def as_cache_volume(self) -> "CacheVolume":
         """Retrieve the binding value, as type CacheVolume"""
@@ -712,6 +724,7 @@ class Container(Type):
         target: str | None = "",
         build_args: list[BuildArg] | None = None,
         secrets: "list[Secret] | None" = None,
+        secret_args: list[SecretArg] | None = None,
     ) -> Self:
         """Initializes this container from a Dockerfile build.
 
@@ -734,6 +747,7 @@ class Container(Type):
             --mount=type=secret,id=my-secret curl
             [http://example.com?token=$(cat /run/secrets/my-
             secret)](http://example.com?token=$(cat /run/secrets/my-secret))
+        secret_args:
         """
         _args = [
             Arg("context", context),
@@ -741,6 +755,7 @@ class Container(Type):
             Arg("target", target, ""),
             Arg("buildArgs", () if build_args is None else build_args, ()),
             Arg("secrets", () if secrets is None else secrets, ()),
+            Arg("secretArgs", () if secret_args is None else secret_args, ()),
         ]
         _ctx = self._select("build", _args)
         return Container(_ctx)
@@ -2756,6 +2771,7 @@ class Directory(Type):
         target: str | None = "",
         build_args: list[BuildArg] | None = None,
         secrets: "list[Secret] | None" = None,
+        secret_args: list[SecretArg] | None = None,
     ) -> Container:
         """Builds a new Docker container from this directory.
 
@@ -2772,6 +2788,7 @@ class Directory(Type):
         secrets:
             Secrets to pass to the build.
             They will be mounted at /run/secrets/[secret-name].
+        secret_args:
         """
         _args = [
             Arg("platform", platform, None),
@@ -2779,6 +2796,7 @@ class Directory(Type):
             Arg("target", target, ""),
             Arg("buildArgs", () if build_args is None else build_args, ()),
             Arg("secrets", () if secrets is None else secrets, ()),
+            Arg("secretArgs", () if secret_args is None else secret_args, ()),
         ]
         _ctx = self._select("dockerBuild", _args)
         return Container(_ctx)
@@ -9919,6 +9937,7 @@ __all__ = [
     "ScalarTypeDef",
     "ScalarTypeDefID",
     "Secret",
+    "SecretArg",
     "SecretID",
     "Service",
     "ServiceID",

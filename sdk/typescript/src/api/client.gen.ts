@@ -143,6 +143,7 @@ export type ContainerBuildOpts = {
    * They can be accessed in the Dockerfile using the "secret" mount type and mount path /run/secrets/[secret-name], e.g. RUN --mount=type=secret,id=my-secret curl [http://example.com?token=$(cat /run/secrets/my-secret)](http://example.com?token=$(cat /run/secrets/my-secret))
    */
   secrets?: Secret[]
+  secretArgs?: SecretArg[]
 }
 
 export type ContainerDirectoryOpts = {
@@ -705,6 +706,7 @@ export type DirectoryDockerBuildOpts = {
    * They will be mounted at /run/secrets/[secret-name].
    */
   secrets?: Secret[]
+  secretArgs?: SecretArg[]
 }
 
 export type DirectoryEntriesOpts = {
@@ -1254,6 +1256,18 @@ export type SDKConfigID = string & { __SDKConfigID: never }
  * The `ScalarTypeDefID` scalar type represents an identifier for an object of type ScalarTypeDef.
  */
 export type ScalarTypeDefID = string & { __ScalarTypeDefID: never }
+
+export type SecretArg = {
+  /**
+   * The build argument name.
+   */
+  name: string
+
+  /**
+   * The build argument value.
+   */
+  value: Secret
+}
 
 /**
  * The `SecretID` scalar type represents an identifier for an object of type Secret.

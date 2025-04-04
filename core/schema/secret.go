@@ -153,7 +153,7 @@ func (s *secretSchema) name(ctx context.Context, secret *core.Secret, args struc
 	}
 	name, ok := secretStore.GetSecretName(secret.IDDigest)
 	if !ok {
-		return "", fmt.Errorf("secret not found: %s", secret.IDDigest)
+		return "", fmt.Errorf("secret not found 4: %s", secret.IDDigest)
 	}
 
 	return dagql.NewString(name), nil
@@ -166,7 +166,7 @@ func (s *secretSchema) uri(ctx context.Context, secret *core.Secret, args struct
 	}
 	name, ok := secretStore.GetSecretURI(secret.IDDigest)
 	if !ok {
-		return "", fmt.Errorf("secret not found: %s", secret.IDDigest)
+		return "", fmt.Errorf("secret not found 5: %s", secret.IDDigest)
 	}
 
 	return dagql.NewString(name), nil

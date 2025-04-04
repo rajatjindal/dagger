@@ -273,6 +273,15 @@ type PortForward struct {
 	Protocol NetworkProtocol `json:"protocol,omitempty"`
 }
 
+// Key value object that represents a build argument.
+type SecretArg struct {
+	// The build argument name.
+	Name string `json:"name"`
+
+	// The build argument value.
+	Value *Secret `json:"value"`
+}
+
 type Binding struct {
 	query *querybuilder.Selection
 
@@ -692,6 +701,8 @@ type ContainerBuildOpts struct {
 	//
 	// They can be accessed in the Dockerfile using the "secret" mount type and mount path /run/secrets/[secret-name], e.g. RUN --mount=type=secret,id=my-secret curl [http://example.com?token=$(cat /run/secrets/my-secret)](http://example.com?token=$(cat /run/secrets/my-secret))
 	Secrets []*Secret
+
+	SecretArgs []SecretArg
 }
 
 // Initializes this container from a Dockerfile build.
@@ -714,6 +725,10 @@ func (r *Container) Build(context *Directory, opts ...ContainerBuildOpts) *Conta
 		// `secrets` optional argument
 		if !querybuilder.IsZeroValue(opts[i].Secrets) {
 			q = q.Arg("secrets", opts[i].Secrets)
+		}
+		// `secretArgs` optional argument
+		if !querybuilder.IsZeroValue(opts[i].SecretArgs) {
+			q = q.Arg("secretArgs", opts[i].SecretArgs)
 		}
 	}
 	q = q.Arg("context", context)
@@ -2527,6 +2542,8 @@ type DirectoryDockerBuildOpts struct {
 	//
 	// They will be mounted at /run/secrets/[secret-name].
 	Secrets []*Secret
+
+	SecretArgs []SecretArg
 }
 
 // Builds a new Docker container from this directory.
@@ -2552,6 +2569,10 @@ func (r *Directory) DockerBuild(opts ...DirectoryDockerBuildOpts) *Container {
 		// `secrets` optional argument
 		if !querybuilder.IsZeroValue(opts[i].Secrets) {
 			q = q.Arg("secrets", opts[i].Secrets)
+		}
+		// `secretArgs` optional argument
+		if !querybuilder.IsZeroValue(opts[i].SecretArgs) {
+			q = q.Arg("secretArgs", opts[i].SecretArgs)
 		}
 	}
 

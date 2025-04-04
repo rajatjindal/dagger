@@ -90,7 +90,8 @@ defmodule Dagger.Directory do
           {:dockerfile, String.t() | nil},
           {:target, String.t() | nil},
           {:build_args, [Dagger.BuildArg.t()]},
-          {:secrets, [Dagger.SecretID.t()]}
+          {:secrets, [Dagger.SecretID.t()]},
+          {:secret_args, [Dagger.SecretArg.t()]}
         ]) :: Dagger.Container.t()
   def docker_build(%__MODULE__{} = directory, optional_args \\ []) do
     query_builder =
@@ -107,6 +108,7 @@ defmodule Dagger.Directory do
           else: nil
         )
       )
+      |> QB.maybe_put_arg("secretArgs", optional_args[:secret_args])
 
     %Dagger.Container{
       query_builder: query_builder,
