@@ -155,6 +155,16 @@ func (store *SecretStore) HasSecret(idDgst digest.Digest) bool {
 	return ok
 }
 
+func (store *SecretStore) GetSecret(idDgst digest.Digest) (*Secret, bool) {
+	store.mu.RLock()
+	defer store.mu.RUnlock()
+	secret, ok := store.secrets[idDgst]
+	if !ok {
+		return nil, false
+	}
+	return secret.Secret, true
+}
+
 func (store *SecretStore) GetSecretName(idDgst digest.Digest) (string, bool) {
 	store.mu.RLock()
 	defer store.mu.RUnlock()
