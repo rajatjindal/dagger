@@ -267,12 +267,12 @@ func (m *Foo) VerifySecret(ctx context.Context, vault *dagger.Service, secret *d
 	}{
 		{
 			name:                    "without any ttl it caches forever",
-			secret:                  "vault://data/my-secret.password",
+			secret:                  "vault://my-secret.password",
 			expectedUpdatedPassword: "original-password",
 		},
 		{
 			name:                    "respect ttl if provided",
-			secret:                  "vault://data/my-secret.password?ttl=10s",
+			secret:                  "vault://my-secret.password?ttl=10s",
 			expectedUpdatedPassword: "updated-password",
 		},
 	}

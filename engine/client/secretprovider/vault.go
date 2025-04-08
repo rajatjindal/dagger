@@ -3,6 +3,7 @@ package secretprovider
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"os"
 	"strings"
 	"time"
@@ -11,28 +12,50 @@ import (
 	auth "github.com/hashicorp/vault/api/auth/approle"
 )
 
+type dataWithTTL struct {
+	expiresAt time.Time
+	data      map[string]any
+}
+
 var (
 	vaultClient *vault.Client
 	vaultCache  = make(map[string]dataWithTTL)
 )
 
 // HashiCorp Vault provider for SecretProvider
-func getVaultProvider(ttl time.Duration) SecretResolver {
-	return func(ctx context.Context, key string) ([]byte, error) {
-		// KVv2 mount path. Default "secret"
-		mount := os.Getenv("VAULT_PATH_PREFIX")
-		if mount == "" {
-			mount = "secret"
-		}
+func vaultProvider(ctx context.Context, pathWithQuery string) ([]byte, error) {
+	parsed, err := url.Parse(pathWithQuery)
+	if err != nil {
+		return nil, err
+	}
 
-		// split key into path and field, e.g. "path/to/secret.field"
-		keyParts := strings.Split(key, ".")
-		if len(keyParts) != 2 {
-			return nil, fmt.Errorf("invalid key format: %s", key)
-		}
-		secretPath := keyParts[0]
-		secretField := keyParts[1]
+	// this is just path part without the query params such as ttl
+	key := parsed.Path
 
+	var ttl time.Duration
+	ttlStr := strings.TrimSpace(parsed.Query().Get("ttl"))
+	if ttlStr != "" {
+		ttl, err = time.ParseDuration(ttlStr)
+		if err != nil {
+			return nil, fmt.Errorf("invalid ttl %q provided for secret %q. err: %w", ttlStr, key, err)
+		}
+	}
+
+	// KVv2 mount path. Default "secret"
+	mount := os.Getenv("VAULT_PATH_PREFIX")
+	if mount == "" {
+		mount = "secret"
+	}
+
+	// split key into path and field, e.g. "path/to/secret.field"
+	keyParts := strings.Split(key, ".")
+	if len(keyParts) != 2 {
+		return nil, fmt.Errorf("invalid key format: %s", key)
+	}
+	secretPath := keyParts[0]
+	secretField := keyParts[1]
+
+	if existing, ok := vaultCache[key]; !ok || hasExpired(existing) {
 		// check if client is initialized
 		if vaultClient == nil {
 			err := vaultConfigureClient(ctx)
@@ -41,27 +64,24 @@ func getVaultProvider(ttl time.Duration) SecretResolver {
 			}
 		}
 
-		// check if path is in key cache and is not expired
-		if existing, ok := vaultCache[key]; !ok || hasExpired(existing) {
-			// read the secret
-			s, err := vaultClient.KVv2(mount).Get(ctx, secretPath)
-			if err != nil {
-				return nil, fmt.Errorf("inside 3 %w. secret path %s", err, secretPath)
-			}
-			data := dataWithTTL{
-				data: s.Data,
-			}
-
-			if ttl > 0 {
-				data.expiresAt = time.Now().Add(ttl)
-			}
-
-			// cache response
-			vaultCache[key] = data
+		// read the secret
+		s, err := vaultClient.KVv2(mount).Get(ctx, secretPath)
+		if err != nil {
+			return nil, fmt.Errorf("path: %q: %w", secretPath, err)
+		}
+		data := dataWithTTL{
+			data: s.Data,
 		}
 
-		return []byte(vaultCache[key].data[secretField].(string)), nil
+		if ttl > 0 {
+			data.expiresAt = time.Now().Add(ttl)
+		}
+
+		// cache response
+		vaultCache[key] = data
 	}
+
+	return []byte(vaultCache[key].data[secretField].(string)), nil
 }
 
 func hasExpired(data dataWithTTL) bool {
