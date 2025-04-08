@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"testing"
+	"time"
 
 	"dagger.io/dagger"
 	"github.com/stretchr/testify/require"
@@ -201,7 +202,18 @@ func (SecretSuite) TestVaultSecretsProviderTTL(ctx context.Context, t *testctx.T
 	}
 
 	var verifySecretFromVault = func(ctx context.Context, c *dagger.Client, vault *dagger.Service, secretURL string) (string, error) {
-		return baseContainer(c, vault).
+		base := baseContainer(c, vault)
+		base, err := base.WithExec([]string{"sh", "-c", "vault kv put secret/my-secret username=\"admin\" password=\"original-password\""}).Sync(ctx)
+		if err != nil {
+			return "", err
+		}
+
+		go func() {
+			time.Sleep(30 * time.Second)
+			_, _ = base.WithExec([]string{"sh", "-c", "vault kv put secret/my-secret username=\"admin\" password=\"updated-password\""}).Sync(ctx)
+		}()
+
+		return base.
 			WithWorkdir("/work").
 			With(daggerExec("init", "--sdk=go", "--name=foo", "--source=.")).
 			WithNewFile("main.go", `package main
@@ -215,32 +227,12 @@ import (
 
 type Foo struct{}
 
-
 // This function sets the value of secret in vault, gets its plaintext value. Then
 // this function updates the value of secret in vault (to simulate expired or changed secret), and sleeps for 20s to allow for ttl (if any) 
 // to expire. It then gets its plaintext value again.
 // After that it returns both the values as string, which our tescase then verifies.
-func (m *Foo) VerifySecret(ctx context.Context, vault *dagger.Service, secret *dagger.Secret) (string, error) {
-	_, err := dag.Container().From("hashicorp/vault").
-		WithEnvVariable("VAULT_ADDR", "http://vault:8200").
-		WithEnvVariable("VAULT_TOKEN", "vault-root-token").
-		WithServiceBinding("vault", vault).
-		WithExec([]string{"sh", "-c", "vault kv put secret/my-secret username=\"admin\" password=\"original-password\""}).Sync(ctx)
-	if err != nil {
-		return "", err
-	}
-
+func (m *Foo) VerifySecret(ctx context.Context, secret *dagger.Secret) (string, error) {
 	original, err := secret.Plaintext(ctx)
-	if err != nil {
-		return "", err
-	}
-
-	// simulate an update in secret while the pipeline is running
-	_, err = dag.Container().From("hashicorp/vault").
-		WithEnvVariable("VAULT_ADDR", "http://vault:8200").
-		WithEnvVariable("VAULT_TOKEN", "vault-root-token").
-		WithServiceBinding("vault", vault).
-		WithExec([]string{"sh", "-c", "vault kv put secret/my-secret username=\"admin\" password=\"updated-password\""}).Sync(ctx)
 	if err != nil {
 		return "", err
 	}
@@ -257,7 +249,7 @@ func (m *Foo) VerifySecret(ctx context.Context, vault *dagger.Service, secret *d
 	return fmt.Sprintf("original: %s\nupdated: %s", original, updated), nil
 }
 `).
-			With(daggerCall("-vvv", "verify-secret", fmt.Sprintf("--secret=%s", secretURL), "--vault=tcp://vault:8200")).Stdout(ctx)
+			With(daggerCall("-vvv", "verify-secret", fmt.Sprintf("--secret=%s", secretURL))).Stdout(ctx)
 	}
 
 	testcases := []struct {
@@ -281,7 +273,7 @@ func (m *Foo) VerifySecret(ctx context.Context, vault *dagger.Service, secret *d
 		t.Run(tc.name, func(ctx context.Context, t *testctx.T) {
 			c := connect(ctx, t)
 
-			vault := c.Container().
+			vault, err := c.Container().
 				From("hashicorp/vault").
 				WithEnvVariable("VAULT_DEV_ROOT_TOKEN_ID", "vault-root-token").
 				WithEnvVariable("VAULT_LOG_LEVEL", "debug").
@@ -290,7 +282,8 @@ func (m *Foo) VerifySecret(ctx context.Context, vault *dagger.Service, secret *d
 					UseEntrypoint:                 true,
 					ExperimentalPrivilegedNesting: true,
 					InsecureRootCapabilities:      true,
-				})
+				}).Start(ctx)
+			require.NoError(t, err)
 
 			output, err := verifySecretFromVault(ctx, c, vault, tc.secret)
 			require.NoError(t, err)
